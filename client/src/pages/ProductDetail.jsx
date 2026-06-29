@@ -45,15 +45,14 @@ export default function ProductDetail() {
     setProduct(null); setReviews([]); setRelated([]); setQty(1); setAdded(false); setTab('description');
     Promise.all([
       API.get(`/products/${id}`),
-      API.get(`/products/${id}/reviews`),
+      API.get(`/products/${id}/reviews`).catch(() => ({ data: [] })),
     ]).then(([p, r]) => {
       setProduct(p.data);
       setReviews(r.data);
-      // load related: same category
       API.get('/products').then(all => {
         setRelated(all.data.filter(x => x.category_id === p.data.category_id && x.id !== p.data.id).slice(0, 4));
-      });
-    });
+      }).catch(() => {});
+    }).catch(() => setProduct({}));
   }, [id]);
 
   const handleAddToCart = () => {
@@ -82,14 +81,26 @@ export default function ProductDetail() {
   };
 
   if (!product) return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 20px' }}>
-      <div style={{ display: 'flex', gap: 40, flexWrap: 'wrap' }}>
-        <div style={{ width: 440, height: 440, borderRadius: 16, background: '#f1f5f9', flexShrink: 0 }} />
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {[80, 40, 60, 100, 200].map((w, i) => (
-            <div key={i} style={{ height: i === 4 ? 80 : 20, width: `${w}%`, background: '#f1f5f9', borderRadius: 8 }} />
-          ))}
+    <div style={{ background: '#f8f9fb', minHeight: '100vh' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 20px' }}>
+        <div style={{ display: 'flex', gap: 40, flexWrap: 'wrap' }}>
+          <div style={{ width: 440, height: 440, borderRadius: 16, background: '#f1f5f9', flexShrink: 0 }} />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {[80, 40, 60, 100, 200].map((w, i) => (
+              <div key={i} style={{ height: i === 4 ? 80 : 20, width: `${w}%`, background: '#f1f5f9', borderRadius: 8 }} />
+            ))}
+          </div>
         </div>
+      </div>
+    </div>
+  );
+
+  if (!product.id) return (
+    <div style={{ background: '#f8f9fb', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: '3rem', marginBottom: 16 }}>😕</div>
+        <h2 style={{ color: '#1a1a2e', marginBottom: 8 }}>Product not found</h2>
+        <Link to="/products" style={{ color: accent, fontWeight: 700 }}>← Back to Products</Link>
       </div>
     </div>
   );
