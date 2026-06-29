@@ -98,7 +98,7 @@ export default function Home() {
       {/* ── Trust Bar ── */}
       <div className="ss-trust">
         <div className="ss-trust-inner">
-          <TrustItem icon={<TruckIcon />} text="Free Delivery over KES 2,000" />
+          <TrustItem icon={<TruckIcon />} text={`Free Delivery over ${formatPrice(settings.free_shipping_threshold || 2000)}`} />
           <TrustItem icon={<LockIcon />} text="Secure Payments" />
           <TrustItem icon={<ReturnIcon />} text="Easy 30-Day Returns" />
           <TrustItem icon={<SupportIcon />} text="24/7 Customer Support" />
@@ -114,11 +114,12 @@ export default function Home() {
           </div>
           <div className="ss-cat-grid">
             {categories.map((c) => (
-              <Link to={`/products?category=${c.id}`} key={c.id} className="ss-cat-card">
+              <Link to={`/products?cat=${c.id}`} key={c.id} className="ss-cat-card">
                 <div className="ss-cat-img">
                   <span style={{ fontSize: '1.6rem' }}>{getCatEmoji(c.name)}</span>
                 </div>
                 <div className="ss-cat-name">{c.name}</div>
+                {c.product_count > 0 && <div className="ss-cat-count">{c.product_count} product{c.product_count !== 1 ? 's' : ''}</div>}
               </Link>
             ))}
           </div>
