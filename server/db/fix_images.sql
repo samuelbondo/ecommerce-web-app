@@ -1,0 +1,23 @@
+USE samuel_store;
+
+UPDATE products SET image_url = 'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=300&h=300&fit=crop' WHERE id = 1;
+UPDATE products SET image_url = 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=300&h=300&fit=crop' WHERE id = 2;
+UPDATE products SET image_url = 'https://images.unsplash.com/photo-1612817288484-6f916006741a?w=300&h=300&fit=crop' WHERE id = 3;
+UPDATE products SET image_url = 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=300&h=300&fit=crop' WHERE id = 4;
+UPDATE products SET image_url = 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=300&h=300&fit=crop' WHERE id = 5;
+UPDATE products SET image_url = 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300&h=300&fit=crop' WHERE id = 6;
+UPDATE products SET image_url = 'https://images.unsplash.com/photo-1532012197267-da84d127e765?w=300&h=300&fit=crop' WHERE id = 7;
+UPDATE products SET image_url = 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?w=300&h=300&fit=crop' WHERE id = 8;
+UPDATE products SET image_url = 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=300&h=300&fit=crop' WHERE id = 9;
+UPDATE products SET image_url = 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=300&h=300&fit=crop' WHERE id = 10;
+UPDATE products SET image_url = 'https://images.unsplash.com/photo-1584990347449-39ce4a1cbcf6?w=300&h=300&fit=crop' WHERE id = 11;
+UPDATE products SET image_url = 'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=300&h=300&fit=crop' WHERE id = 12;
+UPDATE products SET image_url = 'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=300&h=300&fit=crop' WHERE id = 13;
+UPDATE products SET image_url = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=300&fit=crop' WHERE id = 14;
+UPDATE products SET image_url = 'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=300&h=300&fit=crop' WHERE id = 15;
+UPDATE products SET image_url = 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=300&h=300&fit=crop' WHERE id = 16;
+UPDATE products SET image_url = 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300&h=300&fit=crop' WHERE id = 17;
+UPDATE products SET image_url = 'https://images.unsplash.com/photo-1532012197267-da84d127e765?w=300&h=300&fit=crop' WHERE id = 18;
+UPDATE products SET image_url = 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?w=300&h=300&fit=crop' WHERE id = 19;
+UPDATE products SET image_url = 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=300&h=300&fit=crop' WHERE id = 20;
+UPDATE products SET image_url = 'https://images.unsplash.com/photo-1584990347449-39ce4a1cbcf6?w=300&h=300&fit=crop' WHERE id = 21;

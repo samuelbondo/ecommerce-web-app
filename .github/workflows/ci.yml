@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-server:
+    name: Server — Install & Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install server dependencies
+        run: npm install
+        working-directory: server
+      - name: Run server tests
+        run: npm test --if-present
+        working-directory: server
+        env:
+          PORT: 5000
+          DB_HOST: localhost
+          DB_USER: root
+          DB_PASSWORD: root
+          DB_NAME: samuel_store
+          JWT_SECRET: test_secret
+      - name: Check server starts
+        run: node -e "require('./index.js')" &
+        working-directory: server
+        env:
+          PORT: 5000
+          DB_HOST: localhost
+          DB_USER: root
+          DB_PASSWORD: root
+          DB_NAME: samuel_store
+          JWT_SECRET: test_secret
+
+  test-client:
+    name: Client — Install & Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install client dependencies
+        run: npm install
+        working-directory: client
+      - name: Build client
+        run: npm run build
+        working-directory: client
+        env:
+          VITE_API_URL: http://localhost:5000/api
+
+  docker-build:
+    name: Docker — Build Images
+    runs-on: ubuntu-latest
+    needs: [test-server, test-client]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build server image
+        run: docker build -t samuel-store-server ./server
+      - name: Build client image
+        run: docker build -t samuel-store-client ./client
