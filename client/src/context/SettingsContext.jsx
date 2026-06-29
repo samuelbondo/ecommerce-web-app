@@ -4,18 +4,18 @@ import API from '../api';
 const SettingsContext = createContext();
 
 const DEFAULTS = {
-  site_name: 'Samuel Store',
-  site_tagline: 'Quality products at the best prices',
+  site_name: '',
+  site_tagline: '',
   site_logo: '',
-  currency: 'USD',
-  banner_title: 'New Season. New Deals.',
-  banner_subtitle: 'Shop the latest products at unbeatable prices.',
-  banner_cta: 'Shop Now',
+  currency: '',
+  banner_title: '',
+  banner_subtitle: '',
+  banner_cta: '',
   banner_bg: '#1a1a2e',
-  footer_about: 'Your one-stop shop for quality products delivered to your door.',
-  footer_email: 'samuelstore@gmail.com',
-  footer_phone: '+250794047261',
-  footer_address: 'Nyanza, Rwanda',
+  footer_about: '',
+  footer_email: '',
+  footer_phone: '',
+  footer_address: '',
   accent_color: '#e94560',
 };
 
