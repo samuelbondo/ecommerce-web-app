@@ -1,19 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Toast from '../../components/Toast';
-
-const SAMPLE = [
-  { id: 1, product: 'Samsung Galaxy A15', customer: 'John Doe', rating: 5, comment: 'Excellent product, highly recommend!', date: '2026-06-25', status: 'pending', image: 'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=48&h=48&fit=crop' },
-  { id: 2, product: 'Wireless Earbuds', customer: 'Jane Smith', rating: 2, comment: 'Battery dies too fast. Not happy.', date: '2026-06-24', status: 'pending', image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=48&h=48&fit=crop' },
-  { id: 3, product: 'Running Shoes', customer: 'Ali Hassan', rating: 4, comment: 'Very comfortable, true to size.', date: '2026-06-23', status: 'approved', image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=48&h=48&fit=crop' },
-  { id: 4, product: 'Electric Kettle', customer: 'Mary Wanjiku', rating: 1, comment: 'Broke after 2 days. Terrible quality!', date: '2026-06-22', status: 'rejected', image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=48&h=48&fit=crop' },
-];
+import API from '../../api';
 
 const Stars = ({ rating }) => (
-  <span>{[1,2,3,4,5].map(i => <span key={i} style={{ color: i <= rating ? '#f59e0b' : '#e5e7eb', fontSize: '0.9rem' }}>★</span>)}</span>
+  <span>{[1,2,3,4,5].map(i => (
+    <span key={i} style={{ color: i <= rating ? '#f59e0b' : '#e5e7eb', fontSize: '0.9rem' }}>★</span>
+  ))}</span>
 );
 
 export default function AdminReviews() {
-  const [reviews, setReviews] = useState(SAMPLE);
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [replyId, setReplyId] = useState(null);
   const [replyText, setReplyText] = useState('');
@@ -21,21 +18,38 @@ export default function AdminReviews() {
 
   const notify = (msg, type = 'success') => setToast({ message: msg, type });
 
-  const updateStatus = (id, status) => {
-    setReviews(prev => prev.map(r => r.id === id ? { ...r, status } : r));
-    notify(`Review ${status}`);
+  const load = () => {
+    setLoading(true);
+    API.get('/admin/reviews').then(r => setReviews(r.data)).catch(() => notify('Failed to load reviews', 'error')).finally(() => setLoading(false));
   };
 
-  const deleteReview = (id) => {
-    setReviews(prev => prev.filter(r => r.id !== id));
-    notify('Review deleted', 'info');
+  useEffect(() => { load(); }, []);
+
+  const updateStatus = async (id, status) => {
+    try {
+      await API.put(`/admin/reviews/${id}/status`, { status });
+      setReviews(prev => prev.map(r => r.id === id ? { ...r, status } : r));
+      notify(`Review ${status}`);
+    } catch { notify('Failed to update', 'error'); }
   };
 
-  const submitReply = (id) => {
+  const deleteReview = async (id) => {
+    if (!window.confirm('Delete this review?')) return;
+    try {
+      await API.delete(`/admin/reviews/${id}`);
+      setReviews(prev => prev.filter(r => r.id !== id));
+      notify('Review deleted', 'info');
+    } catch { notify('Failed to delete', 'error'); }
+  };
+
+  const submitReply = async (id) => {
     if (!replyText.trim()) return;
-    setReviews(prev => prev.map(r => r.id === id ? { ...r, reply: replyText } : r));
-    setReplyId(null); setReplyText('');
-    notify('Reply posted!');
+    try {
+      await API.put(`/admin/reviews/${id}/reply`, { reply: replyText });
+      setReviews(prev => prev.map(r => r.id === id ? { ...r, admin_reply: replyText } : r));
+      setReplyId(null); setReplyText('');
+      notify('Reply posted!');
+    } catch { notify('Failed to post reply', 'error'); }
   };
 
   const filtered = filter === 'all' ? reviews : reviews.filter(r => r.status === filter);
@@ -46,7 +60,10 @@ export default function AdminReviews() {
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       <div style={s.pageHeader}>
-        <div><h2 style={s.pageTitle}>Reviews</h2><p style={s.pageSub}>{reviews.length} total reviews</p></div>
+        <div>
+          <h2 style={s.pageTitle}>Reviews</h2>
+          <p style={s.pageSub}>{reviews.length} total · {reviews.filter(r => r.status === 'pending').length} pending approval</p>
+        </div>
       </div>
 
       <div style={s.filters}>
@@ -57,43 +74,59 @@ export default function AdminReviews() {
         ))}
       </div>
 
-      <div style={s.list}>
-        {filtered.length === 0 && <div style={s.empty}>No reviews found.</div>}
-        {filtered.map(r => (
-          <div key={r.id} style={s.card}>
-            <div style={s.cardTop}>
-              <img src={r.image} alt={r.product} style={s.img} onError={e => { e.target.src='https://placehold.co/48x48?text=?'; }} />
-              <div style={{ flex: 1 }}>
-                <div style={s.product}>{r.product}</div>
-                <div style={s.customer}>by {r.customer} · {new Date(r.date).toLocaleDateString()}</div>
-                <Stars rating={r.rating} />
-              </div>
-              <span style={{ ...s.badge, background: STATUS_COLOR[r.status] + '20', color: STATUS_COLOR[r.status] }}>{r.status}</span>
-            </div>
-            <p style={s.comment}>{r.comment}</p>
-            {r.reply && <div style={s.replyBox}><b>Admin reply:</b> {r.reply}</div>}
-
-            {replyId === r.id && (
-              <div style={s.replyForm}>
-                <textarea value={replyText} onChange={e => setReplyText(e.target.value)} style={s.textarea} rows={2} placeholder="Write a reply..." />
-                <div style={s.replyBtns}>
-                  <button onClick={() => submitReply(r.id)} style={s.btnPrimary}>Post Reply</button>
-                  <button onClick={() => setReplyId(null)} style={s.btnCancel}>Cancel</button>
+      {loading ? (
+        <div style={{ padding: '40px', textAlign: 'center', color: '#aaa' }}>Loading reviews...</div>
+      ) : (
+        <div style={s.list}>
+          {filtered.length === 0 && <div style={s.empty}>No reviews found.</div>}
+          {filtered.map(r => (
+            <div key={r.id} style={s.card}>
+              <div style={s.cardTop}>
+                <img src={r.image_url} alt={r.product} style={s.img}
+                  onError={e => { e.target.src = 'https://placehold.co/48x48?text=?'; }} />
+                <div style={{ flex: 1 }}>
+                  <div style={s.product}>{r.product}</div>
+                  <div style={s.customer}>by {r.customer} · {new Date(r.created_at).toLocaleDateString()}</div>
+                  <Stars rating={r.rating} />
                 </div>
+                <span style={{ ...s.badge, background: STATUS_COLOR[r.status] + '20', color: STATUS_COLOR[r.status] }}>{r.status}</span>
               </div>
-            )}
+              <p style={s.comment}>"{r.comment}"</p>
+              {r.admin_reply && (
+                <div style={s.replyBox}><b>Store reply:</b> {r.admin_reply}</div>
+              )}
 
-            <div style={s.actions}>
-              {r.status === 'pending' && <>
-                <button onClick={() => updateStatus(r.id, 'approved')} style={s.btnApprove}>✓ Approve</button>
-                <button onClick={() => updateStatus(r.id, 'rejected')} style={s.btnReject}>✗ Reject</button>
-              </>}
-              <button onClick={() => { setReplyId(r.id); setReplyText(r.reply || ''); }} style={s.btnReply}>💬 Reply</button>
-              <button onClick={() => deleteReview(r.id)} style={s.btnDel}>🗑 Delete</button>
+              {replyId === r.id && (
+                <div style={s.replyForm}>
+                  <textarea value={replyText} onChange={e => setReplyText(e.target.value)}
+                    style={s.textarea} rows={2} placeholder="Write a reply..." />
+                  <div style={s.replyBtns}>
+                    <button onClick={() => submitReply(r.id)} style={s.btnPrimary}>Post Reply</button>
+                    <button onClick={() => setReplyId(null)} style={s.btnCancel}>Cancel</button>
+                  </div>
+                </div>
+              )}
+
+              <div style={s.actions}>
+                {r.status === 'pending' && <>
+                  <button onClick={() => updateStatus(r.id, 'approved')} style={s.btnApprove}>✓ Approve</button>
+                  <button onClick={() => updateStatus(r.id, 'rejected')} style={s.btnReject}>✗ Reject</button>
+                </>}
+                {r.status === 'approved' && (
+                  <button onClick={() => updateStatus(r.id, 'rejected')} style={s.btnReject}>✗ Reject</button>
+                )}
+                {r.status === 'rejected' && (
+                  <button onClick={() => updateStatus(r.id, 'approved')} style={s.btnApprove}>✓ Approve</button>
+                )}
+                <button onClick={() => { setReplyId(r.id); setReplyText(r.admin_reply || ''); }} style={s.btnReply}>
+                  💬 {r.admin_reply ? 'Edit Reply' : 'Reply'}
+                </button>
+                <button onClick={() => deleteReview(r.id)} style={s.btnDel}>🗑 Delete</button>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -117,7 +150,7 @@ const s = {
   comment: { color: '#444', fontSize: '0.88rem', margin: 0, fontStyle: 'italic' },
   replyBox: { background: '#f0f7ff', borderRadius: '8px', padding: '10px', fontSize: '0.83rem', color: '#333', borderLeft: '3px solid #3b82f6' },
   replyForm: { display: 'flex', flexDirection: 'column', gap: '8px' },
-  textarea: { padding: '9px 12px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.88rem', outline: 'none', resize: 'vertical' },
+  textarea: { padding: '9px 12px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.88rem', outline: 'none', resize: 'vertical', fontFamily: 'inherit' },
   replyBtns: { display: 'flex', gap: '8px' },
   actions: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
   btnApprove: { padding: '5px 14px', borderRadius: '6px', border: 'none', background: '#10b981', color: '#fff', cursor: 'pointer', fontSize: '0.78rem', fontWeight: '600' },

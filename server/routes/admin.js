@@ -179,4 +179,41 @@ router.put('/inventory/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── Reviews ────────────────────────────────────────────
+router.get('/reviews', async (req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT r.*, u.name AS customer, p.name AS product, p.image_url
+      FROM reviews r
+      JOIN users u ON r.user_id = u.id
+      JOIN products p ON r.product_id = p.id
+      ORDER BY r.created_at DESC
+    `);
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/reviews/:id/status', async (req, res) => {
+  const { status } = req.body;
+  try {
+    await db.query('UPDATE reviews SET status=? WHERE id=?', [status, req.params.id]);
+    res.json({ message: 'Review status updated' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/reviews/:id/reply', async (req, res) => {
+  const { reply } = req.body;
+  try {
+    await db.query('UPDATE reviews SET admin_reply=? WHERE id=?', [reply, req.params.id]);
+    res.json({ message: 'Reply saved' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/reviews/:id', async (req, res) => {
+  try {
+    await db.query('DELETE FROM reviews WHERE id=?', [req.params.id]);
+    res.json({ message: 'Review deleted' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 module.exports = router;
