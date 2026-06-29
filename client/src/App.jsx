@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
-import { SettingsProvider } from './context/SettingsContext';
+import { SettingsProvider, useSettings } from './context/SettingsContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -30,8 +31,34 @@ function AdminRoute({ children }) {
 
 function Layout() {
   const location = useLocation();
+  const { settings } = useSettings();
+  const siteName = settings.site_name || 'Samuel Store';
   const noShell = location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/admin');
   const noFooter = location.pathname.startsWith('/login') || location.pathname.startsWith('/register') || noShell;
+
+  // Dynamic page title
+  useEffect(() => {
+    const titles = {
+      '/': siteName,
+      '/products': `Products — ${siteName}`,
+      '/cart': `Cart — ${siteName}`,
+      '/checkout': `Checkout — ${siteName}`,
+      '/login': `Login — ${siteName}`,
+      '/register': `Register — ${siteName}`,
+      '/orders': `My Orders — ${siteName}`,
+      '/order-confirmation': `Order Confirmed — ${siteName}`,
+    };
+    const path = location.pathname;
+    if (path.startsWith('/products/')) {
+      document.title = `Product — ${siteName}`;
+    } else if (path.startsWith('/dashboard')) {
+      document.title = `Dashboard — ${siteName}`;
+    } else if (path.startsWith('/admin')) {
+      document.title = `Admin — ${siteName}`;
+    } else {
+      document.title = titles[path] || siteName;
+    }
+  }, [location.pathname, siteName]);
   return (
     <>
       {!noShell && <Navbar />}
