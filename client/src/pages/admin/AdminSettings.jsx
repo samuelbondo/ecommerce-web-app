@@ -32,13 +32,6 @@ export default function AdminSettings() {
 
   const set = (key, val) => setSettings(prev => ({ ...prev, [key]: val }));
 
-  const Field = ({ label, k, type = 'text', placeholder = '' }) => (
-    <div style={s.field}>
-      <label style={s.label}>{label}</label>
-      <input value={settings[k] || ''} onChange={e => set(k, e.target.value)} style={s.input} type={type} placeholder={placeholder} />
-    </div>
-  );
-
   const TABS = [
     { id: 'store', icon: '🏪', label: 'Store' },
     { id: 'currency', icon: '💱', label: 'Currency & Tax' },
@@ -72,10 +65,10 @@ export default function AdminSettings() {
             <div style={s.section}>
               <h3 style={s.sectionTitle}>🏪 Store Information</h3>
               <div style={s.grid2}>
-                <Field label="Store Name" k="store_name" />
-                <Field label="Store Email" k="store_email" type="email" />
-                <Field label="Phone Number" k="store_phone" />
-                <Field label="Store Address" k="store_address" />
+                <Field label="Store Name" k="store_name" settings={settings} onChange={set} />
+                <Field label="Store Email" k="store_email" type="email" settings={settings} onChange={set} />
+                <Field label="Phone Number" k="store_phone" settings={settings} onChange={set} />
+                <Field label="Store Address" k="store_address" settings={settings} onChange={set} />
               </div>
             </div>
           )}
@@ -90,11 +83,11 @@ export default function AdminSettings() {
                     {['KES','USD','EUR','GBP','TZS','UGX','ETB','ZAR'].map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
-                <Field label="Tax Rate (%)" k="tax_rate" type="number" />
+                <Field label="Tax Rate (%)" k="tax_rate" type="number" settings={settings} onChange={set} />
               </div>
               {!PAYPAL_SUPPORTED.includes(settings.currency) && (
                 <div style={s.grid2}>
-                  <Field label={`PayPal Rate (1 USD = ? ${settings.currency})`} k="paypal_rate" type="number" placeholder="e.g. 130" />
+                  <Field label={`PayPal Rate (1 USD = ? ${settings.currency})`} k="paypal_rate" type="number" placeholder="e.g. 130" settings={settings} onChange={set} />
                   <div style={s.field}>
                     <label style={s.label}>Example</label>
                     <div style={{ ...s.input, background: '#f9fafb', color: '#64748b', fontSize: '0.82rem', display: 'flex', alignItems: 'center' }}>
@@ -115,8 +108,8 @@ export default function AdminSettings() {
             <div style={s.section}>
               <h3 style={s.sectionTitle}>🚚 Shipping</h3>
               <div style={s.grid2}>
-                <Field label={`Standard Shipping Fee (${currency})`} k="shipping_fee" type="number" />
-                <Field label={`Free Shipping Threshold (${currency})`} k="free_shipping_threshold" type="number" />
+                <Field label={`Standard Shipping Fee (${currency})`} k="shipping_fee" type="number" settings={settings} onChange={set} />
+                <Field label={`Free Shipping Threshold (${currency})`} k="free_shipping_threshold" type="number" settings={settings} onChange={set} />
               </div>
               <div style={s.infoBox}>💡 Orders above the threshold qualify for free shipping automatically.</div>
             </div>
@@ -125,7 +118,7 @@ export default function AdminSettings() {
           {tab === 'seo' && (
             <div style={s.section}>
               <h3 style={s.sectionTitle}>🔍 SEO Settings</h3>
-              <Field label="Meta Title" k="meta_title" />
+              <Field label="Meta Title" k="meta_title" settings={settings} onChange={set} />
               <div style={s.field}>
                 <label style={s.label}>Meta Description</label>
                 <textarea value={settings.meta_description || ''} onChange={e => set('meta_description', e.target.value)} style={s.textarea} rows={3} placeholder="Short description for search engines..." />
@@ -137,14 +130,23 @@ export default function AdminSettings() {
             <div style={s.section}>
               <h3 style={s.sectionTitle}>📱 Social Media Links</h3>
               <div style={s.grid2}>
-                <Field label="Facebook URL" k="facebook" placeholder="https://facebook.com/..." />
-                <Field label="Instagram URL" k="instagram" placeholder="https://instagram.com/..." />
-                <Field label="Twitter / X URL" k="twitter" placeholder="https://twitter.com/..." />
+                <Field label="Facebook URL" k="facebook" placeholder="https://facebook.com/..." settings={settings} onChange={set} />
+                <Field label="Instagram URL" k="instagram" placeholder="https://instagram.com/..." settings={settings} onChange={set} />
+                <Field label="Twitter / X URL" k="twitter" placeholder="https://twitter.com/..." settings={settings} onChange={set} />
               </div>
             </div>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function Field({ label, k, type = 'text', placeholder = '', settings, onChange }) {
+  return (
+    <div style={s.field}>
+      <label style={s.label}>{label}</label>
+      <input value={settings[k] || ''} onChange={e => onChange(k, e.target.value)} style={s.input} type={type} placeholder={placeholder} />
     </div>
   );
 }
