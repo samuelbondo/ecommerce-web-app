@@ -52,9 +52,30 @@ function Layout() {
     if (path.startsWith('/products/')) {
       document.title = `Product — ${siteName}`;
     } else if (path.startsWith('/dashboard')) {
-      document.title = `Dashboard — ${siteName}`;
+      const dashTitles = {
+        '/dashboard': `Dashboard — ${siteName}`,
+        '/dashboard/orders': `My Orders — ${siteName}`,
+        '/dashboard/profile': `Profile — ${siteName}`,
+        '/dashboard/addresses': `Addresses — ${siteName}`,
+        '/dashboard/reviews': `My Reviews — ${siteName}`,
+        '/dashboard/settings': `Settings — ${siteName}`,
+      };
+      document.title = dashTitles[path] || `Dashboard — ${siteName}`;
     } else if (path.startsWith('/admin')) {
-      document.title = `Admin — ${siteName}`;
+      const adminTitles = {
+        '/admin': `Overview — Admin — ${siteName}`,
+        '/admin/orders': `Orders — Admin — ${siteName}`,
+        '/admin/customers': `Customers — Admin — ${siteName}`,
+        '/admin/products': `Products — Admin — ${siteName}`,
+        '/admin/categories': `Categories — Admin — ${siteName}`,
+        '/admin/inventory': `Inventory — Admin — ${siteName}`,
+        '/admin/coupons': `Coupons — Admin — ${siteName}`,
+        '/admin/reviews': `Reviews — Admin — ${siteName}`,
+        '/admin/banners': `Banners — Admin — ${siteName}`,
+        '/admin/reports': `Reports — Admin — ${siteName}`,
+        '/admin/settings': `Settings — Admin — ${siteName}`,
+      };
+      document.title = adminTitles[path] || `Admin — ${siteName}`;
     } else {
       document.title = titles[path] || siteName;
     }
