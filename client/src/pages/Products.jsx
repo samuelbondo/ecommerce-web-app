@@ -16,14 +16,13 @@ const Stars = ({ rating, count }) => (
 );
 
 export default function Products() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const searchQ = searchParams.get('q') || '';
-  const [search, setSearch] = useState(searchQ);
+  const [search, setSearch] = useState(searchParams.get('q') || '');
   const [sort, setSort] = useState('default');
   const [priceMax, setPriceMax] = useState('');
-  const [searchParams, setSearchParams] = useSearchParams();
   const selectedCat = searchParams.get('cat') || '';
   const { formatPrice, settings } = useSettings();
   const { addToCart } = useCart();
