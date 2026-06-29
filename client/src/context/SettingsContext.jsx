@@ -33,7 +33,7 @@ export function SettingsProvider({ children }) {
     `${settings.currency} ${Number(amount).toLocaleString()}`;
 
   return (
-    <SettingsContext.Provider value={{ settings, formatPrice, loaded }}>
+    <SettingsContext.Provider value={{ settings, formatPrice, loaded, paypalRate: Number(settings.paypal_rate) || 1 }}>
       {children}
     </SettingsContext.Provider>
   );

@@ -1,7 +1,10 @@
 const db = require('../config/db');
 
-const create = (user_id, total) =>
-  db.query('INSERT INTO orders (user_id, total) VALUES (?, ?)', [user_id, total]);
+const create = (user_id, total, payment_method = 'cod', payment_status = 'pending', payment_id = null) =>
+  db.query(
+    'INSERT INTO orders (user_id, total, payment_method, payment_status, payment_id) VALUES (?, ?, ?, ?, ?)',
+    [user_id, total, payment_method, payment_status, payment_id]
+  );
 
 const addItems = (orderItems) =>
   db.query('INSERT INTO order_items (order_id, product_id, quantity, price) VALUES ?', [orderItems]);

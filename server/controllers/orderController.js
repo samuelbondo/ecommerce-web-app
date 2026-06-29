@@ -3,10 +3,10 @@ const Order = require('../models/orderModel');
 const Cart = require('../models/cartModel');
 
 const placeOrder = asyncHandler(async (req, res) => {
-  const { user_id, items } = req.body;
+  const { user_id, items, payment_method = 'cod', payment_status = 'pending', payment_id = null } = req.body;
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  const [order] = await Order.create(user_id, total);
+  const [order] = await Order.create(user_id, total, payment_method, payment_status, payment_id);
   const orderId = order.insertId;
 
   const orderItems = items.map((item) => [orderId, item.product_id, item.quantity, item.price]);

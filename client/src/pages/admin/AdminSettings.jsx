@@ -3,7 +3,9 @@ import Toast from '../../components/Toast';
 import { useSettings } from '../../context/SettingsContext';
 import API from '../../api';
 
-const DEFAULTS = { store_name: 'Samuel Store', store_email: 'admin@samuelstore.com', store_phone: '+254 700 000 000', store_address: 'Nairobi, Kenya', currency: 'KES', tax_rate: '16', shipping_fee: '200', free_shipping_threshold: '5000', meta_title: 'Samuel Store', meta_description: 'Quality products at the best prices', facebook: '', instagram: '', twitter: '' };
+const DEFAULTS = { store_name: 'Samuel Store', store_email: 'admin@samuelstore.com', store_phone: '+254 700 000 000', store_address: 'Nairobi, Kenya', currency: 'KES', paypal_rate: '130', tax_rate: '16', shipping_fee: '200', free_shipping_threshold: '5000', meta_title: 'Samuel Store', meta_description: 'Quality products at the best prices', facebook: '', instagram: '', twitter: '' };
+
+const PAYPAL_SUPPORTED = ['AUD','BRL','CAD','CNY','CZK','DKK','EUR','HKD','HUF','ILS','JPY','MYR','MXN','TWD','NZD','NOK','PHP','PLN','GBP','SGD','SEK','CHF','THB','USD'];
 
 export default function AdminSettings() {
   const [settings, setSettings] = useState(DEFAULTS);
@@ -90,7 +92,22 @@ export default function AdminSettings() {
                 </div>
                 <Field label="Tax Rate (%)" k="tax_rate" type="number" />
               </div>
-              <div style={s.infoBox}>💡 Currency changes apply across the entire storefront immediately after saving.</div>
+              {!PAYPAL_SUPPORTED.includes(settings.currency) && (
+                <div style={s.grid2}>
+                  <Field label={`PayPal Rate (1 USD = ? ${settings.currency})`} k="paypal_rate" type="number" placeholder="e.g. 130" />
+                  <div style={s.field}>
+                    <label style={s.label}>Example</label>
+                    <div style={{ ...s.input, background: '#f9fafb', color: '#64748b', fontSize: '0.82rem', display: 'flex', alignItems: 'center' }}>
+                      {settings.currency} 1000 → USD {(1000 / (Number(settings.paypal_rate) || 1)).toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div style={s.infoBox}>
+                💡 Currency changes apply across the entire storefront immediately after saving.
+                {!PAYPAL_SUPPORTED.includes(settings.currency) && <> Since <strong>{settings.currency}</strong> is not directly supported by PayPal, set the conversion rate above so PayPal charges the correct USD equivalent.</>}
+                {PAYPAL_SUPPORTED.includes(settings.currency) && <> <strong>{settings.currency}</strong> is supported by PayPal — no conversion rate needed.</>}
+              </div>
             </div>
           )}
 

@@ -11,7 +11,7 @@ export default function OrderConfirmation() {
     return null;
   }
 
-  const { orderId, form, total } = state;
+  const { orderId, form, total, paymentMethod, paymentId } = state;
 
   return (
     <div style={styles.page}>
@@ -24,7 +24,9 @@ export default function OrderConfirmation() {
           <Row label="Email" value={form.email} />
           <Row label="Phone" value={form.phone} />
           <Row label="Delivery Address" value={`${form.address}, ${form.city}`} />
-          <Row label="Total Paid" value={formatPrice(total)} highlight />
+          <Row label="Payment" value={paymentMethod === 'paypal' ? '✅ Paid via PayPal' : '💵 Cash on Delivery'} />
+          {paymentId && <Row label="Payment ID" value={paymentId} />}
+          <Row label="Total" value={formatPrice(total)} highlight />
         </div>
         <div style={styles.actions}>
           <button onClick={() => navigate('/orders')} style={styles.btnPrimary}>View My Orders</button>
