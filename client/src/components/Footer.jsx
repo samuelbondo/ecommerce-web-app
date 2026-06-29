@@ -15,8 +15,9 @@ export default function Footer() {
         .ss-footer-site-name { color: #fff; font-weight: 800; font-size: 1.1rem; }
         .ss-footer-about { font-size: 0.88rem; line-height: 1.7; color: #64748b; margin-bottom: 20px; }
         .ss-footer-social { display: flex; gap: 10px; }
-        .ss-footer-social a { width: 36px; height: 36px; border-radius: 8px; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; color: #94a3b8; text-decoration: none; font-size: 1rem; transition: all 0.2s; }
+        .ss-footer-social a { width: 36px; height: 36px; border-radius: 8px; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; color: #94a3b8; text-decoration: none; transition: all 0.2s; }
         .ss-footer-social a:hover { background: ${accent}; color: #fff; }
+        .ss-footer-social svg { width: 17px; height: 17px; fill: currentColor; }
         .ss-footer-col h4 { color: #fff; font-size: 0.9rem; font-weight: 700; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.06em; }
         .ss-footer-col a { display: block; color: #64748b; text-decoration: none; font-size: 0.88rem; padding: 4px 0; transition: color 0.15s; }
         .ss-footer-col a:hover { color: ${accent}; }
@@ -27,9 +28,7 @@ export default function Footer() {
         .ss-footer-bottom a { color: #475569; text-decoration: none; }
         .ss-footer-bottom a:hover { color: ${accent}; }
         .ss-footer-bottom-links { display: flex; gap: 20px; }
-        @media (max-width: 768px) {
-          .ss-footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
-        }
+        @media (max-width: 768px) { .ss-footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; } }
         @media (max-width: 480px) {
           .ss-footer-grid { grid-template-columns: 1fr; gap: 28px; padding: 40px 20px 24px; }
           .ss-footer-bottom-inner { flex-direction: column; text-align: center; }
@@ -37,7 +36,7 @@ export default function Footer() {
       `}</style>
 
       <div className="ss-footer-grid">
-        {/* Brand + About */}
+        {/* Brand */}
         <div>
           <Link to="/" className="ss-footer-brand">
             {settings.site_logo
@@ -50,20 +49,29 @@ export default function Footer() {
             {settings.footer_about || 'Your one-stop shop for quality products delivered to your door.'}
           </p>
           <div className="ss-footer-social">
-            <a href="#" title="Facebook">📘</a>
-            <a href="#" title="Twitter">🐦</a>
-            <a href="#" title="Instagram">📸</a>
-            <a href="#" title="WhatsApp">💬</a>
+            {settings.facebook && (
+              <a href={settings.facebook} target="_blank" rel="noopener noreferrer" title="Facebook">
+                <svg viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+              </a>
+            )}
+            {settings.twitter && (
+              <a href={settings.twitter} target="_blank" rel="noopener noreferrer" title="Twitter / X">
+                <svg viewBox="0 0 24 24"><path d="M4 4l16 16M4 20L20 4" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/></svg>
+              </a>
+            )}
+            {settings.instagram && (
+              <a href={settings.instagram} target="_blank" rel="noopener noreferrer" title="Instagram">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+              </a>
+            )}
           </div>
         </div>
 
-        {/* Quick Links */}
+        {/* Shop */}
         <div className="ss-footer-col">
           <h4>Shop</h4>
           <Link to="/products">All Products</Link>
-          <Link to="/products">New Arrivals</Link>
-          <Link to="/products">Best Sellers</Link>
-          <Link to="/products">Deals</Link>
+          <Link to="/cart">Shopping Cart</Link>
         </div>
 
         {/* Account */}
@@ -71,9 +79,6 @@ export default function Footer() {
           <h4>Account</h4>
           <Link to="/login">Login</Link>
           <Link to="/register">Register</Link>
-          <Link to="/dashboard">My Dashboard</Link>
-          <Link to="/orders">My Orders</Link>
-          <Link to="/cart">Shopping Cart</Link>
         </div>
 
         {/* Contact */}
@@ -106,7 +111,6 @@ export default function Footer() {
           <div className="ss-footer-bottom-links">
             <a href="#">Privacy Policy</a>
             <a href="#">Terms of Service</a>
-            <a href="#">Cookie Policy</a>
           </div>
         </div>
       </div>
