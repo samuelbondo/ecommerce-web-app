@@ -19,7 +19,8 @@ export default function Products() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const searchQ = searchParams.get('q') || '';
+  const [search, setSearch] = useState(searchQ);
   const [sort, setSort] = useState('default');
   const [priceMax, setPriceMax] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
@@ -36,6 +37,9 @@ export default function Products() {
     }).finally(() => setLoading(false));
   }, []);
 
+  // Sync search input when ?q= param changes (e.g. from navbar)
+  useEffect(() => { setSearch(searchParams.get('q') || ''); }, [searchParams]);
+
   const handleAddToCart = (e, product) => {
     e.preventDefault();
     addToCart(product);
@@ -46,7 +50,10 @@ export default function Products() {
   const filtered = useMemo(() => {
     let list = products.filter(p => {
       const matchCat = selectedCat ? p.category_id === Number(selectedCat) : true;
-      const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
+      const q = search.toLowerCase();
+      const matchSearch = !q || p.name.toLowerCase().includes(q) ||
+        (p.description || '').toLowerCase().includes(q) ||
+        (p.category || '').toLowerCase().includes(q);
       const matchPrice = priceMax ? p.price <= Number(priceMax) : true;
       return matchCat && matchSearch && matchPrice;
     });
@@ -91,7 +98,7 @@ export default function Products() {
       <div style={{ background: '#1a1a2e', padding: '40px 24px 32px' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <h1 style={{ color: '#fff', fontSize: '1.8rem', fontWeight: 800, margin: '0 0 6px' }}>
-            {selectedCat ? categories.find(c => c.id === Number(selectedCat))?.name || 'Products' : 'All Products'}
+            {search ? `Search: "${search}"` : selectedCat ? categories.find(c => c.id === Number(selectedCat))?.name || 'Products' : 'All Products'}
           </h1>
           <p style={{ color: '#94a3b8', fontSize: '0.88rem', margin: 0 }}>
             {loading ? '...' : `${filtered.length} product${filtered.length !== 1 ? 's' : ''} found`}
@@ -117,7 +124,15 @@ export default function Products() {
           <div style={{ position: 'relative', flex: '1 1 200px' }}>
             <svg style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} width="15" height="15" fill="none" stroke="#1a1a2e" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
             <input className="pd-search" style={{ paddingLeft: 36, width: '100%', boxSizing: 'border-box' }}
-              placeholder="Search products..." value={search} onChange={e => setSearch(e.target.value)} />
+              placeholder="Search products..." value={search}
+              onChange={e => {
+                setSearch(e.target.value);
+                setSearchParams(prev => {
+                  const next = new URLSearchParams(prev);
+                  if (e.target.value) next.set('q', e.target.value); else next.delete('q');
+                  return next;
+                }, { replace: true });
+              }} />
           </div>
           <select className="pd-select" value={sort} onChange={e => setSort(e.target.value)}>
             <option value="default">Sort: Default</option>
@@ -131,8 +146,8 @@ export default function Products() {
               value={priceMax} onChange={e => setPriceMax(e.target.value)}
               style={{ width: 180 }} />
           )}
-          {(search || selectedCat || priceMax) && (
-            <button onClick={() => { setSearch(''); setPriceMax(''); setSearchParams({}); }}
+          {(search || selectedCat || priceMax || searchParams.get('q')) && (
+            <button onClick={() => { setSearch(''); setPriceMax(''); setSearchParams(p => { const n = new URLSearchParams(p); n.delete('q'); n.delete('cat'); return n; }); }}
               style={{ padding: '9px 14px', borderRadius: 10, border: '1.5px solid #fecaca', background: '#fff', color: '#ef4444', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
               ✕ Clear
             </button>
