@@ -73,17 +73,17 @@ export default function Navbar() {
     <>
       <style>{`
         .ss-nav { position: sticky; top: 0; z-index: 1000; background: #1a1a2e; box-shadow: 0 2px 12px rgba(0,0,0,0.18); }
-        .ss-nav-inner { max-width: 1200px; margin: 0 auto; padding: 0 20px; height: 64px; display: flex; align-items: center; gap: 16px; }
+        .ss-nav-inner { max-width: 1200px; margin: 0 auto; padding: 0 16px; height: 64px; display: flex; align-items: center; gap: 12px; }
         .ss-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
         .ss-logo { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; }
-        .ss-logo-placeholder { width: 36px; height: 36px; border-radius: 8px; background: ${accent}; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 1.1rem; }
-        .ss-site-name { color: ${accent}; font-weight: 800; font-size: 1.25rem; letter-spacing: -0.3px; }
+        .ss-logo-placeholder { width: 36px; height: 36px; border-radius: 8px; background: ${accent}; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 1.1rem; flex-shrink: 0; }
+        .ss-site-name { color: ${accent}; font-weight: 800; font-size: 1.25rem; letter-spacing: -0.3px; white-space: nowrap; }
 
         /* Search */
-        .ss-search-wrap { flex: 1; max-width: 480px; position: relative; }
+        .ss-search-wrap { flex: 1; max-width: 480px; position: relative; min-width: 0; }
         .ss-search-form { display: flex; align-items: center; background: rgba(255,255,255,0.08); border: 1.5px solid rgba(255,255,255,0.12); border-radius: 10px; overflow: visible; transition: all 0.2s; }
         .ss-search-form:focus-within { background: #fff; border-color: #fff; box-shadow: 0 0 0 3px rgba(233,69,96,0.2); }
-        .ss-search-input { flex: 1; background: transparent; border: none; outline: none; padding: 9px 12px; font-size: 0.9rem; color: #fff; min-width: 0; }
+        .ss-search-input { flex: 1; background: transparent; border: none; outline: none; padding: 9px 12px; font-size: 0.9rem; color: #fff; min-width: 0; width: 0; }
         .ss-search-form:focus-within .ss-search-input { color: #1a1a2e; }
         .ss-search-input::placeholder { color: rgba(255,255,255,0.45); }
         .ss-search-form:focus-within .ss-search-input::placeholder { color: #94a3b8; }
@@ -117,21 +117,27 @@ export default function Navbar() {
         .ss-btn-logout:hover { background: rgba(255,255,255,0.08); color: #fff; }
         .ss-admin-btn { background: ${accent}; color: #fff; text-decoration: none; font-size: 0.8rem; font-weight: 700; padding: 5px 12px; border-radius: 6px; white-space: nowrap; }
         .ss-user-chip { color: #94a3b8; font-size: 0.82rem; padding: 0 4px; white-space: nowrap; }
-        .ss-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px; color: #fff; flex-shrink: 0; }
+        .ss-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 8px; color: #fff; flex-shrink: 0; line-height: 0; }
+        .ss-hamburger span { display: block; width: 22px; height: 2px; background: #fff; border-radius: 2px; transition: all 0.2s; }
+        .ss-hamburger span + span { margin-top: 5px; }
         .ss-mobile-menu { display: none; }
+        .ss-mobile-search { display: none; }
 
         @media (max-width: 900px) {
           .ss-links { display: none; }
-          .ss-hamburger { display: flex; flex-direction: column; gap: 5px; }
-          .ss-hamburger span { display: block; width: 24px; height: 2px; background: #fff; border-radius: 2px; }
-          .ss-mobile-menu { display: block; background: #1a1a2e; border-top: 1px solid rgba(255,255,255,0.08); padding: 12px 20px 20px; }
-          .ss-mobile-menu a, .ss-mobile-menu button { display: block; width: 100%; text-align: left; color: #cbd5e1; text-decoration: none; font-size: 0.95rem; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06); background: none; border-left: none; border-right: none; border-top: none; cursor: pointer; }
+          .ss-search-wrap { display: none; }
+          .ss-hamburger { display: block; }
+          .ss-mobile-search { display: block; padding: 0 16px 12px; }
+          .ss-mobile-search .ss-search-wrap { display: block; max-width: none; }
+          .ss-mobile-menu { display: block; background: #1a1a2e; border-top: 1px solid rgba(255,255,255,0.08); padding: 4px 16px 20px; }
+          .ss-mobile-menu a, .ss-mobile-menu button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; color: #cbd5e1; text-decoration: none; font-size: 0.95rem; padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,0.06); background: none; border-left: none; border-right: none; border-top: none; cursor: pointer; }
           .ss-mobile-menu a:last-child, .ss-mobile-menu button:last-child { border-bottom: none; }
           .ss-mobile-menu a:hover, .ss-mobile-menu button:hover { color: #fff; }
-          .ss-search-wrap { max-width: none; }
+          .ss-nav-inner { gap: 10px; }
         }
-        @media (max-width: 500px) {
+        @media (max-width: 480px) {
           .ss-site-name { display: none; }
+          .ss-nav-inner { padding: 0 12px; }
         }
       `}</style>
 
@@ -146,7 +152,7 @@ export default function Navbar() {
             <span className="ss-site-name">{settings.site_name || 'Samuel Store'}</span>
           </Link>
 
-          {/* Search bar */}
+          {/* Search bar — desktop only */}
           <div className="ss-search-wrap" ref={searchRef}>
             <form className="ss-search-form" onSubmit={handleSearch}>
               <input
@@ -221,23 +227,47 @@ export default function Navbar() {
           </button>
         </div>
 
+        {/* Mobile search row — shown only when menu open or always visible on mobile */}
+        {menuOpen && (
+          <div className="ss-mobile-search">
+            <div className="ss-search-wrap" ref={null} style={{ position: 'relative' }}>
+              <form className="ss-search-form" onSubmit={handleSearch}>
+                <input
+                  className="ss-search-input"
+                  placeholder="Search products..."
+                  value={query}
+                  onChange={handleQueryChange}
+                  autoComplete="off"
+                />
+                <button type="submit" className="ss-search-btn" aria-label="Search">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                  </svg>
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
         {/* Mobile menu */}
         {menuOpen && (
           <div className="ss-mobile-menu">
-            <Link to="/" onClick={close}>🏠 Home</Link>
-            <Link to="/products" onClick={close}>🛍 Products</Link>
-            <Link to="/cart" onClick={close}>🛒 Cart {cart.length > 0 && `(${cart.length})`}</Link>
+            <Link to="/" onClick={close}><span>🏠</span> Home</Link>
+            <Link to="/products" onClick={close}><span>🛍</span> Products</Link>
+            <Link to="/cart" onClick={close}>
+              <span>🛒</span> Cart {cart.length > 0 && <span style={{ background: accent, color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: '0.72rem', fontWeight: 700, marginLeft: 4 }}>{cart.length}</span>}
+            </Link>
             {user ? (
               <>
-                <Link to="/orders" onClick={close}>📦 My Orders</Link>
-                <Link to="/dashboard" onClick={close}>👤 Dashboard</Link>
-                {user.role === 'admin' && <Link to="/admin" onClick={close}>⚡ Admin Panel</Link>}
-                <button onClick={handleLogout}>↩ Logout</button>
+                <Link to="/orders" onClick={close}><span>📦</span> My Orders</Link>
+                <Link to="/dashboard" onClick={close}><span>👤</span> Dashboard</Link>
+                {user.role === 'admin' && <Link to="/admin" onClick={close}><span>⚡</span> Admin Panel</Link>}
+                <button onClick={handleLogout}><span>↩</span> Logout</button>
               </>
             ) : (
               <>
-                <Link to="/login" onClick={close}>🔑 Login</Link>
-                <Link to="/register" onClick={close}>✨ Register</Link>
+                <Link to="/login" onClick={close}><span>🔑</span> Login</Link>
+                <Link to="/register" onClick={close}><span>✨</span> Register</Link>
               </>
             )}
           </div>
