@@ -4,17 +4,6 @@ import API from '../api';
 import { useSettings } from '../context/SettingsContext';
 import { useCart } from '../context/CartContext';
 
-const Stars = ({ rating, count }) => (
-  <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-    {[1,2,3,4,5].map(i => (
-      <svg key={i} width="12" height="12" viewBox="0 0 24 24" fill={i <= Math.round(rating) ? '#f59e0b' : '#e5e7eb'}>
-        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-      </svg>
-    ))}
-    {count !== undefined && <span style={{ fontSize: '0.72rem', color: '#94a3b8', marginLeft: 2 }}>({count})</span>}
-  </span>
-);
-
 export default function Products() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
@@ -191,7 +180,6 @@ export default function Products() {
                 <div className="pd-body">
                   {p.category && <span className="pd-cat">{p.category}</span>}
                   <div className="pd-name">{p.name}</div>
-                  <Stars rating={0} />
                   <div className="pd-price">{formatPrice(p.price)}</div>
                 </div>
               </Link>

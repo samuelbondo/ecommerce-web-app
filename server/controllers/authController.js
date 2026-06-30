@@ -20,11 +20,13 @@ const login = asyncHandler(async (req, res, next) => {
   if (!rows.length) return next(new AppError('Invalid credentials', 400));
 
   const user = rows[0];
+  if (user.status === 'suspended') return next(new AppError('Your account has been suspended. Please contact support.', 403));
   const match = await bcrypt.compare(password, user.password);
   if (!match) return next(new AppError('Invalid credentials', 400));
 
+  await User.updateLastLogin(user.id);
   const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
-  res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+  res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, phone: user.phone, address: user.address, city: user.city, country: user.country } });
 });
 
 module.exports = { register, login };

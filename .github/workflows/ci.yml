@@ -66,3 +66,21 @@ jobs:
         run: docker build -t samuel-store-server ./server
       - name: Build client image
         run: docker build -t samuel-store-client ./client
+
+  deploy:
+    name: Deploy — Notify
+    runs-on: ubuntu-latest
+    needs: [docker-build]
+    steps:
+      - name: Deployment summary
+        run: |
+          echo "========================================"
+          echo "  Samuel Store — Deployment Pipeline"
+          echo "========================================"
+          echo "  Backend  → Render (auto-deploy on push)"
+          echo "  Frontend → Vercel (auto-deploy on push)"
+          echo "  Database → Aiven MySQL 8.4 (Amsterdam)"
+          echo "----------------------------------------"
+          echo "  All checks passed. Live in ~1-2 min."
+          echo "  https://samuel-store.vercel.app"
+          echo "========================================"

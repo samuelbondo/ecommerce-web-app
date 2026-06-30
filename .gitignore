@@ -25,3 +25,6 @@ mysql_data/
 # IDE
 .vscode/
 .idea/
+
+# Draft / scratch folders
+ecommerce-web-app/
