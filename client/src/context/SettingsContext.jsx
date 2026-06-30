@@ -1,13 +1,14 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import API from '../api';
 
 const SettingsContext = createContext();
 
 const DEFAULTS = {
-  site_name: '',
+  site_name: 'Samuel Store',
   site_tagline: '',
   site_logo: '',
-  currency: '',
+  currency: 'USD',
+  accent_color: '#e94560',
   banner_title: '',
   banner_subtitle: '',
   banner_cta: '',
@@ -16,24 +17,36 @@ const DEFAULTS = {
   footer_email: '',
   footer_phone: '',
   footer_address: '',
-  accent_color: '#e94560',
+  paypal_rate: '1',
+  tax_rate: '0',
+  shipping_fee: '0',
+  free_shipping_threshold: '0',
+  meta_title: '',
+  meta_description: '',
+  facebook: '',
+  instagram: '',
+  twitter: '',
 };
 
 export function SettingsProvider({ children }) {
   const [settings, setSettings] = useState(DEFAULTS);
   const [loaded, setLoaded] = useState(false);
 
-  useEffect(() => {
+  const reload = useCallback(() => {
     API.get('/settings').then((res) => {
-      setSettings((prev) => ({ ...prev, ...res.data }));
+      setSettings({ ...DEFAULTS, ...res.data });
     }).catch(() => {}).finally(() => setLoaded(true));
   }, []);
 
-  const formatPrice = (amount) =>
-    `${settings.currency} ${Number(amount).toLocaleString()}`;
+  useEffect(() => { reload(); }, [reload]);
+
+  const formatPrice = (amount) => {
+    const sym = settings.currency || 'USD';
+    return `${sym} ${Number(amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
 
   return (
-    <SettingsContext.Provider value={{ settings, formatPrice, loaded, paypalRate: Number(settings.paypal_rate) || 1 }}>
+    <SettingsContext.Provider value={{ settings, formatPrice, loaded, reload, paypalRate: Number(settings.paypal_rate) || 1 }}>
       {children}
     </SettingsContext.Provider>
   );
