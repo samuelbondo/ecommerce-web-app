@@ -7,20 +7,16 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const passport = require('../config/passport');
 const nodemailer = require('nodemailer');
-
 const mailer = nodemailer.createTransport({
   host: process.env.MAIL_HOST,
-  port: Number(process.env.MAIL_PORT) || 465,
-  secure: true,
-  auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASSWORD,
-  },
+  port: 587,
+  secure: false,
+  auth: { user: process.env.MAIL_USER, pass: process.env.MAIL_PASSWORD },
 });
 
 const sendOTPEmail = async (toEmail, userName, code) => {
   await mailer.sendMail({
-    from: `"Samuel Store" <${process.env.MAIL_FROM}>`,
+    from: `"Samuel Store" <${process.env.MAIL_USER}>`,
     to: toEmail,
     subject: 'Your Samuel Store password reset code',
     html: `
