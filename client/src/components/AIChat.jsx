@@ -1,37 +1,139 @@
 /**
- * AIChat — Floating Shopping Assistant Widget
+ * AIChat — Proactive AI Shopping Assistant Widget
  * ─────────────────────────────────────────────────────────────────────────────
- * Appears on all public pages as a floating button (bottom-right).
- * Opens a chat panel where customers can ask anything about the store,
- * find products, get recommendations, and get help in any language.
+ * International standard implementation:
  *
- * Powered by: POST /api/ai/chat (Gemini 2.5 Flash on the backend)
+ * 1. Proactive greeting — auto-pops a preview message after 8s on page
+ * 2. Context-aware — different message per page (home/products/cart/checkout)
+ * 3. Cart abandonment nudge — if cart has items + 30s on cart/checkout page
+ * 4. Unread badge — animated pulse dot when there's an unseen message
+ * 5. Quick reply chips — one-tap suggestions so users don't have to type
+ * 6. Smooth animations — bubble bounces in, preview slides up
+ * 7. Minimise without losing history — close hides panel, history preserved
+ * 8. Powered by Gemini 2.5 Flash via POST /api/ai/chat
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import API from '../api';
 import { useSettings } from '../context/SettingsContext';
+import { useCart } from '../context/CartContext';
 
-const WELCOME = "Hi! I'm your shopping assistant 👋 Ask me anything — I can help you find products, check prices, or answer questions about the store.";
+// Context-aware proactive messages per page
+const PROACTIVE = {
+  '/':          "👋 Welcome! I can help you find the perfect product. What are you looking for today?",
+  '/products':  "🔍 Need help finding something? Just describe what you need and I'll find it for you.",
+  '/cart':      "🛒 Ready to checkout? I can help with any questions about your order.",
+  '/checkout':  "💳 Need help completing your order? I'm here if you have any questions.",
+  '/login':     "👋 Welcome back! Sign in to access your orders and exclusive deals.",
+  '/register':  "🎉 Creating an account is free and takes less than a minute!",
+};
+
+const CART_NUDGE = "🛒 You have items in your cart! Need help choosing or have questions before you checkout?";
+
+// Quick reply suggestions per page
+const QUICK_REPLIES = {
+  '/':          ['Show me new arrivals', 'What\'s on sale?', 'Help me find a gift'],
+  '/products':  ['Filter by price', 'What\'s most popular?', 'Do you have electronics?'],
+  '/cart':      ['How long is delivery?', 'What\'s your return policy?', 'Apply a coupon'],
+  '/checkout':  ['Is payment secure?', 'Do you ship internationally?', 'Cash on delivery?'],
+  default:      ['Browse products', 'Track my order', 'Contact support'],
+};
 
 export default function AIChat() {
   const { settings } = useSettings();
+  const { cart } = useCart();
+  const location = useLocation();
   const accent = settings.accent_color || '#e94560';
+  const siteName = settings.site_name || 'Samuel Store';
+
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState([{ role: 'assistant', content: WELCOME }]);
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const bottomRef = useRef(null);
+  const [unread, setUnread] = useState(0);
+  const [preview, setPreview] = useState('');   // proactive bubble text
+  const [showPreview, setShowPreview] = useState(false);
+  const [entered, setEntered] = useState(false); // button entrance animation done
 
+  const bottomRef = useRef(null);
+  const proactiveTimer = useRef(null);
+  const nudgeTimer = useRef(null);
+  const hasGreeted = useRef(false);
+
+  // Button entrance animation on mount
+  useEffect(() => {
+    const t = setTimeout(() => setEntered(true), 600);
+    return () => clearTimeout(t);
+  }, []);
+
+  // Proactive message logic — fires on page change
+  useEffect(() => {
+    clearTimeout(proactiveTimer.current);
+    clearTimeout(nudgeTimer.current);
+    setShowPreview(false);
+
+    const path = location.pathname;
+    const isCartPage = path === '/cart' || path === '/checkout';
+
+    // Cart abandonment nudge — 30s if cart has items on cart/checkout page
+    if (isCartPage && cart.length > 0 && !open) {
+      nudgeTimer.current = setTimeout(() => {
+        if (!open) {
+          setPreview(CART_NUDGE);
+          setShowPreview(true);
+          if (!hasGreeted.current) setUnread(u => u + 1);
+        }
+      }, 30000);
+      return;
+    }
+
+    // General proactive greeting — 8s after landing on any page
+    const msg = PROACTIVE[path];
+    if (msg && !open) {
+      proactiveTimer.current = setTimeout(() => {
+        if (!open) {
+          setPreview(msg);
+          setShowPreview(true);
+          if (!hasGreeted.current) setUnread(u => u + 1);
+        }
+      }, 8000);
+    }
+
+    return () => {
+      clearTimeout(proactiveTimer.current);
+      clearTimeout(nudgeTimer.current);
+    };
+  }, [location.pathname, cart.length]);
+
+  // Scroll to bottom on new messages
   useEffect(() => {
     if (open) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, open]);
 
-  const send = async () => {
-    const text = input.trim();
-    if (!text || loading) return;
-    const next = [...messages, { role: 'user', content: text }];
+  // When user opens chat — set welcome message if first time, clear unread
+  const handleOpen = useCallback(() => {
+    setOpen(true);
+    setShowPreview(false);
+    setUnread(0);
+    if (!hasGreeted.current) {
+      hasGreeted.current = true;
+      const path = location.pathname;
+      const welcome = PROACTIVE[path] || `👋 Hi! I'm your ${siteName} shopping assistant. How can I help you today?`;
+      setMessages([{ role: 'assistant', content: welcome }]);
+    }
+  }, [location.pathname, siteName]);
+
+  const handleClose = () => {
+    setOpen(false);
+    setShowPreview(false);
+  };
+
+  const send = async (text) => {
+    const msg = (text || input).trim();
+    if (!msg || loading) return;
+    const next = [...messages, { role: 'user', content: msg }];
     setMessages(next);
     setInput('');
     setLoading(true);
@@ -39,92 +141,297 @@ export default function AIChat() {
       const res = await API.post('/ai/chat', { messages: next });
       setMessages(m => [...m, { role: 'assistant', content: res.data.reply }]);
     } catch {
-      setMessages(m => [...m, { role: 'assistant', content: "Sorry, I'm having trouble connecting right now. Please try again in a moment." }]);
+      setMessages(m => [...m, { role: 'assistant', content: "Sorry, I'm having a connection issue. Please try again in a moment." }]);
     }
     setLoading(false);
   };
 
-  const handleKey = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
+  const handleKey = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+  };
+
+  const quickReplies = QUICK_REPLIES[location.pathname] || QUICK_REPLIES.default;
 
   return (
     <>
       <style>{`
-        .ai-chat-btn { position:fixed; bottom:24px; right:24px; width:56px; height:56px; border-radius:50%; background:${accent}; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 20px rgba(0,0,0,0.2); z-index:9000; transition:transform 0.2s; }
-        .ai-chat-btn:hover { transform:scale(1.08); }
-        .ai-chat-panel { position:fixed; bottom:92px; right:24px; width:340px; max-width:calc(100vw - 32px); height:480px; max-height:calc(100vh - 120px); background:#fff; border-radius:18px; box-shadow:0 8px 40px rgba(0,0,0,0.16); display:flex; flex-direction:column; z-index:9000; overflow:hidden; border:1px solid #e5e7eb; }
-        .ai-chat-header { background:${accent}; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; }
-        .ai-chat-header-left { display:flex; align-items:center; gap:10px; }
-        .ai-chat-avatar { width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,0.25); display:flex; align-items:center; justify-content:center; font-size:1.1rem; }
-        .ai-chat-title { color:#fff; font-weight:700; font-size:0.92rem; }
-        .ai-chat-sub { color:rgba(255,255,255,0.8); font-size:0.72rem; }
-        .ai-chat-close { background:none; border:none; color:#fff; cursor:pointer; font-size:1.3rem; line-height:1; padding:2px; opacity:0.8; }
-        .ai-chat-close:hover { opacity:1; }
-        .ai-chat-messages { flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:10px; }
-        .ai-msg { max-width:85%; padding:10px 13px; border-radius:14px; font-size:0.86rem; line-height:1.55; }
-        .ai-msg-user { background:${accent}; color:#fff; align-self:flex-end; border-bottom-right-radius:4px; }
-        .ai-msg-assistant { background:#f1f5f9; color:#1a1a2e; align-self:flex-start; border-bottom-left-radius:4px; }
-        .ai-chat-typing { display:flex; gap:4px; align-items:center; padding:10px 13px; background:#f1f5f9; border-radius:14px; border-bottom-left-radius:4px; align-self:flex-start; }
-        .ai-dot { width:7px; height:7px; border-radius:50%; background:#94a3b8; animation:ai-bounce 1.2s infinite; }
-        .ai-dot:nth-child(2) { animation-delay:0.2s; }
-        .ai-dot:nth-child(3) { animation-delay:0.4s; }
-        @keyframes ai-bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
-        .ai-chat-input-row { padding:12px; border-top:1px solid #f1f5f9; display:flex; gap:8px; }
-        .ai-chat-input { flex:1; padding:9px 13px; border:1.5px solid #e5e7eb; border-radius:10px; font-size:0.88rem; outline:none; resize:none; font-family:inherit; }
-        .ai-chat-input:focus { border-color:${accent}; }
-        .ai-chat-send { width:38px; height:38px; border-radius:10px; background:${accent}; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:opacity 0.15s; }
-        .ai-chat-send:disabled { opacity:0.5; cursor:not-allowed; }
-        .ai-badge { position:absolute; top:-4px; right:-4px; width:18px; height:18px; background:#10b981; border-radius:50%; border:2px solid #fff; }
+        /* ── Button ── */
+        .aic-btn {
+          position: fixed; bottom: 24px; right: 24px; width: 58px; height: 58px;
+          border-radius: 50%; background: ${accent}; border: none; cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          box-shadow: 0 4px 24px rgba(0,0,0,0.22); z-index: 9000;
+          transition: transform 0.25s cubic-bezier(.34,1.56,.64,1), opacity 0.3s;
+          transform: ${entered ? 'scale(1)' : 'scale(0)'};
+          opacity: ${entered ? '1' : '0'};
+        }
+        .aic-btn:hover { transform: scale(1.1) !important; }
+        .aic-btn:active { transform: scale(0.96) !important; }
+
+        /* ── Unread pulse badge ── */
+        .aic-badge {
+          position: absolute; top: -3px; right: -3px;
+          width: 20px; height: 20px; background: #10b981;
+          border-radius: 50%; border: 2.5px solid #fff;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 0.65rem; font-weight: 800; color: #fff;
+          animation: aic-pulse 2s infinite;
+        }
+        @keyframes aic-pulse {
+          0%,100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.5); }
+          50% { box-shadow: 0 0 0 6px rgba(16,185,129,0); }
+        }
+
+        /* ── Proactive preview bubble ── */
+        .aic-preview {
+          position: fixed; bottom: 94px; right: 24px;
+          max-width: 260px; background: #fff; border-radius: 14px 14px 4px 14px;
+          padding: 12px 14px; box-shadow: 0 4px 20px rgba(0,0,0,0.14);
+          font-size: 0.84rem; color: #1a1a2e; line-height: 1.5;
+          z-index: 8999; border: 1px solid #e5e7eb; cursor: pointer;
+          animation: aic-slide-up 0.35s cubic-bezier(.34,1.56,.64,1);
+        }
+        .aic-preview::after {
+          content: ''; position: absolute; bottom: -8px; right: 20px;
+          width: 0; height: 0;
+          border-left: 8px solid transparent;
+          border-right: 8px solid transparent;
+          border-top: 8px solid #fff;
+        }
+        .aic-preview-close {
+          position: absolute; top: 6px; right: 8px;
+          background: none; border: none; cursor: pointer;
+          color: #94a3b8; font-size: 1rem; line-height: 1; padding: 2px;
+        }
+        @keyframes aic-slide-up {
+          from { opacity: 0; transform: translateY(16px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Panel ── */
+        .aic-panel {
+          position: fixed; bottom: 94px; right: 24px;
+          width: 360px; max-width: calc(100vw - 32px);
+          height: 520px; max-height: calc(100vh - 110px);
+          background: #fff; border-radius: 20px;
+          box-shadow: 0 12px 48px rgba(0,0,0,0.18);
+          display: flex; flex-direction: column;
+          z-index: 9000; overflow: hidden; border: 1px solid #e5e7eb;
+          animation: aic-panel-in 0.3s cubic-bezier(.34,1.56,.64,1);
+        }
+        @keyframes aic-panel-in {
+          from { opacity: 0; transform: scale(0.92) translateY(16px); transform-origin: bottom right; }
+          to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        /* ── Header ── */
+        .aic-header {
+          background: linear-gradient(135deg, ${accent} 0%, ${accent}dd 100%);
+          padding: 16px 18px; display: flex; align-items: center; justify-content: space-between;
+          flex-shrink: 0;
+        }
+        .aic-header-left { display: flex; align-items: center; gap: 12px; }
+        .aic-avatar {
+          width: 38px; height: 38px; border-radius: 50%;
+          background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.4);
+          display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+          flex-shrink: 0;
+        }
+        .aic-online {
+          width: 9px; height: 9px; background: #10b981; border-radius: 50%;
+          border: 2px solid #fff; position: absolute; bottom: 0; right: 0;
+        }
+        .aic-title { color: #fff; font-weight: 700; font-size: 0.95rem; }
+        .aic-sub { color: rgba(255,255,255,0.82); font-size: 0.72rem; margin-top: 1px; }
+        .aic-close {
+          background: rgba(255,255,255,0.15); border: none; color: #fff;
+          cursor: pointer; width: 30px; height: 30px; border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 1.1rem; transition: background 0.15s;
+        }
+        .aic-close:hover { background: rgba(255,255,255,0.28); }
+
+        /* ── Messages ── */
+        .aic-messages {
+          flex: 1; overflow-y: auto; padding: 16px 14px 8px;
+          display: flex; flex-direction: column; gap: 10px;
+          scroll-behavior: smooth;
+        }
+        .aic-messages::-webkit-scrollbar { width: 4px; }
+        .aic-messages::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 4px; }
+
+        .aic-msg {
+          max-width: 82%; padding: 10px 13px; border-radius: 16px;
+          font-size: 0.86rem; line-height: 1.55; word-break: break-word;
+        }
+        .aic-msg-user {
+          background: ${accent}; color: #fff;
+          align-self: flex-end; border-bottom-right-radius: 4px;
+        }
+        .aic-msg-bot {
+          background: #f1f5f9; color: #1a1a2e;
+          align-self: flex-start; border-bottom-left-radius: 4px;
+        }
+        .aic-msg-time {
+          font-size: 0.68rem; color: #94a3b8; margin-top: 3px;
+          align-self: flex-start; padding: 0 4px;
+        }
+        .aic-msg-time-user { align-self: flex-end; }
+
+        /* ── Typing indicator ── */
+        .aic-typing {
+          display: flex; gap: 5px; align-items: center;
+          padding: 12px 14px; background: #f1f5f9;
+          border-radius: 16px; border-bottom-left-radius: 4px;
+          align-self: flex-start; width: fit-content;
+        }
+        .aic-dot {
+          width: 7px; height: 7px; border-radius: 50%; background: #94a3b8;
+          animation: aic-bounce 1.3s infinite ease-in-out;
+        }
+        .aic-dot:nth-child(2) { animation-delay: 0.18s; }
+        .aic-dot:nth-child(3) { animation-delay: 0.36s; }
+        @keyframes aic-bounce {
+          0%,60%,100% { transform: translateY(0); }
+          30% { transform: translateY(-7px); }
+        }
+
+        /* ── Quick replies ── */
+        .aic-chips {
+          padding: 8px 14px; display: flex; gap: 6px;
+          overflow-x: auto; flex-shrink: 0; scrollbar-width: none;
+        }
+        .aic-chips::-webkit-scrollbar { display: none; }
+        .aic-chip {
+          padding: 6px 12px; border-radius: 20px; border: 1.5px solid ${accent}33;
+          background: #fff; color: ${accent}; font-size: 0.78rem; font-weight: 600;
+          cursor: pointer; white-space: nowrap; transition: all 0.15s; flex-shrink: 0;
+        }
+        .aic-chip:hover { background: ${accent}; color: #fff; border-color: ${accent}; }
+
+        /* ── Input row ── */
+        .aic-input-row {
+          padding: 10px 12px 14px; border-top: 1px solid #f1f5f9;
+          display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0;
+        }
+        .aic-input {
+          flex: 1; padding: 10px 13px; border: 1.5px solid #e5e7eb;
+          border-radius: 12px; font-size: 0.88rem; outline: none;
+          resize: none; font-family: inherit; max-height: 80px;
+          transition: border-color 0.15s; line-height: 1.4;
+        }
+        .aic-input:focus { border-color: ${accent}; box-shadow: 0 0 0 3px ${accent}18; }
+        .aic-send {
+          width: 40px; height: 40px; border-radius: 12px; background: ${accent};
+          border: none; cursor: pointer; display: flex; align-items: center;
+          justify-content: center; flex-shrink: 0; transition: all 0.15s;
+          box-shadow: 0 2px 8px ${accent}44;
+        }
+        .aic-send:hover { transform: scale(1.06); }
+        .aic-send:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+        /* ── Powered by ── */
+        .aic-powered {
+          text-align: center; font-size: 0.68rem; color: #cbd5e1;
+          padding: 0 0 10px; flex-shrink: 0;
+        }
+
+        @media (max-width: 400px) {
+          .aic-panel { right: 12px; width: calc(100vw - 24px); bottom: 84px; }
+          .aic-btn { bottom: 16px; right: 16px; }
+          .aic-preview { right: 12px; }
+        }
       `}</style>
 
-      <button className="ai-chat-btn" onClick={() => setOpen(o => !o)} title="AI Shopping Assistant" style={{ position: 'fixed' }}>
+      {/* Proactive preview bubble */}
+      {showPreview && !open && (
+        <div className="aic-preview" onClick={handleOpen}>
+          <button className="aic-preview-close" onClick={(e) => { e.stopPropagation(); setShowPreview(false); }}>×</button>
+          {preview}
+        </div>
+      )}
+
+      {/* Floating button */}
+      <button className="aic-btn" onClick={open ? handleClose : handleOpen} title="AI Shopping Assistant">
         {open
           ? <svg width="20" height="20" fill="none" stroke="#fff" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
           : <svg width="22" height="22" fill="none" stroke="#fff" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
         }
-        {!open && <span className="ai-badge" />}
+        {!open && unread > 0 && (
+          <span className="aic-badge">{unread > 9 ? '9+' : unread}</span>
+        )}
       </button>
 
+      {/* Chat panel */}
       {open && (
-        <div className="ai-chat-panel">
-          <div className="ai-chat-header">
-            <div className="ai-chat-header-left">
-              <div className="ai-chat-avatar">🤖</div>
+        <div className="aic-panel">
+
+          {/* Header */}
+          <div className="aic-header">
+            <div className="aic-header-left">
+              <div style={{ position: 'relative' }}>
+                <div className="aic-avatar">🤖</div>
+                <div className="aic-online" />
+              </div>
               <div>
-                <div className="ai-chat-title">Shopping Assistant</div>
-                <div className="ai-chat-sub">Powered by Gemini AI · Always online</div>
+                <div className="aic-title">{siteName} Assistant</div>
+                <div className="aic-sub">🟢 Online · Powered by Gemini AI</div>
               </div>
             </div>
-            <button className="ai-chat-close" onClick={() => setOpen(false)}>×</button>
+            <button className="aic-close" onClick={handleClose}>
+              <svg width="14" height="14" fill="none" stroke="#fff" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
           </div>
 
-          <div className="ai-chat-messages">
+          {/* Messages */}
+          <div className="aic-messages">
             {messages.map((m, i) => (
-              <div key={i} className={`ai-msg ${m.role === 'user' ? 'ai-msg-user' : 'ai-msg-assistant'}`}>
-                {m.content}
+              <div key={i}>
+                <div className={`aic-msg ${m.role === 'user' ? 'aic-msg-user' : 'aic-msg-bot'}`}>
+                  {m.content}
+                </div>
+                <div className={`aic-msg-time ${m.role === 'user' ? 'aic-msg-time-user' : ''}`}>
+                  {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
               </div>
             ))}
             {loading && (
-              <div className="ai-chat-typing">
-                <div className="ai-dot" /><div className="ai-dot" /><div className="ai-dot" />
+              <div className="aic-typing">
+                <div className="aic-dot" /><div className="aic-dot" /><div className="aic-dot" />
               </div>
             )}
             <div ref={bottomRef} />
           </div>
 
-          <div className="ai-chat-input-row">
+          {/* Quick reply chips — only show when no conversation yet */}
+          {messages.length <= 1 && !loading && (
+            <div className="aic-chips">
+              {quickReplies.map((q, i) => (
+                <button key={i} className="aic-chip" onClick={() => send(q)}>{q}</button>
+              ))}
+            </div>
+          )}
+
+          {/* Input */}
+          <div className="aic-input-row">
             <textarea
-              className="ai-chat-input"
+              className="aic-input"
               rows={1}
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKey}
-              placeholder="Ask me anything..."
+              placeholder="Type a message..."
               disabled={loading}
             />
-            <button className="ai-chat-send" onClick={send} disabled={!input.trim() || loading}>
-              <svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            <button className="aic-send" onClick={() => send()} disabled={!input.trim() || loading}>
+              <svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2.5" viewBox="0 0 24 24">
+                <line x1="22" y1="2" x2="11" y2="13"/>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
             </button>
           </div>
+
+          <div className="aic-powered">Powered by Google Gemini AI</div>
         </div>
       )}
     </>
