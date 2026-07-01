@@ -176,9 +176,12 @@ export default function Checkout() {
         .ck-cod-btn:hover { background:#0f172a; }
         .ck-not-ready { width:100%; padding:14px; background:#e5e7eb; color:#94a3b8; border:none; border-radius:10px; font-size:0.9rem; text-align:center; }
         @media(max-width:680px) { .ck-layout { flex-direction:column !important; } }
+        @media(max-width:520px) {
+          .ck-grid2 { grid-template-columns: 1fr !important; }
+        }
       `}</style>
 
-      <div style={s.inner}>
+      <div style={s.inner} className="ck-layout">
         <div style={s.left}>
           <div style={s.breadcrumb}>
             <Link to="/cart" style={s.breadLink}>Cart</Link>
@@ -189,7 +192,7 @@ export default function Checkout() {
 
           <div style={s.block}>
             <h3 style={s.blockTitle}>Contact Information</h3>
-            <div style={s.grid2}>
+            <div style={s.grid2} className="ck-grid2">
               <CkField label="Full Name" name="fullName" value={form.fullName} onChange={handleChange} error={errors.fullName} placeholder="Samuel Bondo" />
               <CkField label="Email Address" name="email" type="email" value={form.email} onChange={handleChange} error={errors.email} placeholder="you@example.com" />
             </div>
@@ -316,16 +319,16 @@ function CkField({ label, name, type = 'text', value, onChange, error, placehold
 }
 
 const s = {
-  page: { background: '#f8f9fb', minHeight: '100vh', padding: '32px 16px' },
-  inner: { maxWidth: '1020px', margin: '0 auto', display: 'flex', gap: '28px', alignItems: 'flex-start', flexWrap: 'wrap' },
-  left: { flex: '1 1 480px' },
-  right: { flex: '0 1 320px', background: '#fff', borderRadius: '16px', padding: '24px', border: '1px solid #e5e7eb', position: 'sticky', top: '84px' },
+  page: { background: '#f8f9fb', minHeight: '100vh', padding: '24px 16px', boxSizing: 'border-box' },
+  inner: { maxWidth: '1020px', margin: '0 auto', display: 'flex', gap: '24px', alignItems: 'flex-start', flexWrap: 'wrap' },
+  left: { flex: '1 1 300px', minWidth: 0 },
+  right: { flex: '0 1 300px', width: '100%', background: '#fff', borderRadius: '16px', padding: '20px', border: '1px solid #e5e7eb' },
   breadcrumb: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, fontSize: '0.85rem' },
   breadLink: { color: '#e94560', textDecoration: 'none', fontWeight: 600 },
   breadSep: { color: '#94a3b8' },
   breadCurrent: { color: '#1a1a2e', fontWeight: 600 },
   heading: { fontSize: '1.6rem', fontWeight: 800, color: '#1a1a2e', marginBottom: 24 },
-  block: { background: '#fff', borderRadius: '14px', padding: '20px 22px', marginBottom: 16, border: '1px solid #e5e7eb' },
+  block: { background: '#fff', borderRadius: '14px', padding: '16px', marginBottom: 16, border: '1px solid #e5e7eb' },
   blockTitle: { fontSize: '0.95rem', fontWeight: 700, color: '#1a1a2e', marginBottom: 16 },
   grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 0 },
   secureBadge: { fontSize: '0.75rem', color: '#16a34a', fontWeight: 600 },

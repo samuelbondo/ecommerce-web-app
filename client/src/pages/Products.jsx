@@ -83,7 +83,7 @@ export default function Products() {
       `}</style>
 
       {/* Page Header */}
-      <div style={{ background: '#1a1a2e', padding: '40px 24px 32px' }}>
+      <div style={{ background: '#1a1a2e', padding: '32px 16px', boxSizing: 'border-box' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <h1 style={{ color: '#fff', fontSize: '1.8rem', fontWeight: 800, margin: '0 0 6px' }}>
             {search ? `Search: "${search}"` : selectedCat ? categories.find(c => c.id === Number(selectedCat))?.name || 'Products' : 'All Products'}

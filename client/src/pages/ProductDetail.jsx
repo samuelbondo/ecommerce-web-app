@@ -121,6 +121,7 @@ export default function ProductDetail() {
         .qty-btn:hover:not(:disabled) { border-color: ${accent}; color: ${accent}; }
         .qty-btn:disabled { opacity: 0.4; cursor: not-allowed; }
         @media(max-width:700px) { .pd-main { flex-direction: column !important; } .pd-img-main { width: 100% !important; } }
+        @media(max-width:480px) { .pd-tab { padding: 10px 12px; font-size: 0.82rem; } }
       `}</style>
 
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 16px' }}>
@@ -229,7 +230,7 @@ export default function ProductDetail() {
             </button>
           </div>
 
-          <div style={{ padding: '28px 28px' }}>
+          <div style={{ padding: '16px' }}>
             {tab === 'description' && (
               <div style={{ color: '#374151', lineHeight: 1.8, fontSize: '0.95rem' }}>
                 {product.description || <span style={{ color: '#94a3b8' }}>No description provided for this product.</span>}
@@ -240,7 +241,7 @@ export default function ProductDetail() {
               <div>
                 {/* Summary */}
                 {reviews.length > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 28, padding: '20px 24px', background: '#f8f9fb', borderRadius: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28, padding: '12px', background: '#f8f9fb', borderRadius: 12, flexWrap: 'wrap' }}>
                     <div style={{ textAlign: 'center' }}>
                       <div style={{ fontSize: '3rem', fontWeight: 900, color: '#1a1a2e', lineHeight: 1 }}>{avg.toFixed(1)}</div>
                       <Stars rating={avg} />

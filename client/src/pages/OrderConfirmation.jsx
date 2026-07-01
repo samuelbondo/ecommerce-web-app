@@ -47,20 +47,20 @@ function Row({ label, value, highlight }) {
 }
 
 const styles = {
-  page: { display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '48px 24px', minHeight: '70vh' },
-  card: { background: '#fff', border: '1px solid #e5e7eb', borderRadius: '16px', padding: '40px 32px', maxWidth: '480px', width: '100%', textAlign: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' },
+  page: { display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '32px 16px', minHeight: '70vh', boxSizing: 'border-box' },
+  card: { background: '#fff', border: '1px solid #e5e7eb', borderRadius: '16px', padding: '28px 20px', maxWidth: '480px', width: '100%', textAlign: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' },
   icon: { fontSize: '3rem', marginBottom: '12px' },
-  title: { fontSize: '1.6rem', marginBottom: '8px', color: '#1a1a2e' },
-  sub: { color: '#555', marginBottom: '28px' },
-  details: { background: '#f9f9f9', borderRadius: '10px', padding: '20px', textAlign: 'left', marginBottom: '28px' },
-  actions: { display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' },
-  btnPrimary: { padding: '10px 24px', background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.95rem' },
-  btnSecondary: { padding: '10px 24px', background: '#e94560', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.95rem' },
+  title: { fontSize: '1.5rem', marginBottom: '8px', color: '#1a1a2e' },
+  sub: { color: '#555', marginBottom: '24px', fontSize: '0.9rem' },
+  details: { background: '#f9f9f9', borderRadius: '10px', padding: '16px', textAlign: 'left', marginBottom: '24px' },
+  actions: { display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' },
+  btnPrimary: { flex: '1 1 auto', padding: '10px 20px', background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.9rem' },
+  btnSecondary: { flex: '1 1 auto', padding: '10px 20px', background: '#e94560', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.9rem' },
 };
 
 const rowStyles = {
-  row: { display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #eee', gap: '12px' },
-  label: { color: '#888', fontSize: '0.85rem' },
-  value: { fontWeight: '500', fontSize: '0.9rem', textAlign: 'right' },
-  highlight: { color: '#e94560', fontWeight: '700', fontSize: '1rem' },
+  row: { display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #eee', gap: '10px' },
+  label: { color: '#888', fontSize: '0.82rem', flexShrink: 0 },
+  value: { fontWeight: '500', fontSize: '0.88rem', textAlign: 'right', wordBreak: 'break-all' },
+  highlight: { color: '#e94560', fontWeight: '700', fontSize: '0.95rem' },
 };
