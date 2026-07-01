@@ -163,8 +163,9 @@ export default function Navbar() {
         .ss-btn-out:hover { background: rgba(255,255,255,0.08); color: #fff; }
         .ss-admin-btn { background: ${accent}; color: #fff; text-decoration: none; font-size: 0.78rem; font-weight: 700; padding: 5px 11px; border-radius: 6px; white-space: nowrap; }
         .ss-user-chip { color: #94a3b8; font-size: 0.8rem; padding: 0 2px; white-space: nowrap; }
-        .ss-avatar { width: 32px; height: 32px; border-radius: 50%; background: ${accent}; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.78rem; flex-shrink: 0; border: 2px solid rgba(255,255,255,0.2); cursor: pointer; text-decoration: none; transition: border-color 0.15s; }
+        .ss-avatar { width: 32px; height: 32px; border-radius: 50%; background: ${accent}; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.78rem; flex-shrink: 0; border: 2px solid rgba(255,255,255,0.2); cursor: pointer; text-decoration: none; transition: border-color 0.15s; overflow: hidden; }
         .ss-avatar:hover { border-color: rgba(255,255,255,0.5); }
+        .ss-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .ss-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 8px; flex-shrink: 0; }
         .ss-hamburger span { display: block; width: 23px; height: 2px; background: #fff; border-radius: 2px; }
         .ss-hamburger span + span { margin-top: 5px; }
@@ -210,7 +211,9 @@ export default function Navbar() {
             {user ? (
               <>
                 <Link to="/dashboard" className="ss-avatar" title={user.name}>
-                  {user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
+                  {user.avatar
+                    ? <img src={user.avatar} alt={user.name} />
+                    : user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
                 </Link>
                 {user.role === 'admin' && <Link to="/admin" className="ss-admin-btn">⚡ Admin</Link>}
                 <button onClick={handleLogout} className="ss-btn-out">Logout</button>
@@ -249,8 +252,10 @@ export default function Navbar() {
               <>
                 <Link to="/orders" onClick={close}>📦 <span>My Orders</span></Link>
                 <Link to="/dashboard" onClick={close} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ width: '28px', height: '28px', borderRadius: '50%', background: accent, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.72rem', flexShrink: 0 }}>
-                    {user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
+                  <span style={{ width: '28px', height: '28px', borderRadius: '50%', background: accent, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.72rem', flexShrink: 0, overflow: 'hidden', border: '2px solid rgba(255,255,255,0.2)' }}>
+                    {user.avatar
+                      ? <img src={user.avatar} alt={user.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
                   </span>
                   <span>{user.name.split(' ')[0]} — Dashboard</span>
                 </Link>

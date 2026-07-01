@@ -19,6 +19,7 @@ export default function DashProfile() {
   const [showPw, setShowPw] = useState({ current: false, newPw: false, confirm: false });
   const [activity, setActivity] = useState([]);
   const fileRef = useRef();
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   const notify = (message, type = 'success') => setToast({ message, type });
   const initials = user?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -83,10 +84,25 @@ export default function DashProfile() {
               ? <img src={user.avatar} alt="avatar" style={s.avatarImg} />
               : <div style={s.avatarInitials}>{initials}</div>}
           </div>
-          <button onClick={() => fileRef.current.click()} style={s.avatarEditBtn} title="Change photo">
-            <span style={{ fontSize: '0.75rem' }}>📷</span>
+          <button onClick={() => fileRef.current.click()} style={s.avatarEditBtn} title="Change photo" disabled={avatarUploading}>
+            <span style={{ fontSize: '0.75rem' }}>{avatarUploading ? '⏳' : '📷'}</span>
           </button>
-          <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={() => notify('Avatar upload coming soon', 'error')} />
+          <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 1.5 * 1024 * 1024) return notify('Image must be under 1.5MB', 'error');
+            setAvatarUploading(true);
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
+              try {
+                const res = await API.post('/auth/avatar', { avatar: ev.target.result });
+                login({ ...user, avatar: res.data.avatar }, token);
+                notify('Profile photo updated!');
+              } catch (err) { notify(err.response?.data?.error || 'Upload failed', 'error'); }
+              finally { setAvatarUploading(false); }
+            };
+            reader.readAsDataURL(file);
+          }} />
         </div>
         <div style={s.headerInfo}>
           <div style={s.headerName}>{user?.name}</div>

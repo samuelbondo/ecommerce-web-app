@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSettings } from '../../context/SettingsContext';
 import Toast from '../../components/Toast';
 import API from '../../api';
@@ -21,6 +21,28 @@ export default function AdminCustomers() {
 
   const [edit, setEdit] = useState({ name: '', email: '', phone: '', address: '', city: '', country: '' });
   const [editSaving, setEditSaving] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarRef = useRef(null);
+
+  const uploadAvatar = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 1.5 * 1024 * 1024) return notify('Image must be under 1.5MB', 'error');
+    setAvatarUploading(true);
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        await API.put(`/admin/customers/${modal.id}/avatar`, { avatar: ev.target.result });
+        notify('Avatar updated');
+        load();
+        setModal(prev => ({ ...prev, avatar: ev.target.result }));
+        setModalUser(prev => ({ ...prev, avatar: ev.target.result }));
+      } catch (err) { notify(err.response?.data?.error || 'Upload failed', 'error'); }
+      finally { setAvatarUploading(false); }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const [newPassword, setNewPassword] = useState('');
   const [pwSaving, setPwSaving] = useState(false);
   const [showPw, setShowPw] = useState(false);
@@ -182,7 +204,11 @@ export default function AdminCustomers() {
                 <tr key={u.id} style={s.tr}>
                   <td style={s.td}>
                     <div style={s.userCell}>
-                      <div style={{ ...s.avatarSm, background: roleColor(u.role) }}>{initials(u.name)}</div>
+                      <div style={{ ...s.avatarSm, background: u.avatar ? 'transparent' : roleColor(u.role), padding: 0, overflow: 'hidden' }}>
+                    {u.avatar
+                      ? <img src={u.avatar} alt={u.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                      : initials(u.name)}
+                  </div>
                       <span style={s.userName}>{u.name}</span>
                     </div>
                   </td>
@@ -231,7 +257,17 @@ export default function AdminCustomers() {
               <div style={s.modalScroll}>
 
                 <div style={s.profileCard}>
-                  <div style={{ ...s.avatarLg, background: roleColor(u?.role) }}>{initials(u?.name)}</div>
+                  <div style={{ position: 'relative', flexShrink: 0 }}>
+                    <div style={{ ...s.avatarLg, background: u?.avatar ? 'transparent' : roleColor(u?.role), padding: 0, overflow: 'hidden' }}>
+                      {u?.avatar
+                        ? <img src={u.avatar} alt={u?.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                        : initials(u?.name)}
+                    </div>
+                    <button onClick={() => avatarRef.current.click()} disabled={avatarUploading}
+                      style={{ position: 'absolute', bottom: 0, right: 0, width: '22px', height: '22px', borderRadius: '50%', background: '#fff', border: '2px solid #e5e7eb', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }}
+                      title="Change photo">{avatarUploading ? '⏳' : '📷'}</button>
+                    <input ref={avatarRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={uploadAvatar} />
+                  </div>
                   <div style={{ flex: 1 }}>
                     <div style={s.profileName}>{u?.name}</div>
                     <div style={s.profileEmail}>{u?.email}</div>

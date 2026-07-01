@@ -122,14 +122,14 @@ router.put('/orders/:id/status', async (req, res) => {
 // ── Customers ──────────────────────────────────────────
 router.get('/customers', async (req, res) => {
   try {
-    const [rows] = await db.query(`SELECT u.id, u.name, u.email, u.phone, u.address, u.city, u.country, u.role, u.status, u.created_at, u.last_login, COUNT(o.id) AS total_orders, COALESCE(SUM(o.total),0) AS total_spent FROM users u LEFT JOIN orders o ON u.id=o.user_id GROUP BY u.id ORDER BY u.created_at DESC`);
+    const [rows] = await db.query(`SELECT u.id, u.name, u.email, u.phone, u.address, u.city, u.country, u.role, u.status, u.avatar, u.created_at, u.last_login, COUNT(o.id) AS total_orders, COALESCE(SUM(o.total),0) AS total_spent FROM users u LEFT JOIN orders o ON u.id=o.user_id GROUP BY u.id ORDER BY u.created_at DESC`);
     res.json(rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.get('/customers/:id', async (req, res) => {
   try {
-    const [[user]] = await db.query(`SELECT u.id, u.name, u.email, u.phone, u.address, u.city, u.country, u.role, u.status, u.created_at, u.last_login, COUNT(o.id) AS total_orders, COALESCE(SUM(o.total),0) AS total_spent FROM users u LEFT JOIN orders o ON u.id=o.user_id WHERE u.id=? GROUP BY u.id`, [req.params.id]);
+    const [[user]] = await db.query(`SELECT u.id, u.name, u.email, u.phone, u.address, u.city, u.country, u.role, u.status, u.avatar, u.created_at, u.last_login, COUNT(o.id) AS total_orders, COALESCE(SUM(o.total),0) AS total_spent FROM users u LEFT JOIN orders o ON u.id=o.user_id WHERE u.id=? GROUP BY u.id`, [req.params.id]);
     if (!user) return res.status(404).json({ error: 'User not found' });
     const [orders] = await db.query(`SELECT o.id, o.total, o.status, o.created_at FROM orders o WHERE o.user_id=? ORDER BY o.created_at DESC LIMIT 10`, [req.params.id]);
     res.json({ ...user, orders });
@@ -141,6 +141,16 @@ router.put('/customers/:id', async (req, res) => {
   try {
     await db.query('UPDATE users SET name=?,email=?,phone=?,address=?,city=?,country=?,role=?,status=? WHERE id=?', [name, email, phone, address, city, country, role, status, req.params.id]);
     res.json({ message: 'User updated' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/customers/:id/avatar', async (req, res) => {
+  const { avatar } = req.body;
+  if (!avatar) return res.status(400).json({ error: 'No avatar provided' });
+  if (avatar.length > 2 * 1024 * 1024) return res.status(400).json({ error: 'Image too large. Max 1.5MB.' });
+  try {
+    await db.query('UPDATE users SET avatar=? WHERE id=?', [avatar, req.params.id]);
+    res.json({ message: 'Avatar updated', avatar });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
