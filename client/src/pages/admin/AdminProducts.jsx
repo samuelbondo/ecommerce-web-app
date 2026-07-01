@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSettings } from '../../context/SettingsContext';
 import Toast from '../../components/Toast';
+import ImageUpload from '../../components/ImageUpload';
 import API from '../../api';
 
 const EMPTY = { name: '', description: '', price: '', stock: '', image_url: '', category_id: '' };
@@ -111,10 +112,14 @@ export default function AdminProducts() {
                 </div>
               </div>
               <div style={s.field}>
-                <label style={s.label}>Image URL</label>
-                <input value={form.image_url} onChange={e => setForm({...form, image_url: e.target.value})} style={s.input} placeholder="https://..." />
+                <label style={s.label}>Image</label>
+                <ImageUpload
+                  currentUrl={form.image_url}
+                  onUpload={url => setForm({ ...form, image_url: url })}
+                  size="md"
+                />
+                <input value={form.image_url} onChange={e => setForm({...form, image_url: e.target.value})} style={{ ...s.input, marginTop: 6 }} placeholder="Or paste image URL…" />
               </div>
-              {form.image_url && <img src={form.image_url} alt="preview" style={s.preview} onError={e => { e.target.style.display='none'; }} />}
               <div style={s.field}>
                 <label style={s.label}>Description</label>
                 <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} style={s.textarea} rows={3} placeholder="Product description..." />

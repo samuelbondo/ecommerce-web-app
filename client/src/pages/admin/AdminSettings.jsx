@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import Toast from '../../components/Toast';
+import ImageUpload from '../../components/ImageUpload';
 import { useSettings } from '../../context/SettingsContext';
 import API from '../../api';
 
@@ -114,30 +115,29 @@ export default function AdminSettings() {
               <h3 style={s.sectionTitle}>🎨 Branding</h3>
               <p style={s.hint}>Logo URL and accent color are used in the Navbar, buttons, badges, and product cards everywhere on the storefront.</p>
 
+              <ImageUpload
+                label="Site Logo (upload or paste URL below)"
+                currentUrl={form.site_logo || ''}
+                onUpload={url => set('site_logo', url)}
+                size="sm"
+              />
               <div style={s.field}>
-                <label style={s.label}>Site Logo URL</label>
+                <label style={s.label}>Or paste logo URL directly</label>
                 <input
                   value={form.site_logo || ''}
                   onChange={e => set('site_logo', e.target.value)}
                   style={s.input}
-                  placeholder="https://your-cdn.com/logo.png  (leave blank to use initial letter)"
+                  placeholder="https://your-cdn.com/logo.png"
                 />
-                {form.site_logo && (
-                  <div style={s.logoPreview}>
-                    <img src={form.site_logo} alt="logo preview" style={s.logoImg}
-                      onError={e => { e.target.style.display = 'none'; }} />
-                    <span style={s.logoOk}>✅ Logo preview above</span>
-                  </div>
-                )}
-                {!form.site_logo && (
-                  <div style={s.logoFallback}>
-                    <div style={{ ...s.avatarBox, background: form.accent_color || '#e94560' }}>
-                      {(form.site_name || 'S')[0]}
-                    </div>
-                    <span style={s.logoHint}>No logo URL set — Navbar will show this initial letter box instead</span>
-                  </div>
-                )}
               </div>
+              {!form.site_logo && (
+                <div style={s.logoFallback}>
+                  <div style={{ ...s.avatarBox, background: form.accent_color || '#e94560' }}>
+                    {(form.site_name || 'S')[0]}
+                  </div>
+                  <span style={s.logoHint}>No logo set — Navbar will show this initial letter box</span>
+                </div>
+              )}
 
               <div style={s.field}>
                 <label style={s.label}>Accent Color</label>
