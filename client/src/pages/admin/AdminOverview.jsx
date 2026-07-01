@@ -22,6 +22,7 @@ export default function AdminOverview() {
   const [monthly, setMonthly] = useState([]);
   const [topProducts, setTopProducts] = useState([]);
   const [recentOrders, setRecentOrders] = useState([]);
+  const [lowStockItems, setLowStockItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,11 +31,13 @@ export default function AdminOverview() {
       API.get('/admin/monthly-revenue'),
       API.get('/admin/top-products'),
       API.get('/admin/orders'),
-    ]).then(([s, m, t, o]) => {
+      API.get('/admin/inventory'),
+    ]).then(([s, m, t, o, inv]) => {
       setStats(s.data);
       setMonthly(m.data);
       setTopProducts(t.data);
       setRecentOrders(o.data.slice(0, 7));
+      setLowStockItems(inv.data.filter(p => p.stock <= 5).slice(0, 8));
     }).finally(() => setLoading(false));
   }, []);
 
@@ -98,9 +101,30 @@ export default function AdminOverview() {
         </div>
       </div>
 
+      {/* Low Stock Alert */}
+      {lowStockItems.length > 0 && (
+        <div style={{ ...s.tableCard, marginBottom: 24 }}>
+          <h3 style={{ ...s.cardTitle, color: '#f59e0b' }}>⚠️ Low Stock Alert ({lowStockItems.length})</h3>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            {lowStockItems.map(p => (
+              <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: p.stock === 0 ? '#fef2f2' : '#fffbeb', borderRadius: 8, border: `1px solid ${p.stock === 0 ? '#fecaca' : '#fde68a'}` }}>
+                <img src={p.image_url} alt={p.name} style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'cover' }} onError={e => { e.target.src = 'https://placehold.co/32x32?text=?'; }} />
+                <div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#1a1a2e' }}>{p.name}</div>
+                  <div style={{ fontSize: '0.72rem', color: p.stock === 0 ? '#ef4444' : '#f59e0b', fontWeight: 600 }}>{p.stock === 0 ? 'Out of stock' : `${p.stock} left`}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Recent Orders */}
       <div style={s.tableCard}>
-        <h3 style={s.cardTitle}>Recent Orders</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <h3 style={{ ...s.cardTitle, margin: 0 }}>Recent Orders</h3>
+          {stats.pending > 0 && <span style={{ padding: '4px 12px', background: '#fef3c7', color: '#d97706', borderRadius: 20, fontSize: '0.78rem', fontWeight: 700 }}>⏳ {stats.pending} pending</span>}
+        </div>
         <div style={s.tableWrap}>
           <table style={s.table}>
             <thead>

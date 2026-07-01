@@ -15,6 +15,9 @@ export default function AdminOrders() {
   const [selected, setSelected] = useState(null);
   const [toast, setToast] = useState(null);
   const [page, setPage] = useState(1);
+  const [checked, setChecked] = useState([]);
+  const [bulkStatus, setBulkStatus] = useState('');
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const PER = 10;
 
   const notify = (msg, type = 'success') => setToast({ message: msg, type });
@@ -39,10 +42,37 @@ export default function AdminOrders() {
     } catch { notify('Update failed', 'error'); }
   };
 
+  const deleteOrder = async (id) => {
+    try {
+      await API.delete(`/admin/orders/${id}`);
+      setOrders(p => p.filter(o => o.id !== id));
+      setSelected(null); setConfirmDeleteId(null);
+      notify('Order deleted');
+    } catch { notify('Delete failed', 'error'); }
+  };
+
+  const applyBulkStatus = async () => {
+    if (!bulkStatus || !checked.length) return;
+    try {
+      await API.put('/admin/orders/bulk-status', { ids: checked, status: bulkStatus });
+      notify(`${checked.length} orders updated to ${bulkStatus}`);
+      setChecked([]); setBulkStatus(''); load();
+    } catch { notify('Bulk update failed', 'error'); }
+  };
+
+  const exportCSV = () => {
+    const rows = [['ID', 'Customer', 'Email', 'Total', 'Status', 'Date'],
+      ...orders.map(o => [o.id, o.customer_name, o.customer_email, o.total, o.status, new Date(o.created_at).toLocaleDateString()])];
+    const blob = new Blob([rows.map(r => r.join(',')).join('\n')], { type: 'text/csv' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'orders.csv'; a.click();
+  };
+
+  const toggleCheck = (id) => setChecked(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
+  const toggleAll = () => setChecked(checked.length === paginated.length ? [] : paginated.map(o => o.id));
+
   const printInvoice = (o) => {
     const win = window.open('', '_blank');
-    win.document.write(`
-      <html><head><title>Invoice #${o.id}</title>
+    win.document.write(`<html><head><title>Invoice #${o.id}</title>
       <style>body{font-family:sans-serif;padding:32px;color:#222}h1{color:#e94560}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{padding:10px;border:1px solid #ddd;text-align:left}th{background:#f5f5f5}tfoot td{font-weight:bold}</style>
       </head><body>
       <h1>Samuel Store</h1><h2>Invoice #${o.id}</h2>
@@ -60,6 +90,18 @@ export default function AdminOrders() {
     <div style={s.wrap}>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
+      {/* Delete Confirm */}
+      {confirmDeleteId && (
+        <div style={s.overlay}><div style={s.dialog}>
+          <h3 style={s.dlgTitle}>Delete Order #{confirmDeleteId}?</h3>
+          <p style={s.dlgText}>This cannot be undone.</p>
+          <div style={s.dlgBtns}>
+            <button onClick={() => setConfirmDeleteId(null)} style={s.btnCancel}>Cancel</button>
+            <button onClick={() => deleteOrder(confirmDeleteId)} style={s.btnDanger}>Delete</button>
+          </div>
+        </div></div>
+      )}
+
       {/* Order Detail Modal */}
       {selected && (
         <div style={s.overlay}>
@@ -75,6 +117,12 @@ export default function AdminOrders() {
                 <div><span style={s.detailLabel}>Date</span><span style={s.detailVal}>{new Date(selected.created_at).toLocaleDateString()}</span></div>
                 <div><span style={s.detailLabel}>Total</span><span style={{ ...s.detailVal, color: '#e94560', fontWeight: '700' }}>{formatPrice(selected.total)}</span></div>
               </div>
+              {(selected.shipping_address || selected.shipping_city) && (
+                <div style={{ background: '#f8f9fb', borderRadius: 8, padding: '10px 14px', fontSize: '0.85rem' }}>
+                  <span style={s.detailLabel}>Shipping Address</span>
+                  <span style={s.detailVal}>{[selected.shipping_address, selected.shipping_city, selected.shipping_country].filter(Boolean).join(', ')}</span>
+                </div>
+              )}
               <div style={s.detailItems}>
                 {selected.items?.map(i => (
                   <div key={i.id} style={s.detailItem}>
@@ -95,7 +143,10 @@ export default function AdminOrders() {
                   ))}
                 </div>
               </div>
-              <button onClick={() => printInvoice(selected)} style={s.btnPrint}>🖨️ Print Invoice</button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => printInvoice(selected)} style={s.btnPrint}>🖨️ Print Invoice</button>
+                <button onClick={() => setConfirmDeleteId(selected.id)} style={s.btnDanger}>🗑 Delete Order</button>
+              </div>
             </div>
           </div>
         </div>
@@ -103,6 +154,7 @@ export default function AdminOrders() {
 
       <div style={s.pageHeader}>
         <div><h2 style={s.pageTitle}>Orders</h2><p style={s.pageSub}>{orders.length} total orders</p></div>
+        <button onClick={exportCSV} style={{ ...s.btnPrint, padding: '9px 18px' }}>📥 Export CSV</button>
       </div>
 
       <div style={s.toolbar}>
@@ -116,17 +168,31 @@ export default function AdminOrders() {
         </div>
       </div>
 
+      {checked.length > 0 && (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12, padding: '10px 14px', background: '#eff6ff', borderRadius: 8 }}>
+          <span style={{ fontSize: '0.85rem', color: '#1d4ed8' }}>{checked.length} selected</span>
+          <select value={bulkStatus} onChange={e => setBulkStatus(e.target.value)} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: '0.85rem' }}>
+            <option value="">Set status…</option>
+            {STATUSES.map(st => <option key={st} value={st}>{st}</option>)}
+          </select>
+          <button onClick={applyBulkStatus} disabled={!bulkStatus} style={{ padding: '6px 14px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.85rem' }}>Apply</button>
+          <button onClick={() => setChecked([])} style={{ padding: '6px 12px', background: '#f3f4f6', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.85rem' }}>Clear</button>
+        </div>
+      )}
+
       <div style={s.tableCard}>
         <div style={s.tableWrap}>
           <table style={s.table}>
             <thead><tr style={s.thead}>
+              <th style={s.th}><input type="checkbox" checked={checked.length === paginated.length && paginated.length > 0} onChange={toggleAll} /></th>
               {['#', 'Customer', 'Items', 'Total', 'Status', 'Date', 'Actions'].map(h => <th key={h} style={s.th}>{h}</th>)}
             </tr></thead>
             <tbody>
-              {loading ? <tr><td colSpan={7} style={s.noData}>Loading...</td></tr>
-                : paginated.length === 0 ? <tr><td colSpan={7} style={s.noData}>No orders found</td></tr>
+              {loading ? <tr><td colSpan={8} style={s.noData}>Loading...</td></tr>
+                : paginated.length === 0 ? <tr><td colSpan={8} style={s.noData}>No orders found</td></tr>
                 : paginated.map(o => (
                   <tr key={o.id} style={s.tr}>
+                    <td style={s.td}><input type="checkbox" checked={checked.includes(o.id)} onChange={() => toggleCheck(o.id)} /></td>
                     <td style={s.td}><b style={{ color: '#1a1a2e' }}>#{o.id}</b></td>
                     <td style={s.td}><div style={s.custName}>{o.customer_name}</div><div style={s.custEmail}>{o.customer_email}</div></td>
                     <td style={s.td}>{o.items?.length || 0}</td>
@@ -137,6 +203,7 @@ export default function AdminOrders() {
                       <div style={s.actions}>
                         <button onClick={() => setSelected(o)} style={s.btnView}>👁 View</button>
                         <button onClick={() => printInvoice(o)} style={s.btnPrint2}>🖨️</button>
+                        <button onClick={() => setConfirmDeleteId(o.id)} style={s.btnDel}>🗑</button>
                       </div>
                     </td>
                   </tr>
@@ -178,6 +245,12 @@ const s = {
   statusBtn: { padding: '6px 14px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontSize: '0.78rem', fontWeight: '600', textTransform: 'capitalize' },
   label: { fontSize: '0.8rem', fontWeight: '600', color: '#555' },
   btnPrint: { padding: '10px', background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem' },
+  btnDanger: { padding: '8px 18px', borderRadius: '8px', border: 'none', background: '#ef4444', color: '#fff', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem' },
+  btnCancel: { padding: '8px 18px', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontSize: '0.88rem' },
+  dialog: { background: '#fff', borderRadius: '14px', padding: '28px', maxWidth: '340px', width: '90%' },
+  dlgTitle: { margin: '0 0 8px', fontWeight: '700', color: '#1a1a2e' },
+  dlgText: { color: '#888', fontSize: '0.9rem', marginBottom: '20px' },
+  dlgBtns: { display: 'flex', gap: '10px', justifyContent: 'flex-end' },
   pageHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' },
   pageTitle: { fontSize: '1.4rem', fontWeight: '800', color: '#1a1a2e', margin: 0 },
   pageSub: { color: '#888', fontSize: '0.85rem', margin: '4px 0 0' },
@@ -199,6 +272,7 @@ const s = {
   actions: { display: 'flex', gap: '6px' },
   btnView: { padding: '5px 12px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontSize: '0.78rem', color: '#555' },
   btnPrint2: { padding: '5px 10px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontSize: '0.78rem' },
+  btnDel: { padding: '5px 10px', borderRadius: '6px', border: '1px solid #fee2e2', background: '#fff', cursor: 'pointer', fontSize: '0.78rem', color: '#ef4444' },
   noData: { padding: '32px', textAlign: 'center', color: '#aaa', fontSize: '0.88rem' },
   pagination: { display: 'flex', gap: '6px', padding: '16px', justifyContent: 'center', borderTop: '1px solid #f5f5f5' },
   pageBtn: { padding: '6px 12px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontSize: '0.82rem' },

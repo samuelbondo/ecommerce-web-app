@@ -46,18 +46,44 @@ router.get('/products', async (req, res) => {
 });
 
 router.post('/products', async (req, res) => {
-  const { name, description, price, stock, image_url, category_id, sku, featured } = req.body;
+  const { name, description, price, stock, image_url, category_id, featured } = req.body;
   try {
-    const [r] = await db.query('INSERT INTO products (name,description,price,stock,image_url,category_id) VALUES (?,?,?,?,?,?)', [name, description, price, stock, image_url || '', category_id]);
+    const [r] = await db.query('INSERT INTO products (name,description,price,stock,image_url,category_id,featured) VALUES (?,?,?,?,?,?,?)', [name, description, price, stock, image_url || '', category_id, featured ? 1 : 0]);
     res.status(201).json({ id: r.insertId, message: 'Product created' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-router.put('/products/:id', async (req, res) => {
-  const { name, description, price, stock, image_url, category_id } = req.body;
+router.put('/products/bulk-delete', async (req, res) => {
+  const { ids } = req.body;
+  if (!ids?.length) return res.status(400).json({ error: 'ids required' });
   try {
-    await db.query('UPDATE products SET name=?,description=?,price=?,stock=?,image_url=?,category_id=? WHERE id=?', [name, description, price, stock, image_url, category_id, req.params.id]);
+    await db.query(`DELETE FROM products WHERE id IN (${ids.map(() => '?').join(',')})`, ids);
+    res.json({ message: 'Products deleted' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/products/:id/duplicate', async (req, res) => {
+  try {
+    const [[p]] = await db.query('SELECT * FROM products WHERE id=?', [req.params.id]);
+    if (!p) return res.status(404).json({ error: 'Not found' });
+    const [r] = await db.query('INSERT INTO products (name,description,price,stock,image_url,category_id,featured) VALUES (?,?,?,?,?,?,?)', [`${p.name} (Copy)`, p.description, p.price, p.stock, p.image_url, p.category_id, p.featured]);
+    res.status(201).json({ id: r.insertId, message: 'Product duplicated' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/products/:id', async (req, res) => {
+  const { name, description, price, stock, image_url, category_id, featured } = req.body;
+  try {
+    await db.query('UPDATE products SET name=?,description=?,price=?,stock=?,image_url=?,category_id=?,featured=? WHERE id=?', [name, description, price, stock, image_url, category_id, featured ? 1 : 0, req.params.id]);
     res.json({ message: 'Product updated' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/products/:id/featured', async (req, res) => {
+  const { featured } = req.body;
+  try {
+    await db.query('UPDATE products SET featured=? WHERE id=?', [featured ? 1 : 0, req.params.id]);
+    res.json({ message: 'Featured updated' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -102,7 +128,7 @@ router.delete('/categories/:id', async (req, res) => {
 // ── Orders ─────────────────────────────────────────────
 router.get('/orders', async (req, res) => {
   try {
-    const [orders] = await db.query('SELECT o.*, u.name AS customer_name, u.email AS customer_email FROM orders o LEFT JOIN users u ON o.user_id=u.id ORDER BY o.created_at DESC');
+    const [orders] = await db.query('SELECT o.*, u.name AS customer_name, u.email AS customer_email, u.address AS shipping_address, u.city AS shipping_city, u.country AS shipping_country FROM orders o LEFT JOIN users u ON o.user_id=u.id ORDER BY o.created_at DESC');
     for (const o of orders) {
       const [items] = await db.query('SELECT oi.*, p.name, p.image_url FROM order_items oi JOIN products p ON oi.product_id=p.id WHERE oi.order_id=?', [o.id]);
       o.items = items;
@@ -119,17 +145,34 @@ router.put('/orders/:id/status', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+router.put('/orders/bulk-status', async (req, res) => {
+  const { ids, status } = req.body;
+  if (!ids?.length || !status) return res.status(400).json({ error: 'ids and status required' });
+  try {
+    await db.query(`UPDATE orders SET status=? WHERE id IN (${ids.map(() => '?').join(',')})`, [status, ...ids]);
+    res.json({ message: 'Bulk status updated' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/orders/:id', async (req, res) => {
+  try {
+    await db.query('DELETE FROM order_items WHERE order_id=?', [req.params.id]);
+    await db.query('DELETE FROM orders WHERE id=?', [req.params.id]);
+    res.json({ message: 'Order deleted' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ── Customers ──────────────────────────────────────────
 router.get('/customers', async (req, res) => {
   try {
-    const [rows] = await db.query(`SELECT u.id, u.name, u.email, u.phone, u.address, u.city, u.country, u.role, u.status, u.avatar, u.created_at, u.last_login, COUNT(o.id) AS total_orders, COALESCE(SUM(o.total),0) AS total_spent FROM users u LEFT JOIN orders o ON u.id=o.user_id GROUP BY u.id ORDER BY u.created_at DESC`);
+    const [rows] = await db.query(`SELECT u.id, u.name, u.email, u.phone, u.address, u.city, u.country, u.role, u.status, u.avatar, u.admin_notes, u.created_at, u.last_login, COUNT(o.id) AS total_orders, COALESCE(SUM(o.total),0) AS total_spent FROM users u LEFT JOIN orders o ON u.id=o.user_id GROUP BY u.id ORDER BY u.created_at DESC`);
     res.json(rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.get('/customers/:id', async (req, res) => {
   try {
-    const [[user]] = await db.query(`SELECT u.id, u.name, u.email, u.phone, u.address, u.city, u.country, u.role, u.status, u.avatar, u.created_at, u.last_login, COUNT(o.id) AS total_orders, COALESCE(SUM(o.total),0) AS total_spent FROM users u LEFT JOIN orders o ON u.id=o.user_id WHERE u.id=? GROUP BY u.id`, [req.params.id]);
+    const [[user]] = await db.query(`SELECT u.id, u.name, u.email, u.phone, u.address, u.city, u.country, u.role, u.status, u.avatar, u.admin_notes, u.created_at, u.last_login, COUNT(o.id) AS total_orders, COALESCE(SUM(o.total),0) AS total_spent FROM users u LEFT JOIN orders o ON u.id=o.user_id WHERE u.id=? GROUP BY u.id`, [req.params.id]);
     if (!user) return res.status(404).json({ error: 'User not found' });
     const [orders] = await db.query(`SELECT o.id, o.total, o.status, o.created_at FROM orders o WHERE o.user_id=? ORDER BY o.created_at DESC LIMIT 10`, [req.params.id]);
     res.json({ ...user, orders });
@@ -141,6 +184,14 @@ router.put('/customers/:id', async (req, res) => {
   try {
     await db.query('UPDATE users SET name=?,email=?,phone=?,address=?,city=?,country=?,role=?,status=? WHERE id=?', [name, email, phone, address, city, country, role, status, req.params.id]);
     res.json({ message: 'User updated' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/customers/:id/notes', async (req, res) => {
+  const { notes } = req.body;
+  try {
+    await db.query('UPDATE users SET admin_notes=? WHERE id=?', [notes, req.params.id]);
+    res.json({ message: 'Notes saved' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

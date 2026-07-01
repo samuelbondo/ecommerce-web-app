@@ -48,6 +48,7 @@ export default function AdminLayout() {
 
   const handleLogout = () => { logout(); navigate('/login'); };
   const initials = user?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  const avatar = user?.avatar || null;
   const breadcrumb = BREADCRUMB[location.pathname] || 'Admin';
 
   return (
@@ -240,7 +241,9 @@ export default function AdminLayout() {
           </div>
           <div style={s.topRight}>
             <div className="adm-top-badge" style={s.adminBadge}>🔐 Admin</div>
-            <div style={s.topAvatar} title={user?.name}>{initials}</div>
+            <div style={s.topAvatar} title={user?.name}>
+              {avatar ? <img src={avatar} alt={user?.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} /> : initials}
+            </div>
             <button onClick={handleLogout} className="adm-top-logout" style={s.topLogout}>↩ <span>Logout</span></button>
           </div>
         </header>
