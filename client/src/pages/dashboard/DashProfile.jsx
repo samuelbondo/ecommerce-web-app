@@ -10,6 +10,8 @@ export default function DashProfile() {
   const [toast, setToast] = useState(null);
   const [tab, setTab] = useState('profile');
   const [saving, setSaving] = useState(false);
+  const [setPwForm, setSetPwForm] = useState({ password: '', confirm: '' });
+  const [setPwSaving, setSetPwSaving] = useState(false);
   const [form, setForm] = useState({
     name: user?.name || '', email: user?.email || '',
     phone: user?.phone || '', address: user?.address || '',
@@ -65,6 +67,21 @@ export default function DashProfile() {
   };
 
   const strength = pwStrength(pwForm.newPw);
+
+  const handleSetPassword = async (e) => {
+    e.preventDefault();
+    if (setPwForm.password !== setPwForm.confirm) return notify('Passwords do not match', 'error');
+    if (setPwForm.password.length < 6) return notify('Password must be at least 6 characters', 'error');
+    setSetPwSaving(true);
+    try {
+      await API.post('/auth/set-password', { password: setPwForm.password });
+      login({ ...user, auth_provider: 'both' }, token);
+      setSetPwForm({ password: '', confirm: '' });
+      notify('Password set! You can now log in with email or Google.');
+    } catch (err) {
+      notify(err.response?.data?.error || 'Failed to set password', 'error');
+    } finally { setSetPwSaving(false); }
+  };
 
   const TABS = [
     { id: 'profile', label: '👤 Personal Info' },
@@ -175,46 +192,63 @@ export default function DashProfile() {
       {/* Security Tab */}
       {tab === 'password' && (
         <div style={s.card}>
-          <div style={s.sectionTitle}>Change Password</div>
-          <div style={s.securityNote}>
-            🔒 Use a strong password with uppercase, numbers and special characters. Minimum 8 characters.
+          {/* Linked Accounts */}
+          <div style={s.sectionTitle}>Linked Accounts</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: '#f8f9fb', borderRadius: 10, border: '1px solid #e5e7eb' }}>
+            <svg width="22" height="22" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 600, fontSize: '0.88rem', color: '#1a1a2e' }}>Google</div>
+              <div style={{ fontSize: '0.75rem', color: '#888' }}>{user?.auth_provider === 'google' || user?.auth_provider === 'both' ? '✅ Connected' : 'Not connected'}</div>
+            </div>
+            {(user?.auth_provider === 'local' || !user?.auth_provider) && (
+              <a href={`${import.meta.env.VITE_API_URL}/auth/google`} style={{ padding: '6px 14px', background: '#1a1a2e', color: '#fff', borderRadius: 6, fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}>Link Google</a>
+            )}
           </div>
-          <form onSubmit={handlePasswordSave} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {[
-              { key: 'current', label: 'Current Password', placeholder: 'Enter your current password' },
-              { key: 'newPw', label: 'New Password', placeholder: 'Min. 8 characters' },
-              { key: 'confirm', label: 'Confirm New Password', placeholder: 'Repeat new password' },
-            ].map(({ key, label, placeholder }) => (
-              <div key={key} style={s.field}>
-                <label style={s.label}>{label} <span style={s.req}>*</span></label>
-                <div style={s.pwWrap}>
-                  <input
-                    value={pwForm[key]}
-                    onChange={e => setPwForm({ ...pwForm, [key]: e.target.value })}
-                    style={{ ...s.input, paddingRight: 42 }}
-                    type={showPw[key] ? 'text' : 'password'}
-                    placeholder={placeholder}
-                    required
-                  />
-                  <button type="button" style={s.pwToggle} onClick={() => setShowPw({ ...showPw, [key]: !showPw[key] })}>
-                    {showPw[key] ? '🙈' : '👁'}
-                  </button>
+
+          {/* Set password for Google-only users */}
+          {(user?.auth_provider === 'google') && (
+            <>
+              <div style={{ ...s.sectionTitle, marginTop: 8 }}>Set a Password</div>
+              <div style={s.securityNote}>You signed up with Google. Set a password to also log in with email + password.</div>
+              <form onSubmit={handleSetPassword} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={s.field}>
+                  <label style={s.label}>New Password</label>
+                  <input type="password" value={setPwForm.password} onChange={e => setSetPwForm({ ...setPwForm, password: e.target.value })} style={s.input} placeholder="Min. 6 characters" required />
                 </div>
-                {key === 'newPw' && strength && (
-                  <div style={s.strengthWrap}>
-                    <div style={{ ...s.strengthBar, width: strength.width, background: strength.color }} />
-                    <span style={{ ...s.strengthLabel, color: strength.color }}>{strength.label}</span>
+                <div style={s.field}>
+                  <label style={s.label}>Confirm Password</label>
+                  <input type="password" value={setPwForm.confirm} onChange={e => setSetPwForm({ ...setPwForm, confirm: e.target.value })} style={s.input} placeholder="Repeat password" required />
+                </div>
+                <button type="submit" disabled={setPwSaving} style={s.saveBtn}>{setPwSaving ? 'Saving…' : '🔐 Set Password'}</button>
+              </form>
+            </>
+          )}
+
+          {/* Change password for local or both users */}
+          {(user?.auth_provider === 'local' || user?.auth_provider === 'both' || !user?.auth_provider) && (
+            <>
+              <div style={{ ...s.sectionTitle, marginTop: 8 }}>Change Password</div>
+              <div style={s.securityNote}>🔒 Use a strong password with uppercase, numbers and special characters. Minimum 8 characters.</div>
+              <form onSubmit={handlePasswordSave} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {[
+                  { key: 'current', label: 'Current Password', placeholder: 'Enter your current password' },
+                  { key: 'newPw', label: 'New Password', placeholder: 'Min. 8 characters' },
+                  { key: 'confirm', label: 'Confirm New Password', placeholder: 'Repeat new password' },
+                ].map(({ key, label, placeholder }) => (
+                  <div key={key} style={s.field}>
+                    <label style={s.label}>{label} <span style={s.req}>*</span></label>
+                    <div style={s.pwWrap}>
+                      <input value={pwForm[key]} onChange={e => setPwForm({ ...pwForm, [key]: e.target.value })} style={{ ...s.input, paddingRight: 42 }} type={showPw[key] ? 'text' : 'password'} placeholder={placeholder} required />
+                      <button type="button" style={s.pwToggle} onClick={() => setShowPw({ ...showPw, [key]: !showPw[key] })}>{showPw[key] ? '🙈' : '👁'}</button>
+                    </div>
+                    {key === 'newPw' && strength && (<div style={s.strengthWrap}><div style={{ ...s.strengthBar, width: strength.width, background: strength.color }} /><span style={{ ...s.strengthLabel, color: strength.color }}>{strength.label}</span></div>)}
+                    {key === 'confirm' && pwForm.confirm && pwForm.newPw !== pwForm.confirm && (<span style={s.mismatch}>Passwords do not match</span>)}
                   </div>
-                )}
-                {key === 'confirm' && pwForm.confirm && pwForm.newPw !== pwForm.confirm && (
-                  <span style={s.mismatch}>Passwords do not match</span>
-                )}
-              </div>
-            ))}
-            <button type="submit" disabled={saving} style={s.saveBtn}>
-              {saving ? '⏳ Updating...' : '🔐 Update Password'}
-            </button>
-          </form>
+                ))}
+                <button type="submit" disabled={saving} style={s.saveBtn}>{saving ? '⏳ Updating...' : '🔐 Update Password'}</button>
+              </form>
+            </>
+          )}
         </div>
       )}
 

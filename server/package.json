@@ -15,7 +15,10 @@
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.2.0",
     "multer-storage-cloudinary": "^4.0.0",
-    "mysql2": "^3.9.7"
+    "mysql2": "^3.9.7",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "resend": "^6.16.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"

@@ -11,6 +11,8 @@ import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import AuthCallback from './pages/AuthCallback';
 import Orders from './pages/Orders';
 import Checkout from './pages/Checkout';
 import OrderConfirmation from './pages/OrderConfirmation';
@@ -34,7 +36,7 @@ function Layout() {
   const { settings } = useSettings();
   const siteName = settings.site_name || 'Samuel Store';
   const noShell = location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/admin');
-  const noFooter = location.pathname.startsWith('/login') || location.pathname.startsWith('/register') || noShell;
+  const noFooter = location.pathname.startsWith('/login') || location.pathname.startsWith('/register') || location.pathname.startsWith('/forgot-password') || location.pathname.startsWith('/auth/callback') || noShell;
 
   // Dynamic page title
   useEffect(() => {
@@ -92,6 +94,8 @@ function Layout() {
         <Route path="/cart" element={<Cart />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/orders" element={<Orders />} />
         <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
         <Route path="/order-confirmation" element={<ProtectedRoute><OrderConfirmation /></ProtectedRoute>} />

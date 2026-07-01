@@ -32,6 +32,9 @@ Developed as a final project for **EWA408510 – E-Commerce and Web Application*
 - Order confirmation page
 - Order history per user
 - User registration and login (JWT authentication)
+- Google OAuth 2.0 login — sign in / sign up with Google
+- OTP-based forgot password — 6-digit code sent via Resend email
+- Dual auth — users can link Google to an email account and use either method
 - Bcrypt password hashing
 - Role-based access control (admin / customer)
 - Customer dashboard (orders, profile, addresses, reviews, notifications, settings)
@@ -49,7 +52,8 @@ Developed as a final project for **EWA408510 – E-Commerce and Web Application*
 | Frontend | React 19, Vite 8, React Router 7, Axios |
 | Backend | Node.js 24, Express.js 4 |
 | Database | MySQL 8.4 (Aiven cloud / XAMPP local) |
-| Auth | JWT (jsonwebtoken), bcryptjs |
+| Auth | JWT (jsonwebtoken), bcryptjs, Passport.js, Google OAuth 2.0 |
+| Email | Resend (transactional OTP emails) |
 | DevOps | Docker, Docker Compose, GitHub Actions |
 | Frontend Hosting | Vercel |
 | Backend Hosting | Render |
@@ -85,6 +89,8 @@ samuel_store/
 │   │       ├── Orders.jsx
 │   │       ├── Login.jsx
 │   │       ├── Register.jsx
+│   │       ├── ForgotPassword.jsx   # 3-step OTP password reset
+│   │       ├── AuthCallback.jsx     # Google OAuth redirect handler
 │   │       ├── admin/          # Admin dashboard pages
 │   │       └── dashboard/      # Customer dashboard pages
 │   ├── Dockerfile              # Multi-stage build → Nginx
@@ -92,7 +98,8 @@ samuel_store/
 │   └── vite.config.js
 ├── server/                     # Express backend
 │   ├── config/
-│   │   └── db.js               # MySQL2 connection pool (SSL-aware)
+│   │   ├── db.js               # MySQL2 connection pool (SSL-aware)
+│   │   └── passport.js         # Google OAuth strategy (passport-google-oauth20)
 │   ├── controllers/            # Business logic separated from routes
 │   │   ├── authController.js
 │   │   ├── cartController.js
@@ -101,7 +108,7 @@ samuel_store/
 │   │   ├── productController.js
 │   │   └── settingsController.js
 │   ├── db/
-│   │   ├── schema.sql          # Database table definitions
+│   │   ├── schema.sql          # Database table definitions (incl. otp_codes)
 │   │   └── seed.sql            # Sample data
 │   ├── middleware/
 │   │   ├── auth.js             # JWT authenticate + requireAdmin
@@ -287,6 +294,17 @@ DB_NAME=samuel_store
 # DB_NAME=defaultdb
 
 JWT_SECRET=samuel_store_secret_key_2024
+
+# Google OAuth (console.cloud.google.com)
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
+
+# Resend (resend.com) — for OTP emails
+RESEND_API_KEY=your_resend_api_key
+
+# Frontend URL (used after Google OAuth redirect)
+FRONTEND_URL=http://localhost:5173
 ```
 
 ### client/.env (local development)
@@ -311,10 +329,11 @@ VITE_API_URL=https://samuel-store-server.onrender.com/api
 |-------|-------------|
 | `categories` | Product categories |
 | `products` | Product catalog |
-| `users` | Registered users (customer / admin) |
+| `users` | Registered users — includes `google_id`, `auth_provider`, `avatar`, `admin_notes` |
 | `orders` | Customer orders |
 | `order_items` | Items within each order |
 | `cart` | Shopping cart items |
+| `otp_codes` | OTP codes for password reset (email, code, expires_at, used) |
 | `settings` | Store configuration key-value pairs |
 
 ### Schema file
@@ -359,6 +378,11 @@ node setup-db.js
 | GET | `/api/categories` | List all categories |
 | POST | `/api/auth/register` | Register new user |
 | POST | `/api/auth/login` | Login and get JWT token |
+| GET | `/api/auth/google` | Redirect to Google OAuth consent screen |
+| GET | `/api/auth/google/callback` | Google OAuth callback — issues JWT, redirects to frontend |
+| POST | `/api/auth/forgot-password` | Send 6-digit OTP to email |
+| POST | `/api/auth/verify-otp` | Verify OTP — returns short-lived reset token |
+| POST | `/api/auth/reset-password` | Set new password using reset token |
 | GET | `/api/settings` | Get store settings |
 
 ### Protected (requires JWT token)
@@ -370,6 +394,8 @@ node setup-db.js
 | DELETE | `/api/cart/:id` | Remove cart item |
 | POST | `/api/orders` | Place an order |
 | GET | `/api/orders/:user_id` | Get user's orders |
+| POST | `/api/auth/set-password` | Google user sets a password (enables both login methods) |
+| POST | `/api/auth/link-google` | Link Google to existing email account |
 
 ### Admin only (requires JWT + admin role)
 
@@ -553,6 +579,11 @@ DB_USER=avnadmin
 DB_PASSWORD=<aiven_password>
 DB_NAME=defaultdb
 JWT_SECRET=samuel_store_secret_key_2024
+GOOGLE_CLIENT_ID=955707634714-99jiohu664ovbioknt6t5nnda59iakhm.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=<your_google_client_secret>
+GOOGLE_CALLBACK_URL=https://samuel-store-server.onrender.com/api/auth/google/callback
+RESEND_API_KEY=<your_resend_api_key>
+FRONTEND_URL=https://samuel-store.vercel.app
 ```
 
 ### Deploy Frontend to Vercel
@@ -599,12 +630,100 @@ Run this on Aiven via the setup script or any MySQL client connected to the prod
 
 ---
 
+## Authentication
+
+### Login methods
+
+Samuel Store supports three auth methods. Users can switch between them freely.
+
+| Method | How |
+|--------|-----|
+| Email + Password | Standard registration, bcrypt hashed |
+| Google OAuth | One-click sign in/up via Google account |
+| Both | User has linked both — can use either |
+
+### auth_provider field
+
+Every user row has an `auth_provider` value:
+
+| Value | Meaning |
+|-------|---------|
+| `local` | Email + password only |
+| `google` | Google only (no password set yet) |
+| `both` | Both methods linked — user can use either |
+
+### Google OAuth flow
+
+```
+User clicks "Continue with Google"
+        ↓
+GET /api/auth/google  (backend)
+        ↓
+Google consent screen
+        ↓
+GET /api/auth/google/callback
+        ↓
+Backend: find or create user
+  • google_id exists → log in
+  • email exists (local) → link Google, auth_provider = both
+  • new user → create with auth_provider = google
+        ↓
+JWT issued → redirect to:
+https://samuel-store.vercel.app/auth/callback?token=...&user=...
+        ↓
+AuthCallback.jsx reads token → localStorage → dashboard
+```
+
+### OTP Forgot Password flow
+
+3-step process at `/forgot-password`:
+
+```
+Step 1 — Enter email
+  POST /auth/forgot-password
+  → 6-digit OTP generated, stored in otp_codes (expires 10 min)
+  → Email sent via Resend with styled OTP card
+
+Step 2 — Enter OTP code
+  POST /auth/verify-otp
+  → Validates code (expiry + used flag)
+  → Marks OTP as used
+  → Returns resetToken (JWT, 5 min expiry, purpose: reset)
+
+Step 3 — Set new password
+  POST /auth/reset-password
+  → Verifies resetToken
+  → Hashes new password with bcrypt
+  → If Google user: auth_provider set to both
+  → Redirects to /login
+```
+
+### Switching between login methods
+
+In **Dashboard → Profile → Security tab**:
+
+- Google-only user → "Set a Password" form → after saving, `auth_provider = both`
+- Email-only user → "Link Google" button → Google OAuth flow → `auth_provider = both`
+- Both linked → can use either method at any time
+
+### External services
+
+| Service | Purpose | Free tier |
+|---------|---------|----------|
+| Google Cloud Console | OAuth 2.0 credentials | Free |
+| Resend (resend.com) | Transactional OTP emails | 3,000 emails/month |
+
+---
+
 ## Security
 
 | Feature | Implementation |
 |---------|---------------|
 | Password hashing | bcryptjs (salt rounds: 10) |
 | Authentication | JWT tokens (7-day expiry) |
+| Google OAuth | passport-google-oauth20, validated by Passport |
+| OTP codes | 6-digit, 10-min expiry, single-use, invalidated after verify |
+| Reset tokens | Short-lived JWT (5 min), purpose-scoped (`purpose: reset`) |
 | Authorization | Middleware: `authenticate`, `requireAdmin` |
 | SQL injection | Parameterized queries via mysql2 |
 | Input validation | `validate` middleware on all POST routes |
@@ -614,6 +733,17 @@ Run this on Aiven via the setup script or any MySQL client connected to the prod
 ---
 
 ## Troubleshooting
+
+**Google login fails or redirects to `/login?error=google_failed`**
+- Verify `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL` in Render env vars
+- Callback URL in Google Console must match exactly: `https://samuel-store-server.onrender.com/api/auth/google/callback`
+- If app is in testing mode on Google Console, add your Gmail as a test user
+
+**OTP email not received**
+- Check spam/junk folder
+- Verify `RESEND_API_KEY` is set in Render environment variables
+- OTP expires in 10 minutes — request a new one if expired
+- On Resend free tier, from address is `onboarding@resend.dev`
 
 **Backend returns `{"error":"Internal server error"}`**
 - Check Render logs for the actual error
