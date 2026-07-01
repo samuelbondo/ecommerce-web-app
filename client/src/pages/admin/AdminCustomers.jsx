@@ -32,6 +32,8 @@ export default function AdminCustomers() {
   // password reset
   const [newPassword, setNewPassword] = useState('');
   const [pwSaving, setPwSaving] = useState(false);
+  const [resetTab, setResetTab] = useState('manual'); // 'manual' | 'link'
+  const [linkSending, setLinkSending] = useState(false);
 
   const notify = (msg, type = 'success') => setToast({ message: msg, type });
 
@@ -93,6 +95,15 @@ export default function AdminCustomers() {
       notify('Password reset successfully'); setNewPassword(''); setModal('view');
     } catch { notify('Failed to reset password', 'error'); }
     finally { setPwSaving(false); }
+  };
+
+  const sendResetLink = async () => {
+    setLinkSending(true);
+    try {
+      const r = await API.post(`/admin/customers/${modalUser.id}/send-reset-link`);
+      notify(r.data.message);
+    } catch { notify('Failed to send reset link', 'error'); }
+    finally { setLinkSending(false); }
   };
 
   const deleteUser = async (id) => {
@@ -410,25 +421,47 @@ export default function AdminCustomers() {
       {/* ── Reset Password Modal ── */}
       {modal === 'reset' && modalUser && (
         <div style={s.modalBg} onClick={() => setModal('view')}>
-          <div style={{ ...s.modalBox, maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+          <div style={{ ...s.modalBox, maxWidth: 420 }} onClick={e => e.stopPropagation()}>
             <div style={s.modalHd}>
-              <h3 style={s.modalTitle}>Reset Password</h3>
+              <h3 style={s.modalTitle}>🔑 Reset Password — {modalUser.name}</h3>
               <button onClick={() => setModal('view')} style={s.closeBtn}>✕</button>
             </div>
-            <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: 12 }}>
-              Set a new password for <strong>{modalUser.name}</strong>
-            </p>
-            <div style={s.field}>
-              <label style={s.fieldLabel}>New Password</label>
-              <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
-                style={s.input} placeholder="Min 6 characters" />
+
+            {/* Tabs */}
+            <div style={s.resetTabs}>
+              <button onClick={() => setResetTab('manual')} style={{ ...s.resetTab, ...(resetTab === 'manual' ? s.resetTabActive : {}) }}>Set Manually</button>
+              <button onClick={() => setResetTab('link')} style={{ ...s.resetTab, ...(resetTab === 'link' ? s.resetTabActive : {}) }}>Send Reset Link</button>
             </div>
-            <div style={s.modalFooter}>
-              <button onClick={resetPassword} disabled={pwSaving} style={s.btnSave}>
-                {pwSaving ? 'Saving…' : '🔑 Reset Password'}
-              </button>
-              <button onClick={() => setModal('view')} style={s.btnCancel}>Cancel</button>
-            </div>
+
+            {resetTab === 'manual' ? (
+              <>
+                <p style={s.resetHint}>Set a new password directly for <strong>{modalUser.name}</strong>. They will not be notified.</p>
+                <div style={s.field}>
+                  <label style={s.fieldLabel}>New Password</label>
+                  <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
+                    style={s.input} placeholder="Min 6 characters" />
+                </div>
+                <div style={s.modalFooter}>
+                  <button onClick={resetPassword} disabled={pwSaving} style={s.btnSave}>
+                    {pwSaving ? 'Saving…' : '✓ Set Password'}
+                  </button>
+                  <button onClick={() => setModal('view')} style={s.btnCancel}>Cancel</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p style={s.resetHint}>Send a 6-digit OTP reset code to <strong>{modalUser.email}</strong>. The customer uses it on the Forgot Password page to set a new password themselves.</p>
+                <div style={{ ...s.infoBox }}>
+                  📧 OTP expires in 10 minutes. Customer must go to <strong>/forgot-password</strong> and enter the code.
+                </div>
+                <div style={s.modalFooter}>
+                  <button onClick={sendResetLink} disabled={linkSending} style={s.btnSave}>
+                    {linkSending ? 'Sending…' : '📧 Send Reset Code'}
+                  </button>
+                  <button onClick={() => setModal('view')} style={s.btnCancel}>Cancel</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -505,6 +538,11 @@ const s = {
   textarea: { padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: '0.88rem', resize: 'vertical', outline: 'none', fontFamily: 'inherit' },
 
   editGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 },
+  resetTabs: { display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1.5px solid #e5e7eb' },
+  resetTab: { flex: 1, padding: '9px', border: 'none', background: '#f8fafc', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, color: '#64748b' },
+  resetTabActive: { background: '#1a1a2e', color: '#fff' },
+  resetHint: { fontSize: '0.85rem', color: '#64748b', margin: 0 },
+  infoBox: { background: '#eff6ff', borderRadius: 8, padding: '12px 14px', fontSize: '0.82rem', color: '#2563eb', borderLeft: '3px solid #3b82f6' },
   field: { display: 'flex', flexDirection: 'column', gap: 4 },
   fieldLabel: { fontSize: '0.75rem', fontWeight: 600, color: '#374151' },
   input: { padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: '0.88rem', outline: 'none', color: '#1a1a2e' },

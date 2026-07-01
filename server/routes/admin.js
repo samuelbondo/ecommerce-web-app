@@ -230,6 +230,28 @@ router.put('/customers/:id/reset-password', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+router.post('/customers/:id/send-reset-link', async (req, res) => {
+  try {
+    const [[user]] = await db.query('SELECT id, name, email FROM users WHERE id=?', [req.params.id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    await db.query('UPDATE otp_codes SET used=1 WHERE email=? AND used=0', [user.email]);
+    await db.query('INSERT INTO otp_codes (email, code, expires_at) VALUES (?,?,?)', [user.email, code, expiresAt]);
+    const mailer = require('nodemailer').createTransport({
+      host: process.env.MAIL_HOST, port: 587, secure: false,
+      auth: { user: process.env.MAIL_USER, pass: process.env.MAIL_PASSWORD },
+    });
+    await mailer.sendMail({
+      from: `"Samuel Store" <${process.env.MAIL_USER}>`,
+      to: user.email,
+      subject: 'Your Samuel Store password reset code',
+      html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#f8f9fb;border-radius:12px;"><div style="text-align:center;margin-bottom:24px;"><div style="display:inline-block;background:#e94560;color:#fff;font-weight:800;font-size:1.3rem;padding:10px 20px;border-radius:10px;">Samuel Store</div></div><h2 style="color:#1a1a2e;">Password Reset Request</h2><p style="color:#555;">Hi <strong>${user.name}</strong>, an admin has initiated a password reset. Use the code below — it expires in <strong>10 minutes</strong>.</p><div style="background:#fff;border:2px solid #e94560;border-radius:10px;padding:28px;text-align:center;margin:24px 0;"><div style="font-size:0.8rem;color:#888;margin-bottom:8px;letter-spacing:2px;text-transform:uppercase;">Your verification code</div><span style="font-size:2.8rem;font-weight:800;letter-spacing:14px;color:#1a1a2e;">${code}</span></div><p style="color:#888;font-size:0.85rem;">If you did not request this, you can safely ignore this email.</p></div>`,
+    });
+    res.json({ message: `Reset link sent to ${user.email}` });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.delete('/customers/:id', async (req, res) => {
   try {
     await db.query('DELETE FROM users WHERE id=?', [req.params.id]);

@@ -12,6 +12,7 @@ import AdminReviews from './AdminReviews';
 import AdminReports from './AdminReports';
 import AdminSettings from './AdminSettings';
 import AdminBanners from './AdminBanners';
+import AdminProfile from './AdminProfile';
 
 const NAV_GROUPS = [
   { label: 'Main', items: [
@@ -34,10 +35,11 @@ const NAV_GROUPS = [
   ]},
   { label: 'System', items: [
     { to: 'settings', icon: '⚙️', label: 'Settings' },
+    { to: 'profile', icon: '👤', label: 'My Profile' },
   ]},
 ];
 
-const BREADCRUMB = { '/admin': 'Overview', '/admin/orders': 'Orders', '/admin/customers': 'Customers', '/admin/products': 'Products', '/admin/categories': 'Categories', '/admin/inventory': 'Inventory', '/admin/coupons': 'Coupons', '/admin/reviews': 'Reviews', '/admin/reports': 'Reports', '/admin/settings': 'Settings' };
+const BREADCRUMB = { '/admin': 'Overview', '/admin/orders': 'Orders', '/admin/customers': 'Customers', '/admin/products': 'Products', '/admin/categories': 'Categories', '/admin/inventory': 'Inventory', '/admin/coupons': 'Coupons', '/admin/reviews': 'Reviews', '/admin/reports': 'Reports', '/admin/settings': 'Settings', '/admin/profile': 'My Profile' };
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
@@ -241,7 +243,7 @@ export default function AdminLayout() {
           </div>
           <div style={s.topRight}>
             <div className="adm-top-badge" style={s.adminBadge}>🔐 Admin</div>
-            <div style={s.topAvatar} title={user?.name}>
+            <div style={s.topAvatar} title={user?.name} onClick={() => navigate('/admin/profile')}>
               {avatar ? <img src={avatar} alt={user?.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} /> : initials}
             </div>
             <button onClick={handleLogout} className="adm-top-logout" style={s.topLogout}>↩ <span>Logout</span></button>
@@ -262,6 +264,7 @@ export default function AdminLayout() {
             <Route path="reports" element={<AdminReports />} />
             <Route path="banners" element={<AdminBanners />} />
             <Route path="settings" element={<AdminSettings />} />
+            <Route path="profile" element={<AdminProfile />} />
           </Routes>
         </main>
       </div>
