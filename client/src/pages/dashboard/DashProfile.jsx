@@ -130,7 +130,7 @@ export default function DashProfile() {
               await API.post('/auth/avatar', { avatar: avatarUrl });
               login({ ...user, avatar: avatarUrl }, token);
               notify('Profile photo updated!');
-            } catch (err) { notify(err.response?.data?.error || 'Upload failed', 'error'); }
+            } catch (err) { notify(err.response?.data?.error || err.message || 'Upload failed', 'error'); }
             finally { setAvatarUploading(false); }
           }} />
         </div>
