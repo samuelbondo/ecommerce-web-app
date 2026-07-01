@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useSettings } from '../../context/SettingsContext';
 import Toast from '../../components/Toast';
 import API from '../../api';
@@ -110,6 +110,13 @@ export default function AdminCustomers() {
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'customers.csv'; a.click();
   };
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+  useEffect(() => {
+    const fn = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener('resize', fn);
+    return () => window.removeEventListener('resize', fn);
+  }, []);
+
   const toggleSort = (col) => setSort(p => ({ col, dir: p.col === col && p.dir === 'asc' ? 'desc' : 'asc' }));
   const sortIcon = (col) => sort.col === col ? (sort.dir === 'asc' ? ' ▲' : ' ▼') : ' ⇅';
 
@@ -169,8 +176,43 @@ export default function AdminCustomers() {
         </select>
       </div>
 
-      {/* ── Table ── */}
-      {loading ? <p style={{ padding: 32, color: '#888' }}>Loading…</p> : (
+      {/* ── Table / Cards ── */}
+      {loading ? <p style={{ padding: 32, color: '#888' }}>Loading…</p> : isMobile ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {paginated.map(u => (
+            <div key={u.id} style={s.card}>
+              <div style={s.cardTop}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {u.avatar
+                    ? <img src={u.avatar} style={s.profileAvatar} alt="" onError={e => e.target.style.display='none'} />
+                    : <div style={{ ...s.avatarFallback, width: 40, height: 40, fontSize: '1rem', background: u.role === 'admin' ? '#f59e0b' : '#6366f1' }}>{(u.name||'?')[0]}</div>
+                  }
+                  <div>
+                    <div style={s.nameCell}>{u.name}</div>
+                    <div style={s.emailCell}>{u.email}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <span style={{ ...s.badge, background: u.role === 'admin' ? '#dbeafe' : '#f3f4f6', color: u.role === 'admin' ? '#1d4ed8' : '#374151' }}>{u.role}</span>
+                  <span style={{ ...s.badge, background: (u.status||'active') === 'active' ? '#dcfce7' : '#fee2e2', color: (u.status||'active') === 'active' ? '#16a34a' : '#dc2626' }}>{u.status||'active'}</span>
+                </div>
+              </div>
+              <div style={s.cardMeta}>
+                <span>📦 {u.total_orders||0} orders</span>
+                <span>💰 {formatPrice(u.total_spent||0)}</span>
+                <span>📅 {u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}</span>
+              </div>
+              <div style={s.actions}>
+                <button onClick={() => openView(u)} style={s.btnView}>View</button>
+                <button onClick={() => openEdit(u)} style={s.btnEdit}>Edit</button>
+                <button onClick={() => quickToggleStatus(u)} style={{ ...s.btnToggle, background: (u.status||'active') === 'active' ? '#fef3c7' : '#dcfce7', color: (u.status||'active') === 'active' ? '#b45309' : '#15803d' }}>
+                  {(u.status||'active') === 'active' ? 'Suspend' : 'Activate'}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
         <div style={s.tableWrap}>
           <table style={s.table}>
             <thead>
@@ -196,14 +238,10 @@ export default function AdminCustomers() {
                   <td style={s.td}><span style={s.nameCell}>{u.name}</span></td>
                   <td style={s.td}><span style={s.emailCell}>{u.email}</span></td>
                   <td style={s.td}>
-                    <span style={{ ...s.badge, background: u.role === 'admin' ? '#dbeafe' : '#f3f4f6', color: u.role === 'admin' ? '#1d4ed8' : '#374151' }}>
-                      {u.role}
-                    </span>
+                    <span style={{ ...s.badge, background: u.role === 'admin' ? '#dbeafe' : '#f3f4f6', color: u.role === 'admin' ? '#1d4ed8' : '#374151' }}>{u.role}</span>
                   </td>
                   <td style={s.td}>
-                    <span style={{ ...s.badge, background: (u.status||'active') === 'active' ? '#dcfce7' : '#fee2e2', color: (u.status||'active') === 'active' ? '#16a34a' : '#dc2626' }}>
-                      {u.status || 'active'}
-                    </span>
+                    <span style={{ ...s.badge, background: (u.status||'active') === 'active' ? '#dcfce7' : '#fee2e2', color: (u.status||'active') === 'active' ? '#16a34a' : '#dc2626' }}>{u.status||'active'}</span>
                   </td>
                   <td style={s.td}>{u.total_orders || 0}</td>
                   <td style={s.td}>{formatPrice(u.total_spent || 0)}</td>
@@ -442,7 +480,10 @@ const s = {
   pgActive: { background: '#1a1a2e', color: '#fff' },
 
   modalBg: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 },
-  modalBox: { background: '#fff', borderRadius: 16, padding: 28, width: '100%', maxWidth: 580, maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 },
+  modalBox: { background: '#fff', borderRadius: 16, padding: '20px 16px', width: '100%', maxWidth: 580, maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 },
+  card: { background: '#fff', borderRadius: 12, padding: '14px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: 10 },
+  cardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 },
+  cardMeta: { display: 'flex', gap: 12, fontSize: '0.78rem', color: '#64748b', flexWrap: 'wrap' },
   modalHd: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   modalTitle: { fontSize: '1.1rem', fontWeight: 800, color: '#1a1a2e', margin: 0 },
   closeBtn: { background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#94a3b8' },
