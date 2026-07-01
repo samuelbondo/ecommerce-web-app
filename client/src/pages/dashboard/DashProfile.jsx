@@ -10,7 +10,7 @@ export default function DashProfile() {
   const [toast, setToast] = useState(null);
   const [tab, setTab] = useState('profile');
   const [saving, setSaving] = useState(false);
-  const [setPwForm, setSetPwForm] = useState({ password: '', confirm: '' });
+  const [newPwForm, setNewPwForm] = useState({ password: '', confirm: '' });
   const [setPwSaving, setSetPwSaving] = useState(false);
   const [form, setForm] = useState({
     name: user?.name || '', email: user?.email || '',
@@ -70,13 +70,13 @@ export default function DashProfile() {
 
   const handleSetPassword = async (e) => {
     e.preventDefault();
-    if (setPwForm.password !== setPwForm.confirm) return notify('Passwords do not match', 'error');
-    if (setPwForm.password.length < 6) return notify('Password must be at least 6 characters', 'error');
+    if (newPwForm.password !== newPwForm.confirm) return notify('Passwords do not match', 'error');
+    if (newPwForm.password.length < 6) return notify('Password must be at least 6 characters', 'error');
     setSetPwSaving(true);
     try {
-      await API.post('/auth/set-password', { password: setPwForm.password });
+      await API.post('/auth/set-password', { password: newPwForm.password });
       login({ ...user, auth_provider: 'both' }, token);
-      setSetPwForm({ password: '', confirm: '' });
+      setNewPwForm({ password: '', confirm: '' });
       notify('Password set! You can now log in with email or Google.');
     } catch (err) {
       notify(err.response?.data?.error || 'Failed to set password', 'error');
@@ -213,11 +213,11 @@ export default function DashProfile() {
               <form onSubmit={handleSetPassword} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div style={s.field}>
                   <label style={s.label}>New Password</label>
-                  <input type="password" value={setPwForm.password} onChange={e => setSetPwForm({ ...setPwForm, password: e.target.value })} style={s.input} placeholder="Min. 6 characters" required />
+                  <input type="password" value={newPwForm.password} onChange={e => setNewPwForm({ ...newPwForm, password: e.target.value })} style={s.input} placeholder="Min. 6 characters" required />
                 </div>
                 <div style={s.field}>
                   <label style={s.label}>Confirm Password</label>
-                  <input type="password" value={setPwForm.confirm} onChange={e => setSetPwForm({ ...setPwForm, confirm: e.target.value })} style={s.input} placeholder="Repeat password" required />
+                  <input type="password" value={newPwForm.confirm} onChange={e => setNewPwForm({ ...newPwForm, confirm: e.target.value })} style={s.input} placeholder="Repeat password" required />
                 </div>
                 <button type="submit" disabled={setPwSaving} style={s.saveBtn}>{setPwSaving ? 'Saving…' : '🔐 Set Password'}</button>
               </form>
