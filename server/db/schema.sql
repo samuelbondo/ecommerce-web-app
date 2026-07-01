@@ -52,6 +52,9 @@ CREATE TABLE IF NOT EXISTS orders (
   user_id INT,
   total DECIMAL(10, 2) NOT NULL,
   status ENUM('pending', 'processing', 'shipped', 'delivered', 'cancelled') DEFAULT 'pending',
+  payment_method VARCHAR(20) DEFAULT 'cod',
+  payment_status VARCHAR(20) DEFAULT 'pending',
+  payment_id VARCHAR(100) DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
