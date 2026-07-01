@@ -173,7 +173,7 @@ export default function Dashboard() {
 const SIDEBAR_W = '240px';
 
 const s = {
-  root: { display: 'flex', minHeight: '100vh', background: '#f8f9fb', fontFamily: 'system-ui, sans-serif', overflow: 'hidden' },
+  root: { display: 'flex', minHeight: '100vh', background: '#f8f9fb', fontFamily: 'system-ui, sans-serif' },
   overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 99 },
   sidebar: { width: '240px', minHeight: '100vh', background: '#1a1a2e', display: 'flex', flexDirection: 'column', flexShrink: 0, position: 'sticky', top: 0 },
   sidebarBrand: { display: 'flex', alignItems: 'center', gap: '10px', padding: '20px 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)' },
@@ -191,7 +191,7 @@ const s = {
   footerLink: { color: '#a0aec0', textDecoration: 'none', fontSize: '0.82rem', padding: '6px 0' },
   logoutBtn: { background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: '600', marginTop: '4px', textAlign: 'left' },
   main: { flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 },
-  topbar: { background: '#fff', padding: '0 24px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', position: 'sticky', top: 0, zIndex: 10 },
+  topbar: { background: '#fff', padding: '0 12px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', position: 'sticky', top: 0, zIndex: 10 },
   topLeft: { display: 'flex', alignItems: 'center', gap: '14px' },
   menuBtn: { background: 'none', border: 'none', fontSize: '1.3rem', cursor: 'pointer', color: '#555', padding: '4px', lineHeight: 1 },
   breadcrumb: { display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' },

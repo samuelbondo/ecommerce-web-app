@@ -114,16 +114,16 @@ export default function DashAddresses() {
 }
 
 const s = {
-  container: { padding: '24px' },
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
-  title: { fontSize: '1.4rem', fontWeight: '700', color: '#1a1a2e', margin: 0 },
+  container: { padding: '16px', boxSizing: 'border-box', width: '100%' },
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' },
+  title: { fontSize: '1.3rem', fontWeight: '700', color: '#1a1a2e', margin: 0 },
   addBtn: { padding: '9px 18px', background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600' },
-  form: { background: '#fff', borderRadius: '16px', padding: '24px', marginBottom: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', gap: '14px' },
+  form: { background: '#fff', borderRadius: '16px', padding: '16px', marginBottom: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', gap: '14px' },
   formTitle: { margin: '0 0 4px', fontSize: '1rem', fontWeight: '700', color: '#1a1a2e' },
   grid2: {},
   field: { display: 'flex', flexDirection: 'column', gap: '5px' },
   label: { fontSize: '0.82rem', fontWeight: '600', color: '#555' },
-  input: { padding: '9px 12px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.9rem', outline: 'none' },
+  input: { padding: '9px 12px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.9rem', outline: 'none', width: '100%', boxSizing: 'border-box' },
   saveBtn: { padding: '10px', background: '#e94560', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem' },
   empty: { textAlign: 'center', padding: '48px', color: '#888', background: '#fff', borderRadius: '16px' },
   addressGrid: {},

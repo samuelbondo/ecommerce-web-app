@@ -138,14 +138,14 @@ export function DashSettings() {
 }
 
 const s = {
-  container: { padding: '24px', maxWidth: '680px' },
+  container: { padding: '16px', maxWidth: '680px', width: '100%', boxSizing: 'border-box', margin: '0 auto' },
   title: { fontSize: '1.4rem', fontWeight: '700', marginBottom: '20px', color: '#1a1a2e', display: 'flex', alignItems: 'center', gap: '10px' },
   empty: { textAlign: 'center', padding: '48px', color: '#888', background: '#fff', borderRadius: '16px' },
-  card: { background: '#fff', borderRadius: '14px', padding: '18px', marginBottom: '14px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', gap: '14px', alignItems: 'flex-start' },
+  card: { background: '#fff', borderRadius: '14px', padding: '16px', marginBottom: '14px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', gap: '14px', alignItems: 'flex-start', flexWrap: 'wrap' },
   img: { width: '60px', height: '60px', borderRadius: '10px', objectFit: 'cover', flexShrink: 0 },
   productName: { fontWeight: '700', color: '#1a1a2e', marginBottom: '4px', fontSize: '0.9rem' },
   comment: { color: '#555', fontSize: '0.85rem', margin: '6px 0 4px' },
-  textarea: { width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.85rem', marginTop: '6px', resize: 'vertical', outline: 'none' },
+  textarea: { width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.85rem', marginTop: '6px', resize: 'vertical', outline: 'none', boxSizing: 'border-box' },
   date: { color: '#aaa', fontSize: '0.75rem' },
   actions: { display: 'flex', flexDirection: 'column', gap: '6px' },
   editBtn: { padding: '5px 10px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontSize: '0.78rem' },
@@ -160,11 +160,11 @@ const s = {
   notifTime: { fontSize: '0.75rem', color: '#aaa' },
   dot: { width: '8px', height: '8px', borderRadius: '50%', background: '#e94560', flexShrink: 0 },
   removeBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#ccc', fontSize: '1.2rem', padding: 0, lineHeight: 1 },
-  settingsCard: { background: '#fff', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' },
+  settingsCard: { background: '#fff', borderRadius: '16px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' },
   settingsSection: { fontSize: '0.95rem', fontWeight: '700', color: '#1a1a2e', marginBottom: '16px' },
-  toggleRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #f5f5f5' },
+  toggleRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #f5f5f5', gap: '12px' },
   toggleLabel: { fontWeight: '600', fontSize: '0.88rem', color: '#333' },
-  toggleDesc: { fontSize: '0.78rem', color: '#888', marginTop: '2px' },
+  toggleDesc: { fontSize: '0.78rem', color: '#888', marginTop: '2px', minWidth: 0 },
   toggleTrack: { width: '44px', height: '24px', borderRadius: '99px', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 },
   toggleThumb: { position: 'absolute', top: '3px', left: '3px', width: '18px', height: '18px', borderRadius: '50%', background: '#fff', transition: 'transform 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' },
 };
