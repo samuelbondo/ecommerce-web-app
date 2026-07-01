@@ -23,9 +23,22 @@ export default function AdminProducts() {
   const [toast, setToast] = useState(null);
   const [page, setPage] = useState(1);
   const [checked, setChecked] = useState([]);
+  const [aiGenerating, setAiGenerating] = useState(false);
   const PER = 10;
 
   const notify = (msg, type = 'success') => setToast({ message: msg, type });
+
+  const generateAiDescription = async () => {
+    if (!form.name) return notify('Enter a product name first', 'error');
+    setAiGenerating(true);
+    try {
+      const cat = categories.find(c => c.id === Number(form.category_id))?.name || '';
+      const res = await API.post('/ai/describe', { name: form.name, category: cat, price: form.price });
+      setForm(f => ({ ...f, description: res.data.description }));
+      notify('Description generated!');
+    } catch { notify('AI generation failed', 'error'); }
+    setAiGenerating(false);
+  };
 
   const load = () => {
     Promise.all([API.get('/admin/products'), API.get('/admin/categories')])
@@ -144,6 +157,13 @@ export default function AdminProducts() {
               </div>
               <div style={s.field}>
                 <label style={s.label}>Description</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <label style={s.label}>Description</label>
+                  <button type="button" onClick={generateAiDescription} disabled={aiGenerating}
+                    style={{ fontSize: '0.75rem', padding: '3px 10px', borderRadius: 6, border: '1px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', cursor: 'pointer', fontWeight: 600 }}>
+                    {aiGenerating ? '⏳ Generating...' : '🤖 Generate with AI'}
+                  </button>
+                </div>
                 <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} style={s.textarea} rows={3} placeholder="Product description..." />
               </div>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.88rem', cursor: 'pointer' }}>

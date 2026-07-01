@@ -18,6 +18,7 @@ import Checkout from './pages/Checkout';
 import OrderConfirmation from './pages/OrderConfirmation';
 import Dashboard from './pages/dashboard/Dashboard';
 import AdminLayout from './pages/admin/AdminLayout';
+import AIChat from './components/AIChat';
 
 function ProtectedRoute({ children }) {
   const { user } = useAuth();
@@ -101,6 +102,7 @@ function Layout() {
         <Route path="/order-confirmation" element={<ProtectedRoute><OrderConfirmation /></ProtectedRoute>} />
       </Routes>
       {!noFooter && <Footer />}
+      {!noShell && <AIChat />}
     </>
   );
 }

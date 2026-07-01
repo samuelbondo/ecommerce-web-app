@@ -40,6 +40,8 @@ export default function ProductDetail() {
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [reviewMsg, setReviewMsg] = useState(null);
+  const [aiSummary, setAiSummary] = useState('');
+  const [summaryLoading, setSummaryLoading] = useState(false);
 
   useEffect(() => {
     setProduct(null); setReviews([]); setRelated([]); setQty(1); setAdded(false); setTab('description');
@@ -49,6 +51,14 @@ export default function ProductDetail() {
     ]).then(([p, r]) => {
       setProduct(p.data);
       setReviews(r.data);
+      // Fetch AI review summary if there are reviews
+      if (r.data.length >= 2) {
+        setSummaryLoading(true);
+        API.post('/ai/review-summary', { product_id: id })
+          .then(s => setAiSummary(s.data.summary || ''))
+          .catch(() => {})
+          .finally(() => setSummaryLoading(false));
+      }
       API.get('/products').then(all => {
         setRelated(all.data.filter(x => x.category_id === p.data.category_id && x.id !== p.data.id).slice(0, 4));
       }).catch(() => {});
@@ -263,6 +273,19 @@ export default function ProductDetail() {
                         );
                       })}
                     </div>
+                  </div>
+                )}
+
+                {/* AI Summary */}
+                {summaryLoading && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', background: '#eff6ff', borderRadius: 10, marginBottom: 20, fontSize: '0.85rem', color: '#1d4ed8' }}>
+                    ⏳ Generating AI summary...
+                  </div>
+                )}
+                {aiSummary && !summaryLoading && (
+                  <div style={{ padding: '14px 16px', background: 'linear-gradient(135deg,#eff6ff,#f0fdf4)', borderRadius: 12, marginBottom: 20, border: '1px solid #bfdbfe' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1d4ed8', marginBottom: 6 }}>🤖 AI Review Summary</div>
+                    <p style={{ fontSize: '0.88rem', color: '#374151', margin: 0, lineHeight: 1.65 }}>{aiSummary}</p>
                   </div>
                 )}
 

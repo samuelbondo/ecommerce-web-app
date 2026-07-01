@@ -12,6 +12,8 @@ export default function Products() {
   const [search, setSearch] = useState(searchParams.get('q') || '');
   const [sort, setSort] = useState('default');
   const [priceMax, setPriceMax] = useState('');
+  const [aiIds, setAiIds] = useState(null); // null = not used, [] = no results, [1,2,3] = ranked ids
+  const [aiLoading, setAiLoading] = useState(false);
   const selectedCat = searchParams.get('cat') || '';
   const { formatPrice, settings } = useSettings();
   const { addToCart } = useCart();
@@ -26,7 +28,17 @@ export default function Products() {
   }, []);
 
   // Sync search input when ?q= param changes (e.g. from navbar)
-  useEffect(() => { setSearch(searchParams.get('q') || ''); }, [searchParams]);
+  useEffect(() => { setSearch(searchParams.get('q') || ''); setAiIds(null); }, [searchParams]);
+
+  const handleAiSearch = async () => {
+    if (!search.trim()) return;
+    setAiLoading(true);
+    try {
+      const res = await API.post('/ai/search', { query: search });
+      setAiIds(res.data.ids);
+    } catch { setAiIds(null); }
+    setAiLoading(false);
+  };
 
   const handleAddToCart = (e, product) => {
     e.preventDefault();
@@ -36,6 +48,10 @@ export default function Products() {
   };
 
   const filtered = useMemo(() => {
+    // If AI search returned ranked IDs, use that order
+    if (aiIds !== null) {
+      return aiIds.map(id => products.find(p => p.id === id)).filter(Boolean);
+    }
     let list = products.filter(p => {
       const matchCat = selectedCat ? p.category_id === Number(selectedCat) : true;
       const q = search.toLowerCase();
@@ -50,7 +66,7 @@ export default function Products() {
     if (sort === 'name') list = [...list].sort((a, b) => a.name.localeCompare(b.name));
     if (sort === 'newest') list = [...list].sort((a, b) => b.id - a.id);
     return list;
-  }, [products, selectedCat, search, priceMax, sort]);
+  }, [products, selectedCat, search, priceMax, sort, aiIds]);
 
   const maxPrice = products.length ? Math.max(...products.map(p => p.price)) : 0;
 
@@ -115,6 +131,7 @@ export default function Products() {
               placeholder="Search products..." value={search}
               onChange={e => {
                 setSearch(e.target.value);
+                setAiIds(null);
                 setSearchParams(prev => {
                   const next = new URLSearchParams(prev);
                   if (e.target.value) next.set('q', e.target.value); else next.delete('q');
@@ -122,6 +139,17 @@ export default function Products() {
                 }, { replace: true });
               }} />
           </div>
+          <button onClick={handleAiSearch} disabled={!search.trim() || aiLoading}
+            title="AI Semantic Search"
+            style={{ padding: '9px 16px', borderRadius: 10, border: 'none', background: accent, color: '#fff', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700, whiteSpace: 'nowrap', opacity: (!search.trim() || aiLoading) ? 0.6 : 1 }}>
+            {aiLoading ? '...' : '🤖 AI Search'}
+          </button>
+          {aiIds !== null && (
+            <button onClick={() => setAiIds(null)}
+              style={{ padding: '9px 14px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#64748b', cursor: 'pointer', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
+              ✕ Clear AI
+            </button>
+          )}
           <select className="pd-select" value={sort} onChange={e => setSort(e.target.value)}>
             <option value="default">Sort: Default</option>
             <option value="newest">Newest First</option>
@@ -141,6 +169,13 @@ export default function Products() {
             </button>
           )}
         </div>
+
+        {/* AI Search indicator */}
+        {aiIds !== null && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, padding: '10px 16px', background: '#eff6ff', borderRadius: 10, border: '1px solid #bfdbfe', fontSize: '0.85rem', color: '#1d4ed8' }}>
+            🤖 <strong>AI Search</strong> — showing {filtered.length} result{filtered.length !== 1 ? 's' : ''} ranked by relevance for &ldquo;{search}&rdquo;
+          </div>
+        )}
 
         {/* Grid */}
         {loading ? (
