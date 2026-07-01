@@ -107,18 +107,18 @@ export default function DashProfile() {
           <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
             const file = e.target.files[0];
             if (!file) return;
-            if (file.size > 1.5 * 1024 * 1024) return notify('Image must be under 1.5MB', 'error');
+            if (file.size > 5 * 1024 * 1024) return notify('Image must be under 5MB', 'error');
             setAvatarUploading(true);
-            const reader = new FileReader();
-            reader.onload = async (ev) => {
-              try {
-                const res = await API.post('/auth/avatar', { avatar: ev.target.result });
-                login({ ...user, avatar: res.data.avatar }, token);
-                notify('Profile photo updated!');
-              } catch (err) { notify(err.response?.data?.error || 'Upload failed', 'error'); }
-              finally { setAvatarUploading(false); }
-            };
-            reader.readAsDataURL(file);
+            try {
+              const formData = new FormData();
+              formData.append('image', file);
+              const uploadRes = await API.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+              const avatarUrl = uploadRes.data.url;
+              await API.post('/auth/avatar', { avatar: avatarUrl });
+              login({ ...user, avatar: avatarUrl }, token);
+              notify('Profile photo updated!');
+            } catch (err) { notify(err.response?.data?.error || 'Upload failed', 'error'); }
+            finally { setAvatarUploading(false); }
           }} />
         </div>
         <div style={s.headerInfo}>
