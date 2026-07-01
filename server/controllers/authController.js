@@ -21,12 +21,13 @@ const login = asyncHandler(async (req, res, next) => {
 
   const user = rows[0];
   if (user.status === 'suspended') return next(new AppError('Your account has been suspended. Please contact support.', 403));
+  if (!user.password) return next(new AppError('This account uses Google login. Please sign in with Google.', 400));
   const match = await bcrypt.compare(password, user.password);
   if (!match) return next(new AppError('Invalid credentials', 400));
 
   await User.updateLastLogin(user.id);
   const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
-  res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, phone: user.phone, address: user.address, city: user.city, country: user.country } });
+  res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar, auth_provider: user.auth_provider, phone: user.phone, address: user.address, city: user.city, country: user.country } });
 });
 
 module.exports = { register, login };

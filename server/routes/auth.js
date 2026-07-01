@@ -59,10 +59,17 @@ router.get('/google', passport.authenticate('google', { scope: ['profile', 'emai
 router.get('/google/callback',
   passport.authenticate('google', { session: false, failureRedirect: `${process.env.FRONTEND_URL}/login?error=google_failed` }),
   (req, res) => {
-    const user = req.user;
-    const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    // Redirect to frontend with token — frontend reads it from URL
-    res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}&user=${encodeURIComponent(JSON.stringify({ id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar, auth_provider: user.auth_provider }))}`);
+    try {
+      const user = req.user;
+      const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
+      const userData = encodeURIComponent(JSON.stringify({
+        id: user.id, name: user.name, email: user.email,
+        role: user.role, avatar: user.avatar, auth_provider: user.auth_provider
+      }));
+      res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}&user=${userData}`);
+    } catch (err) {
+      res.redirect(`${process.env.FRONTEND_URL}/login?error=google_failed`);
+    }
   }
 );
 
@@ -84,7 +91,10 @@ router.post('/link-google', authenticate, async (req, res) => {
   const { google_id, avatar } = req.body;
   if (!google_id) return res.status(400).json({ error: 'google_id required' });
   try {
-    await db.query('UPDATE users SET google_id=?, auth_provider="both", avatar=COALESCE(NULLIF(avatar,""),?) WHERE id=?', [google_id, avatar || null, req.user.id]);
+    const [[user]] = await db.query('SELECT avatar FROM users WHERE id=?', [req.user.id]);
+    const newAvatar = user.avatar || avatar || null;
+    await db.query('UPDATE users SET google_id=?, auth_provider=?, avatar=? WHERE id=?',
+      [google_id, 'both', newAvatar, req.user.id]);
     res.json({ message: 'Google account linked successfully' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

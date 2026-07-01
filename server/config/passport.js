@@ -1,6 +1,7 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const db = require('../config/db');
+const jwt = require('jsonwebtoken');
 
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
@@ -17,19 +18,20 @@ passport.use(new GoogleStrategy({
     const [[byGoogle]] = await db.query('SELECT * FROM users WHERE google_id=?', [googleId]);
     if (byGoogle) return done(null, byGoogle);
 
-    // Check if user exists by email (local account)
+    // Check if user exists by email (local account) — link Google to it
     const [[byEmail]] = await db.query('SELECT * FROM users WHERE email=?', [email]);
     if (byEmail) {
-      // Link Google to existing account
-      await db.query('UPDATE users SET google_id=?, auth_provider="both", avatar=COALESCE(NULLIF(avatar,""),?) WHERE id=?', [googleId, avatar, byEmail.id]);
+      const newAvatar = byEmail.avatar || avatar;
+      await db.query('UPDATE users SET google_id=?, auth_provider=?, avatar=? WHERE id=?',
+        [googleId, 'both', newAvatar, byEmail.id]);
       const [[updated]] = await db.query('SELECT * FROM users WHERE id=?', [byEmail.id]);
       return done(null, updated);
     }
 
-    // Create new Google user (no password)
+    // New user — create with Google, no password
     const [result] = await db.query(
-      'INSERT INTO users (name, email, google_id, auth_provider, avatar, password) VALUES (?,?,?,"google",?,NULL)',
-      [name, email, googleId, avatar]
+      'INSERT INTO users (name, email, google_id, auth_provider, avatar) VALUES (?,?,?,?,?)',
+      [name, email, googleId, 'google', avatar]
     );
     const [[newUser]] = await db.query('SELECT * FROM users WHERE id=?', [result.insertId]);
     return done(null, newUser);
