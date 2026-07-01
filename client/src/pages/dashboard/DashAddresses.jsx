@@ -70,7 +70,7 @@ export default function DashAddresses() {
       {showForm && (
         <form onSubmit={handleSave} style={s.form}>
           <h3 style={s.formTitle}>{editing ? 'Edit Address' : 'New Address'}</h3>
-          <div style={s.grid2}>
+          <div className="dash-addr-form-grid">
             {[['label', 'Label (Home/Work)', 'text'], ['name', 'Full Name', 'text'], ['phone', 'Phone Number', 'tel'], ['city', 'City', 'text'], ['country', 'Country', 'text']].map(([key, ph, type]) => (
               <div key={key} style={s.field}>
                 <label style={s.label}>{ph}</label>
@@ -89,7 +89,7 @@ export default function DashAddresses() {
       {addresses.length === 0 ? (
         <div style={s.empty}>📍 No saved addresses yet.</div>
       ) : (
-        <div style={s.addressGrid}>
+        <div className="dash-addr-grid">
           {addresses.map(a => (
             <div key={a.id} style={{ ...s.addressCard, border: a.isDefault ? '2px solid #e94560' : '1px solid #e5e7eb' }}>
               <div style={s.addressTop}>
@@ -120,13 +120,13 @@ const s = {
   addBtn: { padding: '9px 18px', background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600' },
   form: { background: '#fff', borderRadius: '16px', padding: '24px', marginBottom: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', gap: '14px' },
   formTitle: { margin: '0 0 4px', fontSize: '1rem', fontWeight: '700', color: '#1a1a2e' },
-  grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' },
+  grid2: {},
   field: { display: 'flex', flexDirection: 'column', gap: '5px' },
   label: { fontSize: '0.82rem', fontWeight: '600', color: '#555' },
   input: { padding: '9px 12px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.9rem', outline: 'none' },
   saveBtn: { padding: '10px', background: '#e94560', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem' },
   empty: { textAlign: 'center', padding: '48px', color: '#888', background: '#fff', borderRadius: '16px' },
-  addressGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' },
+  addressGrid: {},
   addressCard: { background: '#fff', borderRadius: '14px', padding: '18px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' },
   addressTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' },
   addressLabel: { fontWeight: '700', color: '#1a1a2e', fontSize: '0.95rem' },

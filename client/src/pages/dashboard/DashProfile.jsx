@@ -117,7 +117,7 @@ export default function DashProfile() {
       {tab === 'profile' && (
         <form onSubmit={handleProfileSave} style={s.card}>
           <div style={s.sectionTitle}>Personal Information</div>
-          <div style={s.grid2}>
+          <div className="dash-grid2">
             <div style={s.field}>
               <label style={s.label}>Full Name <span style={s.req}>*</span></label>
               <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} style={s.input} placeholder="John Doe" required />
@@ -251,7 +251,7 @@ const s = {
   tabActive: { background: '#1a1a2e', color: '#fff', border: '1px solid #1a1a2e', fontWeight: '700' },
   card: { background: '#fff', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', gap: '16px' },
   sectionTitle: { fontSize: '1rem', fontWeight: '700', color: '#1a1a2e', marginBottom: '4px' },
-  grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' },
+  grid2: {},
   field: { display: 'flex', flexDirection: 'column', gap: '6px' },
   label: { fontSize: '0.82rem', fontWeight: '600', color: '#555' },
   req: { color: '#e94560' },

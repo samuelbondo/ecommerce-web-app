@@ -87,12 +87,12 @@ export default function Overview() {
             <Link to="/products" style={s.emptyBtn}>Browse Products</Link>
           </div>
         ) : (
-          <div style={s.table}>
-            <div style={s.tableHead}>
+          <div className="dash-order-table">
+            <div className="dash-order-head">
               <span>Order</span><span>Date</span><span>Amount</span><span>Status</span>
             </div>
             {orders.slice(0, 5).map(o => (
-              <div key={o.id} style={s.tableRow}>
+              <div key={o.id} className="dash-order-row">
                 <span style={s.orderId}>#{o.id}</span>
                 <span style={s.muted}>{new Date(o.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                 <span style={s.amount}>{formatPrice(o.total)}</span>
@@ -129,7 +129,7 @@ const s = {
   welcomeTitle: { color: '#fff', fontSize: '1.5rem', margin: 0 },
   welcomeSub: { color: '#a0aec0', marginTop: '6px', fontSize: '0.9rem' },
   shopBtn: { background: '#e94560', color: '#fff', padding: '10px 22px', borderRadius: '8px', textDecoration: 'none', fontWeight: '600', fontSize: '0.9rem' },
-  statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px', marginBottom: '28px' },
+  statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '14px', marginBottom: '28px' },
   card: { background: '#fff', borderRadius: '12px', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' },
   cardIcon: { width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', flexShrink: 0 },
   cardValue: { fontSize: '1.4rem', fontWeight: '700', color: '#1a1a2e' },
@@ -144,9 +144,9 @@ const s = {
   barTrack: { flex: 1, height: '10px', background: '#f0f0f0', borderRadius: '99px', overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: '99px', transition: 'width 0.6s ease' },
   barCount: { width: '24px', textAlign: 'right', fontSize: '0.85rem', color: '#555', fontWeight: '600' },
-  table: { display: 'flex', flexDirection: 'column' },
-  tableHead: { display: 'grid', gridTemplateColumns: '80px 1fr 1fr 110px', padding: '8px 12px', fontSize: '0.75rem', color: '#999', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  tableRow: { display: 'grid', gridTemplateColumns: '80px 1fr 1fr 110px', padding: '12px', borderTop: '1px solid #f5f5f5', alignItems: 'center' },
+  table: {},
+  tableHead: {},
+  tableRow: {},
   orderId: { fontWeight: '700', color: '#1a1a2e', fontSize: '0.9rem' },
   muted: { color: '#888', fontSize: '0.85rem' },
   amount: { fontWeight: '600', color: '#1a1a2e', fontSize: '0.9rem' },

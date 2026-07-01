@@ -41,11 +41,61 @@ export default function Dashboard() {
 
   return (
     <div style={s.root}>
+      <style>{`
+        .dash-sidebar {
+          width: 240px;
+          min-height: 100vh;
+          background: #1a1a2e;
+          display: flex;
+          flex-direction: column;
+          flex-shrink: 0;
+          position: sticky;
+          top: 0;
+          height: 100vh;
+          overflow-y: auto;
+          z-index: 99;
+          transition: transform 0.25s ease;
+        }
+        .dash-main { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+        .dash-content { flex: 1; overflow-y: auto; overflow-x: hidden; }
+        .dash-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 98; }
+        /* Overview table responsive */
+        .dash-order-table { display: flex; flex-direction: column; }
+        .dash-order-head { display: grid; grid-template-columns: 70px 1fr 1fr 100px; padding: 8px 12px; font-size: 0.75rem; color: #999; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+        .dash-order-row  { display: grid; grid-template-columns: 70px 1fr 1fr 100px; padding: 12px; border-top: 1px solid #f5f5f5; align-items: center; }
+        /* Profile grid */
+        .dash-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        /* Address grid */
+        .dash-addr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+        /* Address form grid */
+        .dash-addr-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        @media (max-width: 768px) {
+          .dash-sidebar {
+            position: fixed !important;
+            top: 0; left: 0; height: 100vh;
+            transform: translateX(-100%);
+            z-index: 200;
+          }
+          .dash-sidebar.open { transform: translateX(0) !important; }
+          .dash-overlay { display: block; }
+          .dash-order-head { grid-template-columns: 60px 1fr 90px; }
+          .dash-order-row  { grid-template-columns: 60px 1fr 90px; }
+          .dash-order-head span:nth-child(2),
+          .dash-order-row  span:nth-child(2) { display: none; }
+          .dash-grid2 { grid-template-columns: 1fr; }
+          .dash-addr-form-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 480px) {
+          .dash-order-head { grid-template-columns: 56px 1fr 80px; }
+          .dash-order-row  { grid-template-columns: 56px 1fr 80px; }
+        }
+      `}</style>
+
       {/* Sidebar Overlay (mobile) */}
-      {sidebarOpen && <div style={s.overlay} onClick={() => setSidebarOpen(false)} />}
+      {sidebarOpen && <div className="dash-overlay" onClick={() => setSidebarOpen(false)} />}
 
       {/* Sidebar */}
-      <aside style={{ ...s.sidebar, transform: sidebarOpen ? 'translateX(0)' : undefined }}>
+      <aside className={`dash-sidebar${sidebarOpen ? ' open' : ''}`}>
         <div style={s.sidebarBrand}>
           <span style={s.brandIcon}>🛍</span>
           <span style={s.brandName}>Samuel Store</span>
@@ -82,11 +132,11 @@ export default function Dashboard() {
       </aside>
 
       {/* Main Content */}
-      <div style={s.main}>
+      <div className="dash-main">
         {/* Topbar */}
         <header style={s.topbar}>
           <div style={s.topLeft}>
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} style={s.menuBtn}>☰</button>
+            <button onClick={() => setSidebarOpen(o => !o)} style={s.menuBtn} aria-label="Menu">☰</button>
             <div style={s.breadcrumb}>
               <span style={s.breadHome} onClick={() => navigate('/dashboard')}>Dashboard</span>
               {breadcrumb !== 'Overview' && <><span style={s.breadSep}>/</span><span style={s.breadCurrent}>{breadcrumb}</span></>}
@@ -104,7 +154,7 @@ export default function Dashboard() {
         </header>
 
         {/* Page Content */}
-        <main style={s.content}>
+        <main className="dash-content">
           <Routes>
             <Route index element={<Overview />} />
             <Route path="orders" element={<DashOrders />} />
@@ -123,9 +173,9 @@ export default function Dashboard() {
 const SIDEBAR_W = '240px';
 
 const s = {
-  root: { display: 'flex', minHeight: '100vh', background: '#f8f9fb', fontFamily: 'system-ui, sans-serif' },
-  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 99, display: 'none', '@media(max-width:768px)': { display: 'block' } },
-  sidebar: { width: SIDEBAR_W, minHeight: '100vh', background: '#1a1a2e', display: 'flex', flexDirection: 'column', flexShrink: 0, position: 'sticky', top: 0 },
+  root: { display: 'flex', minHeight: '100vh', background: '#f8f9fb', fontFamily: 'system-ui, sans-serif', overflow: 'hidden' },
+  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 99 },
+  sidebar: { width: '240px', minHeight: '100vh', background: '#1a1a2e', display: 'flex', flexDirection: 'column', flexShrink: 0, position: 'sticky', top: 0 },
   sidebarBrand: { display: 'flex', alignItems: 'center', gap: '10px', padding: '20px 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)' },
   brandIcon: { fontSize: '1.4rem' },
   brandName: { color: '#e94560', fontWeight: '800', fontSize: '1.1rem', letterSpacing: '-0.3px' },
