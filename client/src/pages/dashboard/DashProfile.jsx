@@ -19,6 +19,8 @@ export default function DashProfile() {
   });
   const [pwForm, setPwForm] = useState({ current: '', newPw: '', confirm: '' });
   const [showPw, setShowPw] = useState({ current: false, newPw: false, confirm: false });
+  const [resetSent, setResetSent] = useState(false);
+  const [resetSending, setResetSending] = useState(false);
   const [activity, setActivity] = useState([]);
   const fileRef = useRef();
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -57,6 +59,17 @@ export default function DashProfile() {
     } catch (err) {
       notify(err.response?.data?.error || 'Password change failed', 'error');
     } finally { setSaving(false); }
+  };
+
+  const handleSendResetLink = async () => {
+    setResetSending(true);
+    try {
+      await API.post('/auth/forgot-password', { email: user.email });
+      setResetSent(true);
+      notify('Reset link sent! Check your email.');
+    } catch (err) {
+      notify(err.response?.data?.error || 'Failed to send reset email', 'error');
+    } finally { setResetSending(false); }
   };
 
   const pwStrength = (pw) => {
@@ -224,8 +237,22 @@ export default function DashProfile() {
             </>
           )}
 
-          {/* Change password for local or both users */}
-          {(user?.auth_provider === 'local' || user?.auth_provider === 'both' || !user?.auth_provider) && (
+          {/* Customers: send OTP reset link to email */}
+          {(user?.auth_provider === 'local' || user?.auth_provider === 'both' || !user?.auth_provider) && user?.role !== 'admin' && (
+            <>
+              <div style={{ ...s.sectionTitle, marginTop: 8 }}>Change Password</div>
+              <div style={s.securityNote}>🔒 For your security, password changes are done via a reset link sent to your registered email address.</div>
+              {resetSent
+                ? <div style={s.successNote}>✅ A password reset code has been sent to <strong>{user.email}</strong>. Check your inbox and follow the instructions.</div>
+                : <button onClick={handleSendResetLink} disabled={resetSending} style={s.saveBtn}>
+                    {resetSending ? '⏳ Sending...' : '📧 Send Password Reset Link'}
+                  </button>
+              }
+            </>
+          )}
+
+          {/* Admins only: manual password change form */}
+          {(user?.auth_provider === 'local' || user?.auth_provider === 'both' || !user?.auth_provider) && user?.role === 'admin' && (
             <>
               <div style={{ ...s.sectionTitle, marginTop: 8 }}>Change Password</div>
               <div style={s.securityNote}>🔒 Use a strong password with uppercase, numbers and special characters. Minimum 8 characters.</div>
@@ -308,6 +335,7 @@ const s = {
   input: { padding: '10px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.92rem', outline: 'none', width: '100%', boxSizing: 'border-box', transition: 'border 0.2s' },
   saveBtn: { padding: '12px', background: '#e94560', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.95rem', fontWeight: '700', marginTop: '4px' },
   securityNote: { background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '12px 14px', fontSize: '0.82rem', color: '#166534' },
+  successNote: { background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '12px 14px', fontSize: '0.82rem', color: '#1e40af' },
   pwWrap: { position: 'relative' },
   pwToggle: { position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem', padding: '2px' },
   strengthWrap: { display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' },
