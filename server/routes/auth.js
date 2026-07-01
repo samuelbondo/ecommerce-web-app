@@ -184,7 +184,7 @@ router.post('/reset-password', async (req, res) => {
     if (payload.purpose !== 'reset') return res.status(400).json({ error: 'Invalid token' });
 
     const hashed = await bcrypt.hash(password, 10);
-    await db.query('UPDATE users SET password=?, auth_provider=CASE WHEN auth_provider="google" THEN "both" ELSE auth_provider END WHERE email=?', [hashed, payload.email]);
+    await db.query("UPDATE users SET password=?, auth_provider=CASE WHEN auth_provider='google' THEN 'both' ELSE auth_provider END WHERE email=?", [hashed, payload.email]);
     res.json({ message: 'Password reset successfully. You can now log in.' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
