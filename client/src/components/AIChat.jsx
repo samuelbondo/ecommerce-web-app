@@ -336,10 +336,22 @@ export default function AIChat() {
           padding: 0 0 10px; flex-shrink: 0;
         }
 
-        @media (max-width: 400px) {
-          .aic-panel { right: 12px; width: calc(100vw - 24px); bottom: 84px; }
-          .aic-btn { bottom: 16px; right: 16px; }
-          .aic-preview { right: 12px; }
+        /* ── Mobile: full-screen panel like WhatsApp / Messenger ── */
+        @media (max-width: 600px) {
+          .aic-btn { bottom: 16px; right: 16px; width: 52px; height: 52px; }
+          .aic-preview { right: 16px; bottom: 80px; max-width: calc(100vw - 80px); }
+          .aic-panel {
+            top: 0; left: 0; right: 0; bottom: 0;
+            width: 100%; height: 100%;
+            max-width: 100%; max-height: 100%;
+            border-radius: 0; border: none;
+            /* account for iOS safe areas */
+            padding-bottom: env(safe-area-inset-bottom);
+          }
+          .aic-header { padding: 14px 16px; padding-top: calc(14px + env(safe-area-inset-top)); }
+          .aic-input-row { padding: 8px 10px 10px; }
+          .aic-input { font-size: 1rem; }
+          .aic-msg { font-size: 0.9rem; }
         }
       `}</style>
 
