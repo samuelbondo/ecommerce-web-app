@@ -45,7 +45,7 @@ export default function AdminOverview() {
   return (
     <div style={s.wrap}>
       {/* Stats Grid */}
-      <div style={s.statsGrid}>
+      <div className="adm-stats-grid">
         {STAT_CONFIG.map(({ key, label, icon, color }) => (
           <div key={key} style={{ ...s.statCard, borderTop: `4px solid ${color}` }}>
             <div style={{ ...s.statIcon, background: color + '18', color }}>{icon}</div>
@@ -61,7 +61,7 @@ export default function AdminOverview() {
         ))}
       </div>
 
-      <div style={s.row2}>
+      <div className="adm-row2">
         {/* Revenue Chart */}
         <div style={s.chartCard}>
           <h3 style={s.cardTitle}>Revenue — Last 6 Months</h3>
@@ -131,12 +131,12 @@ export default function AdminOverview() {
 const s = {
   wrap: { padding: '24px' },
   loading: { padding: '60px', textAlign: 'center', color: '#888' },
-  statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: '14px', marginBottom: '24px' },
+  statsGrid: { marginBottom: '24px' },
   statCard: { background: '#fff', borderRadius: '12px', padding: '18px', display: 'flex', alignItems: 'center', gap: '14px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' },
   statIcon: { width: '44px', height: '44px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 },
   statVal: { fontSize: '1.15rem', fontWeight: '800', color: '#1a1a2e' },
   statLabel: { fontSize: '0.75rem', color: '#888', marginTop: '2px' },
-  row2: { display: 'grid', gridTemplateColumns: '1fr 340px', gap: '20px', marginBottom: '24px' },
+  row2: { marginBottom: '24px' },
   chartCard: { background: '#fff', borderRadius: '14px', padding: '22px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' },
   topCard: { background: '#fff', borderRadius: '14px', padding: '22px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' },
   cardTitle: { fontSize: '1rem', fontWeight: '700', color: '#1a1a2e', margin: '0 0 18px' },
@@ -155,7 +155,7 @@ const s = {
   topRevenue: { fontSize: '0.83rem', fontWeight: '700', color: '#10b981' },
   noData: { color: '#aaa', textAlign: 'center', padding: '20px', fontSize: '0.85rem' },
   tableCard: { background: '#fff', borderRadius: '14px', padding: '22px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' },
-  tableWrap: { overflowX: 'auto' },
+  tableWrap: { overflowX: 'auto', WebkitOverflowScrolling: 'touch' },
   table: { width: '100%', borderCollapse: 'collapse' },
   thead: { background: '#f8f9fb' },
   th: { padding: '10px 14px', textAlign: 'left', fontSize: '0.75rem', color: '#888', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' },

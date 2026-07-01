@@ -431,7 +431,7 @@ const s = {
   oth: { padding: '8px 10px', textAlign: 'left', fontSize: '0.7rem', color: '#aaa', fontWeight: '700', textTransform: 'uppercase', background: '#f8f9fb' },
   otr: { borderBottom: '1px solid #f5f5f5' },
   otd: { padding: '9px 10px', verticalAlign: 'middle' },
-  editGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' },
+  editGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: '12px' },
   formGroup: { display: 'flex', flexDirection: 'column', gap: '4px' },
   label: { fontSize: '0.75rem', fontWeight: '600', color: '#666' },
   input: { padding: '9px 12px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.88rem', outline: 'none', color: '#1a1a2e' },
