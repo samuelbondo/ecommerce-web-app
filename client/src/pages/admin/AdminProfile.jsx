@@ -170,20 +170,20 @@ export default function AdminProfile() {
 }
 
 const s = {
-  wrap: { padding: '16px', maxWidth: 700 },
+  wrap: { padding: '16px', maxWidth: 700, width: '100%', boxSizing: 'border-box' },
   pageHd: { marginBottom: 20 },
   title: { fontSize: '1.4rem', fontWeight: 800, color: '#1a1a2e', margin: 0 },
   sub: { fontSize: '0.82rem', color: '#94a3b8', marginTop: 4 },
 
-  profileCard: { background: '#fff', borderRadius: 14, padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 16 },
+  profileCard: { background: '#fff', borderRadius: 14, padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 14 },
   avatarSection: { display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' },
   avatar: { width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 },
   avatarFallback: { width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg,#e94560,#8b5cf6)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1.4rem', flexShrink: 0 },
   profileName: { fontWeight: 800, fontSize: '1.1rem', color: '#1a1a2e' },
   profileEmail: { fontSize: '0.85rem', color: '#64748b', marginTop: 2 },
   adminBadge: { display: 'inline-block', marginTop: 6, background: '#fef3c7', color: '#d97706', padding: '2px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700 },
-  metaRow: { display: 'flex', gap: 16, flexWrap: 'wrap' },
-  metaItem: { background: '#f8fafc', borderRadius: 8, padding: '10px 16px', minWidth: 100 },
+  metaRow: { display: 'flex', gap: 10, flexWrap: 'wrap' },
+  metaItem: { background: '#f8fafc', borderRadius: 8, padding: '10px 14px', minWidth: 80, flex: '1 1 80px' },
   metaKey: { fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' },
   metaVal: { fontSize: '0.88rem', fontWeight: 600, color: '#1a1a2e', marginTop: 2 },
 
@@ -191,7 +191,7 @@ const s = {
   tabBtn: { padding: '8px 20px', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', background: 'none', color: '#64748b' },
   tabActive: { background: '#1a1a2e', color: '#fff' },
 
-  card: { background: '#fff', borderRadius: 14, padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: 16 },
+  card: { background: '#fff', borderRadius: 14, padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: 14 },
   cardTitle: { fontSize: '0.85rem', fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.04em' },
 
   grid2: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 },
