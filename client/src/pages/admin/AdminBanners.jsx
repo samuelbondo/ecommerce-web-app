@@ -213,14 +213,14 @@ function Field({ label, value, onChange, placeholder, type = 'text' }) {
 }
 
 const s = {
-  wrap: { padding: '24px', maxWidth: '1000px' },
+  wrap: { padding: '16px', maxWidth: '1000px' },
   pageHd: { marginBottom: '24px' },
   title: { fontSize: '1.4rem', fontWeight: '800', color: '#1a1a2e', margin: 0 },
   sub: { color: '#888', fontSize: '0.85rem', marginTop: 4 },
   formCard: { background: '#fff', borderRadius: '14px', padding: '28px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '16px' },
   listCard: { background: '#fff', borderRadius: '14px', padding: '28px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' },
   formTitle: { fontSize: '1rem', fontWeight: '700', color: '#1a1a2e', margin: 0 },
-  grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' },
+  grid2: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' },
   field: { display: 'flex', flexDirection: 'column', gap: '5px' },
   label: { fontSize: '0.8rem', fontWeight: '600', color: '#374151' },
   hint: { fontWeight: 400, color: '#94a3b8', fontSize: '0.75rem' },
@@ -235,8 +235,8 @@ const s = {
   btnSave: { padding: '10px 24px', background: '#e94560', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem' },
   btnCancel: { padding: '10px 20px', background: '#f1f5f9', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem' },
   bannerList: { display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 },
-  bannerRow: { display: 'flex', alignItems: 'center', gap: 16, padding: '14px', borderRadius: 10, border: '1px solid #e5e7eb', flexWrap: 'wrap' },
-  bannerThumb: { width: 120, height: 60, objectFit: 'cover', borderRadius: 8, flexShrink: 0 },
+  bannerRow: { display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px', borderRadius: 10, border: '1px solid #e5e7eb', flexWrap: 'wrap' },
+  bannerThumb: { width: 100, height: 56, objectFit: 'cover', borderRadius: 8, flexShrink: 0 },
   bannerInfo: { flex: 1, minWidth: 180 },
   bannerTitle: { fontWeight: 700, fontSize: '0.9rem', color: '#1a1a2e', marginBottom: 2 },
   bannerMeta: { fontSize: '0.78rem', color: '#64748b' },

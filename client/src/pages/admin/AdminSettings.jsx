@@ -290,21 +290,21 @@ function Field({ label, k, type = 'text', placeholder = '', form, set }) {
 }
 
 const s = {
-  wrap: { padding: '24px' },
+  wrap: { padding: '16px' },
   loading: { padding: '48px', textAlign: 'center', color: '#aaa' },
   pageHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' },
   pageTitle: { fontSize: '1.4rem', fontWeight: '800', color: '#1a1a2e', margin: 0 },
   pageSub: { color: '#888', fontSize: '0.82rem', margin: '4px 0 0' },
   btnSave: { padding: '11px 24px', background: '#e94560', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '0.9rem', whiteSpace: 'nowrap' },
   layout: { display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' },
-  tabSidebar: { display: 'flex', flexDirection: 'column', gap: '4px', width: '150px', flexShrink: 0, background: '#fff', borderRadius: '14px', padding: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' },
+  tabSidebar: { display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '4px', width: '100%', background: '#fff', borderRadius: '14px', padding: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' },
   tabItem: { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', borderRadius: '8px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.84rem', color: '#555', textAlign: 'left', transition: 'all 0.15s' },
   tabActive: { background: '#1a1a2e', color: '#fff' },
   content: { flex: 1, minWidth: 0 },
   section: { background: '#fff', borderRadius: '14px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '16px' },
   sectionTitle: { fontSize: '1rem', fontWeight: '700', color: '#1a1a2e', margin: 0 },
   hint: { fontSize: '0.82rem', color: '#94a3b8', margin: 0 },
-  grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' },
+  grid2: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' },
   field: { display: 'flex', flexDirection: 'column', gap: '5px' },
   label: { fontSize: '0.78rem', fontWeight: '600', color: '#555' },
   input: { padding: '9px 12px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.9rem', outline: 'none', color: '#1a1a2e', width: '100%', boxSizing: 'border-box' },
@@ -322,5 +322,5 @@ const s = {
   colorHint: { fontSize: '0.78rem', color: '#94a3b8' },
   previewBox: { background: '#f8f9fb', borderRadius: 12, padding: 16, border: '1px solid #e5e7eb' },
   previewTitle: { fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 },
-  navPreview: { borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 },
+  navPreview: { borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
 };
