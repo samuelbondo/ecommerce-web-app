@@ -6,9 +6,41 @@ const db = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const passport = require('../config/passport');
-const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const mailer = nodemailer.createTransport({
+  host: process.env.MAIL_HOST,
+  port: Number(process.env.MAIL_PORT) || 465,
+  secure: true,
+  auth: {
+    user: process.env.MAIL_USER,
+    pass: process.env.MAIL_PASSWORD,
+  },
+});
+
+const sendOTPEmail = async (toEmail, userName, code) => {
+  await mailer.sendMail({
+    from: `"Samuel Store" <${process.env.MAIL_FROM}>`,
+    to: toEmail,
+    subject: 'Your Samuel Store password reset code',
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#f8f9fb;border-radius:12px;">
+        <div style="text-align:center;margin-bottom:24px;">
+          <div style="display:inline-block;background:#e94560;color:#fff;font-weight:800;font-size:1.3rem;padding:10px 20px;border-radius:10px;">Samuel Store</div>
+        </div>
+        <h2 style="color:#1a1a2e;margin-bottom:8px;">Password Reset Request</h2>
+        <p style="color:#555;line-height:1.6;">Hi <strong>${userName}</strong>, we received a request to reset your password. Use the code below — it expires in <strong>10 minutes</strong>.</p>
+        <div style="background:#fff;border:2px solid #e94560;border-radius:10px;padding:28px;text-align:center;margin:24px 0;">
+          <div style="font-size:0.8rem;color:#888;margin-bottom:8px;letter-spacing:2px;text-transform:uppercase;">Your verification code</div>
+          <span style="font-size:2.8rem;font-weight:800;letter-spacing:14px;color:#1a1a2e;">${code}</span>
+        </div>
+        <p style="color:#888;font-size:0.85rem;line-height:1.6;">If you didn't request a password reset, you can safely ignore this email. Your password will not change.</p>
+        <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;" />
+        <p style="color:#aaa;font-size:0.75rem;text-align:center;">Samuel Store &mdash; Your trusted online shop</p>
+      </div>
+    `,
+  });
+};
 
 // ── Standard auth ──────────────────────────────────────
 router.post('/register', validate(['name', 'email', 'password']), register);
@@ -116,22 +148,8 @@ router.post('/forgot-password', async (req, res) => {
     // Insert new OTP
     await db.query('INSERT INTO otp_codes (email, code, expires_at) VALUES (?,?,?)', [email, code, expiresAt]);
 
-    // Send email via Resend
-    await resend.emails.send({
-      from: 'Samuel Store <onboarding@resend.dev>',
-      to: email,
-      subject: 'Your password reset code',
-      html: `
-        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#f8f9fb;border-radius:12px;">
-          <h2 style="color:#1a1a2e;margin-bottom:8px;">Password Reset</h2>
-          <p style="color:#555;">Hi ${user.name}, use the code below to reset your password. It expires in <strong>10 minutes</strong>.</p>
-          <div style="background:#fff;border:2px solid #e94560;border-radius:10px;padding:24px;text-align:center;margin:24px 0;">
-            <span style="font-size:2.5rem;font-weight:800;letter-spacing:12px;color:#1a1a2e;">${code}</span>
-          </div>
-          <p style="color:#888;font-size:0.85rem;">If you didn't request this, ignore this email. Your password won't change.</p>
-        </div>
-      `,
-    });
+    // Send OTP email
+    await sendOTPEmail(email, user.name, code);
 
     res.json({ message: 'OTP sent to your email' });
   } catch (err) { res.status(500).json({ error: err.message }); }
