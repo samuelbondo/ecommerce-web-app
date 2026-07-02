@@ -80,6 +80,7 @@ export default function DashProfile() {
   };
 
   const strength = pwStrength(pwForm.newPw);
+  const isAdmin = user?.role === 'admin';
 
   const handleSetPassword = async (e) => {
     e.preventDefault();
@@ -238,7 +239,7 @@ export default function DashProfile() {
           )}
 
           {/* Customers: send OTP reset link to email */}
-          {(user?.auth_provider === 'local' || user?.auth_provider === 'both' || !user?.auth_provider) && user?.role !== 'admin' && (
+          {(user?.auth_provider === 'local' || user?.auth_provider === 'both' || !user?.auth_provider) && !isAdmin && (
             <>
               <div style={{ ...s.sectionTitle, marginTop: 8 }}>Change Password</div>
               <div style={s.securityNote}>🔒 For your security, password changes are done via a reset link sent to your registered email address.</div>
@@ -252,7 +253,7 @@ export default function DashProfile() {
           )}
 
           {/* Admins only: manual password change form */}
-          {(user?.auth_provider === 'local' || user?.auth_provider === 'both' || !user?.auth_provider) && user?.role === 'admin' && (
+          {(user?.auth_provider === 'local' || user?.auth_provider === 'both' || !user?.auth_provider) && isAdmin && (
             <>
               <div style={{ ...s.sectionTitle, marginTop: 8 }}>Change Password</div>
               <div style={s.securityNote}>🔒 Use a strong password with uppercase, numbers and special characters. Minimum 8 characters.</div>
