@@ -738,6 +738,82 @@ In **Dashboard → Profile → Security tab**:
 
 ---
 
+## Database Migrations
+
+The `server/migrate.js` script keeps the production Aiven database in sync with your local schema. It is fully idempotent — safe to run multiple times.
+
+### Workflow — every time you add a new table or column locally
+
+```
+1. Make your schema change locally (XAMPP / schema.sql)
+2. Add a new entry to the migrations array in server/migrate.js
+3. Run migrate.js against Aiven BEFORE pushing to GitHub
+4. Push — Render redeploys automatically, Aiven is already up to date
+```
+
+### Run against Aiven (production)
+
+```cmd
+cd server
+set DB_HOST=mysql-2701278c-ecommerce-web-app.h.aivencloud.com
+set DB_PORT=17137
+set DB_USER=avnadmin
+set DB_PASSWORD=your_aiven_password
+set DB_NAME=defaultdb
+set DB_SSL=true
+node migrate.js
+```
+
+### Run against local XAMPP
+
+```cmd
+cd server
+node migrate.js
+```
+
+### Adding a new migration entry
+
+Open `server/migrate.js` and add to the `migrations` array:
+
+```js
+// For a new column:
+{
+  desc: 'table_name.column_name',
+  check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS
+          WHERE TABLE_SCHEMA=DATABASE()
+          AND TABLE_NAME='table_name'
+          AND COLUMN_NAME='column_name'`,
+  sql: `ALTER TABLE table_name ADD COLUMN column_name VARCHAR(100) DEFAULT NULL`,
+},
+
+// For a new table:
+{
+  desc: 'CREATE TABLE table_name',
+  check: `SELECT COUNT(*) AS c FROM information_schema.TABLES
+          WHERE TABLE_SCHEMA=DATABASE()
+          AND TABLE_NAME='table_name'`,
+  sql: `CREATE TABLE table_name (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ...
+  )`,
+},
+```
+
+### Migration history
+
+| Applied to | What was added |
+|---|---|
+| `products` | `featured`, `visible` |
+| `orders` | `payment_method`, `payment_status`, `payment_id`, `customer_name`, `customer_email`, `customer_phone`, `customer_address`, `total_amount` |
+| `order_items` | `variant_id`, `variant_name` |
+| `users` | `status`, `phone`, `address`, `city`, `country`, `avatar`, `admin_notes`, `google_id`, `auth_provider`, `last_login`, `password` (nullable) |
+| `cart` | `session_id`, `created_at`, `variant_id` |
+| `categories` | `description` |
+| `settings` | `updated_at` |
+| New tables | `otp_codes`, `reviews`, `banners`, `settings`, `product_images`, `product_options`, `product_variants`, `payments`, `cart_items` |
+
+---
+
 ## Troubleshooting
 
 **Google login fails or redirects to `/login?error=google_failed`**

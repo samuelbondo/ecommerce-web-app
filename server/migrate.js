@@ -1,10 +1,27 @@
 /**
  * Samuel Store — Database Migration Script
  * ─────────────────────────────────────────────────────────────────────────────
- * Safely adds all missing columns to an existing live database (Aiven / XAMPP).
- * Uses ALTER TABLE ... IF NOT EXISTS — safe to run multiple times.
+ * Safely syncs the production Aiven database with the local schema.
+ * Every entry checks if the table/column already exists before applying —
+ * so this script is fully idempotent (safe to run multiple times).
  *
- * Run against Aiven (production):
+ * HOW IT WORKS
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Each migration entry has:
+ *   desc    — human-readable label shown in the console
+ *   check   — SQL that returns { c: 0 } if missing, { c: 1 } if already exists
+ *   sql     — the ALTER TABLE or CREATE TABLE to run if missing
+ *   checkFn — (optional) custom function to evaluate the check result
+ *
+ * WORKFLOW — whenever you add a new table or column locally:
+ * ─────────────────────────────────────────────────────────────────────────────
+ *  1. Make your schema change locally (XAMPP / schema.sql)
+ *  2. Add a new entry to the migrations array below
+ *  3. Run this script against Aiven (production) before pushing to GitHub
+ *  4. Push — Render redeploys automatically, Aiven is already up to date
+ *
+ * Run against Aiven (production) — Windows cmd:
+ * ─────────────────────────────────────────────────────────────────────────────
  *   set DB_HOST=mysql-2701278c-ecommerce-web-app.h.aivencloud.com
  *   set DB_PORT=17137
  *   set DB_USER=avnadmin
@@ -14,7 +31,26 @@
  *   node server/migrate.js
  *
  * Run against local XAMPP:
+ * ─────────────────────────────────────────────────────────────────────────────
  *   node server/migrate.js
+ *   (uses DB_HOST=localhost from server/.env by default)
+ *
+ * Migration history (what has been applied to Aiven so far):
+ * ─────────────────────────────────────────────────────────────────────────────
+ *  products        — featured, visible
+ *  orders          — payment_method, payment_status, payment_id,
+ *                    customer_name, customer_email, customer_phone,
+ *                    customer_address, total_amount
+ *  order_items     — variant_id, variant_name
+ *  users           — status, phone, address, city, country, avatar,
+ *                    admin_notes, google_id, auth_provider, last_login,
+ *                    password (nullable for Google-only users)
+ *  cart            — session_id, created_at, variant_id
+ *  categories      — description
+ *  settings        — updated_at
+ *  NEW TABLES      — otp_codes, reviews, banners, settings,
+ *                    product_images, product_options, product_variants,
+ *                    payments, cart_items
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -40,6 +76,12 @@ async function migrate() {
       desc: 'products.featured',
       check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='products' AND COLUMN_NAME='featured'`,
       sql: `ALTER TABLE products ADD COLUMN featured TINYINT(1) DEFAULT 0`,
+    },
+    // products — visible column
+    {
+      desc: 'products.visible',
+      check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='products' AND COLUMN_NAME='visible'`,
+      sql: `ALTER TABLE products ADD COLUMN visible TINYINT(1) DEFAULT 1`,
     },
     // orders — payment_method
     {
@@ -178,6 +220,134 @@ async function migrate() {
         value TEXT,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )`,
+    },
+    {
+      desc: 'CREATE TABLE product_images',
+      check: `SELECT COUNT(*) AS c FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='product_images'`,
+      sql: `CREATE TABLE product_images (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        product_id INT NOT NULL,
+        url VARCHAR(500) NOT NULL,
+        sort_order INT DEFAULT 0,
+        is_primary TINYINT(1) DEFAULT 0,
+        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+      )`,
+    },
+    {
+      desc: 'CREATE TABLE product_options',
+      check: `SELECT COUNT(*) AS c FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='product_options'`,
+      sql: `CREATE TABLE product_options (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        product_id INT NOT NULL,
+        name VARCHAR(100) NOT NULL,
+        sort_order INT DEFAULT 0,
+        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+      )`,
+    },
+    {
+      desc: 'CREATE TABLE product_variants',
+      check: `SELECT COUNT(*) AS c FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='product_variants'`,
+      sql: `CREATE TABLE product_variants (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        product_id INT NOT NULL,
+        combination VARCHAR(500) NOT NULL,
+        price DECIMAL(10,2) DEFAULT NULL,
+        stock INT DEFAULT NULL,
+        sku VARCHAR(100) DEFAULT NULL,
+        image_url VARCHAR(500) DEFAULT NULL,
+        description TEXT DEFAULT NULL,
+        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+      )`,
+    },
+    {
+      desc: 'CREATE TABLE payments',
+      check: `SELECT COUNT(*) AS c FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='payments'`,
+      sql: `CREATE TABLE payments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        order_id INT NOT NULL,
+        amount DECIMAL(10,2) NOT NULL,
+        method VARCHAR(100) DEFAULT NULL,
+        status ENUM('pending','completed','failed') DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+      )`,
+    },
+    {
+      desc: 'CREATE TABLE cart_items',
+      check: `SELECT COUNT(*) AS c FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='cart_items'`,
+      sql: `CREATE TABLE cart_items (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        cart_id INT NOT NULL,
+        product_id INT NOT NULL,
+        quantity INT DEFAULT 1,
+        FOREIGN KEY (cart_id) REFERENCES cart(id) ON DELETE CASCADE,
+        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+      )`,
+    },
+    // cart — missing columns
+    {
+      desc: 'cart.session_id',
+      check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='cart' AND COLUMN_NAME='session_id'`,
+      sql: `ALTER TABLE cart ADD COLUMN session_id VARCHAR(255) DEFAULT NULL`,
+    },
+    {
+      desc: 'cart.created_at',
+      check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='cart' AND COLUMN_NAME='created_at'`,
+      sql: `ALTER TABLE cart ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`,
+    },
+    {
+      desc: 'cart.variant_id',
+      check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='cart' AND COLUMN_NAME='variant_id'`,
+      sql: `ALTER TABLE cart ADD COLUMN variant_id INT DEFAULT NULL`,
+    },
+    // order_items — missing columns
+    {
+      desc: 'order_items.variant_id',
+      check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='order_items' AND COLUMN_NAME='variant_id'`,
+      sql: `ALTER TABLE order_items ADD COLUMN variant_id INT DEFAULT NULL`,
+    },
+    {
+      desc: 'order_items.variant_name',
+      check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='order_items' AND COLUMN_NAME='variant_name'`,
+      sql: `ALTER TABLE order_items ADD COLUMN variant_name VARCHAR(500) DEFAULT NULL`,
+    },
+    // orders — missing columns
+    {
+      desc: 'orders.customer_name',
+      check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='orders' AND COLUMN_NAME='customer_name'`,
+      sql: `ALTER TABLE orders ADD COLUMN customer_name VARCHAR(255) DEFAULT NULL`,
+    },
+    {
+      desc: 'orders.customer_email',
+      check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='orders' AND COLUMN_NAME='customer_email'`,
+      sql: `ALTER TABLE orders ADD COLUMN customer_email VARCHAR(255) DEFAULT NULL`,
+    },
+    {
+      desc: 'orders.customer_phone',
+      check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='orders' AND COLUMN_NAME='customer_phone'`,
+      sql: `ALTER TABLE orders ADD COLUMN customer_phone VARCHAR(50) DEFAULT NULL`,
+    },
+    {
+      desc: 'orders.customer_address',
+      check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='orders' AND COLUMN_NAME='customer_address'`,
+      sql: `ALTER TABLE orders ADD COLUMN customer_address TEXT DEFAULT NULL`,
+    },
+    {
+      desc: 'orders.total_amount',
+      check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='orders' AND COLUMN_NAME='total_amount'`,
+      sql: `ALTER TABLE orders ADD COLUMN total_amount DECIMAL(10,2) DEFAULT NULL`,
+    },
+    // categories — description
+    {
+      desc: 'categories.description',
+      check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='categories' AND COLUMN_NAME='description'`,
+      sql: `ALTER TABLE categories ADD COLUMN description TEXT DEFAULT NULL`,
+    },
+    // settings — updated_at
+    {
+      desc: 'settings.updated_at',
+      check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='settings' AND COLUMN_NAME='updated_at'`,
+      sql: `ALTER TABLE settings ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`,
     },
   ];
 
