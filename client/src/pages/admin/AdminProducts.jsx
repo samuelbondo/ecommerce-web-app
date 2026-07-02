@@ -254,8 +254,11 @@ export default function AdminProducts() {
   };
 
   const handleDelete = async () => {
-    try { await API.delete(`/admin/products/${deleteId}`); notify('Product deleted', 'info'); setDeleteId(null); load(); }
-    catch { notify('Delete failed', 'error'); }
+    const id = deleteId;
+    setDeleteId(null);
+    setProducts(prev => prev.filter(p => p.id !== id));
+    try { await API.delete(`/admin/products/${id}`); notify('Product deleted', 'info'); load(); }
+    catch { notify('Delete failed', 'error'); load(); }
   };
 
   const toggleFeatured = async (p) => {
