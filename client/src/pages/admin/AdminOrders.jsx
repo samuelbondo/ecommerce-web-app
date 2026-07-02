@@ -80,7 +80,7 @@ export default function AdminOrders() {
       <p>Date: ${new Date(o.created_at).toLocaleDateString()}</p>
       <p>Status: ${o.status}</p>
       <table><thead><tr><th>Product</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
-      <tbody>${o.items?.map(i => `<tr><td>${i.name}</td><td>${i.quantity}</td><td>${formatPrice(i.price)}</td><td>${formatPrice(i.price * i.quantity)}</td></tr>`).join('')}</tbody>
+      <tbody>${o.items?.map(i => `<tr><td>${i.name}${i.variant_name ? ` <em>(${i.variant_name})</em>` : ''}</td><td>${i.quantity}</td><td>${formatPrice(i.price)}</td><td>${formatPrice(i.price * i.quantity)}</td></tr>`).join('')}</tbody>
       <tfoot><tr><td colspan="3">Grand Total</td><td>${formatPrice(o.total)}</td></tr></tfoot>
       </table></body></html>`);
     win.document.close(); win.print();
@@ -126,8 +126,12 @@ export default function AdminOrders() {
               <div style={s.detailItems}>
                 {selected.items?.map(i => (
                   <div key={i.id} style={s.detailItem}>
-                    <img src={i.image_url} alt={i.name} style={s.detailImg} onError={e => { e.target.src = 'https://placehold.co/44x44?text=?'; }} />
-                    <div style={{ flex: 1 }}><div style={s.detailItemName}>{i.name}</div><div style={s.detailItemQty}>Qty: {i.quantity}</div></div>
+                    <img src={i.display_image || i.image_url} alt={i.name} style={s.detailImg} onError={e => { e.target.src = 'https://placehold.co/44x44?text=?'; }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={s.detailItemName}>{i.name}</div>
+                      {i.variant_name && <div style={{ fontSize: '0.75rem', color: '#e94560', fontWeight: 600, marginTop: 2 }}>{i.variant_name}</div>}
+                      <div style={s.detailItemQty}>Qty: {i.quantity} &nbsp;·&nbsp; Unit: {formatPrice(i.price)}</div>
+                    </div>
                     <div style={s.detailItemPrice}>{formatPrice(i.price * i.quantity)}</div>
                   </div>
                 ))}

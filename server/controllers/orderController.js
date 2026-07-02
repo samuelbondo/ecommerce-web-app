@@ -9,7 +9,14 @@ const placeOrder = asyncHandler(async (req, res) => {
   const [order] = await Order.create(user_id, total, payment_method, payment_status, payment_id);
   const orderId = order.insertId;
 
-  const orderItems = items.map((item) => [orderId, item.product_id, item.quantity, item.price]);
+  const orderItems = items.map(item => [
+    orderId,
+    item.product_id,
+    item.variant_id || null,
+    item.variant_name || null,
+    item.quantity,
+    item.price,
+  ]);
   await Order.addItems(orderItems);
   await Cart.clearByUser(user_id);
 
