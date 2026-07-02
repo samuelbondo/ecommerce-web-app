@@ -47,6 +47,7 @@ export default function AdminLayout() {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
 
   const handleLogout = () => { logout(); navigate('/login'); };
   const initials = user?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -188,6 +189,21 @@ export default function AdminLayout() {
 
       {mobileOpen && <div style={s.mobileOverlay} onClick={() => setMobileOpen(false)} />}
 
+      {/* Logout confirmation modal */}
+      {confirmLogout && (
+        <div style={s.modalOverlay}>
+          <div style={s.modal}>
+            <div style={s.modalIcon}>👋</div>
+            <div style={s.modalTitle}>Leaving so soon?</div>
+            <div style={s.modalSub}>You'll need to sign in again to access the admin panel.</div>
+            <div style={s.modalBtns}>
+              <button onClick={() => setConfirmLogout(false)} style={s.modalCancel}>Stay</button>
+              <button onClick={handleLogout} style={s.modalConfirm}>Yes, Logout</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sidebar */}
       <aside className={`adm-sidebar${mobileOpen ? ' open' : ''}`} style={{ width: collapsed ? '64px' : '220px' }}>
         {/* Brand */}
@@ -225,7 +241,7 @@ export default function AdminLayout() {
           <div style={s.sidebarFooter}>
             <NavLink to="/" style={s.footerLink}>🛍 View Store</NavLink>
             <NavLink to="/dashboard" style={s.footerLink}>👤 My Account</NavLink>
-            <button onClick={handleLogout} style={s.logoutBtn}>↩ Logout</button>
+            <button onClick={() => setConfirmLogout(true)} style={s.logoutBtn}>↩ Logout</button>
           </div>
         )}
       </aside>
@@ -246,7 +262,7 @@ export default function AdminLayout() {
             <div style={s.topAvatar} title={user?.name} onClick={() => navigate('/admin/profile')}>
               {avatar ? <img src={avatar} alt={user?.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} /> : initials}
             </div>
-            <button onClick={handleLogout} className="adm-top-logout" style={s.topLogout}>↩ <span>Logout</span></button>
+            <button onClick={() => setConfirmLogout(true)} className="adm-top-logout" style={s.topLogout}>↩ <span>Logout</span></button>
           </div>
         </header>
 
@@ -299,4 +315,12 @@ const s = {
   adminBadge: { background: '#fef3c7', color: '#d97706', padding: '3px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: '700', whiteSpace: 'nowrap' },
   topAvatar: { width: '34px', height: '34px', borderRadius: '50%', background: 'linear-gradient(135deg,#e94560,#8b5cf6)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', flexShrink: 0 },
   topLogout: { padding: '6px 12px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid #fecaca', borderRadius: '7px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: '600', whiteSpace: 'nowrap' },
+  modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' },
+  modal: { background: '#fff', borderRadius: '20px', padding: '32px 28px', maxWidth: '340px', width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' },
+  modalIcon: { fontSize: '2.5rem', marginBottom: '12px' },
+  modalTitle: { fontSize: '1.2rem', fontWeight: '800', color: '#1a1a2e', marginBottom: '8px' },
+  modalSub: { fontSize: '0.85rem', color: '#888', marginBottom: '24px', lineHeight: 1.5 },
+  modalBtns: { display: 'flex', gap: '10px' },
+  modalCancel: { flex: 1, padding: '11px', borderRadius: '10px', border: '1.5px solid #e5e7eb', background: '#fff', color: '#555', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer' },
+  modalConfirm: { flex: 1, padding: '11px', borderRadius: '10px', border: 'none', background: '#ef4444', color: '#fff', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer' },
 };

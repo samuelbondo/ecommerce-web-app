@@ -34,6 +34,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
 
   const handleLogout = () => { logout(); navigate('/login'); };
   const initials = user?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -91,6 +92,21 @@ export default function Dashboard() {
         }
       `}</style>
 
+      {/* Logout confirmation modal */}
+      {confirmLogout && (
+        <div style={s.modalOverlay}>
+          <div style={s.modal}>
+            <div style={s.modalIcon}>👋</div>
+            <div style={s.modalTitle}>Leaving so soon?</div>
+            <div style={s.modalSub}>You'll need to sign in again to access your dashboard.</div>
+            <div style={s.modalBtns}>
+              <button onClick={() => setConfirmLogout(false)} style={s.modalCancel}>Stay</button>
+              <button onClick={handleLogout} style={s.modalConfirm}>Yes, Logout</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sidebar Overlay (mobile) */}
       {sidebarOpen && <div className="dash-overlay" onClick={() => setSidebarOpen(false)} />}
 
@@ -127,7 +143,7 @@ export default function Dashboard() {
         <div style={s.sidebarFooter}>
           <NavLink to="/products" style={s.footerLink}>🛍 Shop</NavLink>
           <NavLink to="/cart" style={s.footerLink}>🛒 Cart ({cart.length})</NavLink>
-          <button onClick={handleLogout} style={s.logoutBtn}>↩ Logout</button>
+          <button onClick={() => setConfirmLogout(true)} style={s.logoutBtn}>↩ Logout</button>
         </div>
       </aside>
 
@@ -190,6 +206,14 @@ const s = {
   sidebarFooter: { padding: '16px 20px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: '4px' },
   footerLink: { color: '#a0aec0', textDecoration: 'none', fontSize: '0.82rem', padding: '6px 0' },
   logoutBtn: { background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: '600', marginTop: '4px', textAlign: 'left' },
+  modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' },
+  modal: { background: '#fff', borderRadius: '20px', padding: '32px 28px', maxWidth: '340px', width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' },
+  modalIcon: { fontSize: '2.5rem', marginBottom: '12px' },
+  modalTitle: { fontSize: '1.2rem', fontWeight: '800', color: '#1a1a2e', marginBottom: '8px' },
+  modalSub: { fontSize: '0.85rem', color: '#888', marginBottom: '24px', lineHeight: 1.5 },
+  modalBtns: { display: 'flex', gap: '10px' },
+  modalCancel: { flex: 1, padding: '11px', borderRadius: '10px', border: '1.5px solid #e5e7eb', background: '#fff', color: '#555', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer' },
+  modalConfirm: { flex: 1, padding: '11px', borderRadius: '10px', border: 'none', background: '#ef4444', color: '#fff', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer' },
   main: { flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 },
   topbar: { background: '#fff', padding: '0 12px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', position: 'sticky', top: 0, zIndex: 10 },
   topLeft: { display: 'flex', alignItems: 'center', gap: '14px' },
