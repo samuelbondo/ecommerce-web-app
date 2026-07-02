@@ -350,6 +350,23 @@ async function migrate() {
       sql: `ALTER TABLE settings ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`,
     },
     {
+      desc: 'CREATE TABLE addresses',
+      check: `SELECT COUNT(*) AS c FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='addresses'`,
+      sql: `CREATE TABLE addresses (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        label VARCHAR(50) DEFAULT 'Home',
+        name VARCHAR(100) NOT NULL,
+        phone VARCHAR(30) DEFAULT NULL,
+        address TEXT NOT NULL,
+        city VARCHAR(100) NOT NULL,
+        country VARCHAR(100) DEFAULT 'Kenya',
+        is_default TINYINT(1) DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )`,
+    },
+    {
       desc: 'CREATE TABLE notifications',
       check: `SELECT COUNT(*) AS c FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='notifications'`,
       sql: `CREATE TABLE notifications (

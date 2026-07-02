@@ -23,6 +23,7 @@ app.use('/api/upload', require('./routes/upload'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/addresses', require('./routes/addresses'));
 
 app.get('/', (req, res) => {
   res.json({ message: 'Samuel Store API is running' });

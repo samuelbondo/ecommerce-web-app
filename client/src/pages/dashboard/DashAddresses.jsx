@@ -1,52 +1,81 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Toast from '../../components/Toast';
+import API from '../../api';
 
-const DEFAULT = { label: 'Home', name: '', phone: '', address: '', city: '', country: 'Kenya' };
+const MAX = 5;
+const DEFAULT_FORM = { label: 'Home', name: '', phone: '', address: '', city: '', country: 'Kenya' };
 
 export default function DashAddresses() {
-  const [addresses, setAddresses] = useState([
-    { id: 1, label: 'Home', name: 'Samuel Bondo', phone: '+254 700 000 000', address: '123 Main St', city: 'Nairobi', country: 'Kenya', isDefault: true },
-  ]);
-  const [form, setForm] = useState(DEFAULT);
+  const [addresses, setAddresses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState(DEFAULT_FORM);
   const [editing, setEditing] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
+  const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
 
   const notify = (msg, type = 'success') => setToast({ message: msg, type });
 
-  const handleSave = (e) => {
-    e.preventDefault();
-    if (editing) {
-      setAddresses(prev => prev.map(a => a.id === editing ? { ...a, ...form } : a));
-      notify('Address updated!');
-    } else {
-      setAddresses(prev => [...prev, { ...form, id: Date.now(), isDefault: prev.length === 0 }]);
-      notify('Address added!');
-    }
-    setForm(DEFAULT); setEditing(null); setShowForm(false);
+  const load = () => {
+    setLoading(true);
+    API.get('/addresses')
+      .then(r => setAddresses(r.data))
+      .catch(() => notify('Failed to load addresses', 'error'))
+      .finally(() => setLoading(false));
   };
 
-  const handleEdit = (a) => {
+  useEffect(() => { load(); }, []);
+
+  const openAdd = () => {
+    if (addresses.length >= MAX) return notify(`Maximum ${MAX} addresses allowed`, 'error');
+    setForm(DEFAULT_FORM); setEditing(null); setShowForm(true);
+  };
+
+  const openEdit = (a) => {
     setForm({ label: a.label, name: a.name, phone: a.phone, address: a.address, city: a.city, country: a.country });
     setEditing(a.id); setShowForm(true);
   };
 
-  const handleDelete = () => {
-    setAddresses(prev => prev.filter(a => a.id !== deleteId));
-    setDeleteId(null); notify('Address removed.', 'info');
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      if (editing) {
+        await API.put(`/addresses/${editing}`, form);
+        notify('Address updated!');
+      } else {
+        await API.post('/addresses', form);
+        notify('Address added!');
+      }
+      setShowForm(false); setEditing(null); setForm(DEFAULT_FORM);
+      load();
+    } catch (err) {
+      notify(err.response?.data?.error || 'Failed to save', 'error');
+    } finally { setSaving(false); }
   };
 
-  const setDefault = (id) => {
-    setAddresses(prev => prev.map(a => ({ ...a, isDefault: a.id === id })));
-    notify('Default address updated!');
+  const handleDelete = async () => {
+    try {
+      await API.delete(`/addresses/${deleteId}`);
+      notify('Address removed.', 'info');
+      setDeleteId(null);
+      load();
+    } catch { notify('Failed to delete', 'error'); }
+  };
+
+  const setDefault = async (id) => {
+    try {
+      await API.put(`/addresses/${id}/default`);
+      notify('Default address updated!');
+      load();
+    } catch { notify('Failed to update', 'error'); }
   };
 
   return (
     <div style={s.container}>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      {/* Confirm Delete Dialog */}
       {deleteId && (
         <div style={s.overlay}>
           <div style={s.dialog}>
@@ -61,48 +90,63 @@ export default function DashAddresses() {
       )}
 
       <div style={s.header}>
-        <h2 style={s.title}>Saved Addresses</h2>
-        <button onClick={() => { setShowForm(!showForm); setEditing(null); setForm(DEFAULT); }} style={s.addBtn}>
-          {showForm ? '✕ Cancel' : '+ Add Address'}
-        </button>
+        <div>
+          <h2 style={s.title}>Saved Addresses</h2>
+          <p style={s.subtitle}>{addresses.length} / {MAX} addresses used</p>
+        </div>
+        {!showForm && (
+          <button onClick={openAdd} style={{ ...s.addBtn, opacity: addresses.length >= MAX ? 0.5 : 1 }}
+            disabled={addresses.length >= MAX}>
+            + Add Address
+          </button>
+        )}
+        {showForm && (
+          <button onClick={() => { setShowForm(false); setEditing(null); }} style={s.cancelAddBtn}>✕ Cancel</button>
+        )}
       </div>
 
       {showForm && (
         <form onSubmit={handleSave} style={s.form}>
           <h3 style={s.formTitle}>{editing ? 'Edit Address' : 'New Address'}</h3>
           <div className="dash-addr-form-grid">
-            {[['label', 'Label (Home/Work)', 'text'], ['name', 'Full Name', 'text'], ['phone', 'Phone Number', 'tel'], ['city', 'City', 'text'], ['country', 'Country', 'text']].map(([key, ph, type]) => (
+            {[['label','Label (Home / Work / Other)','text'],['name','Full Name','text'],['phone','Phone Number','tel'],['city','City','text'],['country','Country','text']].map(([key, ph, type]) => (
               <div key={key} style={s.field}>
                 <label style={s.label}>{ph}</label>
-                <input value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })} style={s.input} type={type} placeholder={ph} required />
+                <input value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })}
+                  style={s.input} type={type} placeholder={ph} required={key !== 'phone'} />
               </div>
             ))}
           </div>
           <div style={s.field}>
             <label style={s.label}>Street Address</label>
-            <input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} style={s.input} placeholder="Street Address" required />
+            <input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })}
+              style={s.input} placeholder="Street Address" required />
           </div>
-          <button type="submit" style={s.saveBtn}>{editing ? '💾 Update Address' : '➕ Save Address'}</button>
+          <button type="submit" style={s.saveBtn} disabled={saving}>
+            {saving ? 'Saving...' : editing ? '💾 Update Address' : '➕ Save Address'}
+          </button>
         </form>
       )}
 
-      {addresses.length === 0 ? (
+      {loading ? (
+        <div style={s.empty}>Loading...</div>
+      ) : addresses.length === 0 ? (
         <div style={s.empty}>📍 No saved addresses yet.</div>
       ) : (
         <div className="dash-addr-grid">
           {addresses.map(a => (
-            <div key={a.id} style={{ ...s.addressCard, border: a.isDefault ? '2px solid #e94560' : '1px solid #e5e7eb' }}>
+            <div key={a.id} style={{ ...s.addressCard, border: a.is_default ? '2px solid #e94560' : '1px solid #e5e7eb' }}>
               <div style={s.addressTop}>
                 <span style={s.addressLabel}>{a.label}</span>
-                {a.isDefault && <span style={s.defaultBadge}>Default</span>}
+                {a.is_default ? <span style={s.defaultBadge}>Default</span> : null}
               </div>
               <p style={s.addressText}>{a.name}</p>
-              <p style={s.addressText}>{a.phone}</p>
+              {a.phone && <p style={s.addressText}>{a.phone}</p>}
               <p style={s.addressText}>{a.address}</p>
               <p style={s.addressText}>{a.city}, {a.country}</p>
               <div style={s.addressActions}>
-                <button onClick={() => handleEdit(a)} style={s.editBtn}>✏️ Edit</button>
-                {!a.isDefault && <button onClick={() => setDefault(a.id)} style={s.editBtn}>📌 Set Default</button>}
+                <button onClick={() => openEdit(a)} style={s.editBtn}>✏️ Edit</button>
+                {!a.is_default && <button onClick={() => setDefault(a.id)} style={s.editBtn}>📌 Set Default</button>}
                 <button onClick={() => setDeleteId(a.id)} style={s.removeBtn}>🗑 Remove</button>
               </div>
             </div>
@@ -115,18 +159,18 @@ export default function DashAddresses() {
 
 const s = {
   container: { padding: '16px', boxSizing: 'border-box', width: '100%' },
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' },
-  title: { fontSize: '1.3rem', fontWeight: '700', color: '#1a1a2e', margin: 0 },
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' },
+  title: { fontSize: '1.3rem', fontWeight: '700', color: '#1a1a2e', margin: '0 0 2px' },
+  subtitle: { fontSize: '0.78rem', color: '#888', margin: 0 },
   addBtn: { padding: '9px 18px', background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600' },
+  cancelAddBtn: { padding: '9px 18px', background: '#f1f5f9', color: '#555', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600' },
   form: { background: '#fff', borderRadius: '16px', padding: '16px', marginBottom: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', gap: '14px' },
   formTitle: { margin: '0 0 4px', fontSize: '1rem', fontWeight: '700', color: '#1a1a2e' },
-  grid2: {},
   field: { display: 'flex', flexDirection: 'column', gap: '5px' },
   label: { fontSize: '0.82rem', fontWeight: '600', color: '#555' },
   input: { padding: '9px 12px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.9rem', outline: 'none', width: '100%', boxSizing: 'border-box' },
   saveBtn: { padding: '10px', background: '#e94560', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem' },
   empty: { textAlign: 'center', padding: '48px', color: '#888', background: '#fff', borderRadius: '16px' },
-  addressGrid: {},
   addressCard: { background: '#fff', borderRadius: '14px', padding: '18px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' },
   addressTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' },
   addressLabel: { fontWeight: '700', color: '#1a1a2e', fontSize: '0.95rem' },
