@@ -26,9 +26,23 @@ export default function Checkout() {
     ? total.toFixed(2)
     : (total / paypalRate).toFixed(2);
 
-  const [form, setForm] = useState({ fullName: '', email: user?.email || '', phone: '', address: '', city: '' });
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [selectedAddr, setSelectedAddr] = useState(null); // id of picked address
+  const [form, setForm] = useState({ fullName: user?.name || '', email: user?.email || '', phone: '', address: '', city: '' });
   const [errors, setErrors] = useState({});
   const [payMethod, setPayMethod] = useState('paypal');
+
+  useEffect(() => {
+    if (!user) return;
+    API.get('/addresses').then(r => {
+      setSavedAddresses(r.data);
+      const def = r.data.find(a => a.is_default) || r.data[0];
+      if (def) {
+        setSelectedAddr(def.id);
+        setForm(p => ({ ...p, fullName: def.name, phone: def.phone || p.phone, address: def.address, city: def.city }));
+      }
+    }).catch(() => {});
+  }, [user]);
   const [formReady, setFormReady] = useState(false);
   const [sdkReady, setSdkReady] = useState(false);
   const [paypalError, setPaypalError] = useState('');
@@ -201,6 +215,27 @@ export default function Checkout() {
 
           <div style={s.block}>
             <h3 style={s.blockTitle}>Shipping Address</h3>
+            {savedAddresses.length > 0 && (
+              <div style={{ marginBottom: 14 }}>
+                {savedAddresses.map(a => (
+                  <div key={a.id}
+                    onClick={() => {
+                      setSelectedAddr(a.id);
+                      setForm(p => ({ ...p, fullName: a.name, phone: a.phone || p.phone, address: a.address, city: a.city }));
+                    }}
+                    style={{ ...s.addrOption, border: selectedAddr === a.id ? '2px solid #e94560' : '1.5px solid #e5e7eb', background: selectedAddr === a.id ? '#fff9fb' : '#fff' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#1a1a2e' }}>{a.label}</span>
+                      {a.is_default ? <span style={s.defBadge}>Default</span> : null}
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: '#555', marginTop: 2 }}>{a.name} · {a.phone}</div>
+                    <div style={{ fontSize: '0.82rem', color: '#555' }}>{a.address}, {a.city}</div>
+                  </div>
+                ))}
+                <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: 6 }}>Or enter a different address below</div>
+              </div>
+            )}
             <CkField label="Street Address" name="address" value={form.address} onChange={handleChange} error={errors.address} placeholder="KK 508 ST" />
             <CkField label="City" name="city" value={form.city} onChange={handleChange} error={errors.city} placeholder="Kigali" />
           </div>
@@ -346,4 +381,6 @@ const s = {
   summaryRow: { display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: 8, color: '#374151' },
   usdNote: { fontSize: '0.78rem', color: '#94a3b8', textAlign: 'center', marginTop: 10 },
   secureNote: { display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center', fontSize: '0.76rem', color: '#16a34a', marginTop: 14 },
+  addrOption: { borderRadius: 10, padding: '10px 14px', marginBottom: 8, cursor: 'pointer', transition: 'all 0.15s' },
+  defBadge: { background: '#e94560', color: '#fff', padding: '1px 7px', borderRadius: 10, fontSize: '0.68rem', fontWeight: 700 },
 };
