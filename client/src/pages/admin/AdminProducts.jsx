@@ -6,6 +6,179 @@ import API from '../../api';
 
 const EMPTY = { name: '', description: '', price: '', stock: '', image_url: '', category_id: '', featured: false, visible: true };
 
+function GalleryManager({ productId, onClose }) {
+  const [images, setImages] = useState([]);
+  const [uploading, setUploading] = useState(false);
+
+  const load = () => API.get(`/admin/products/${productId}/images`).then(r => setImages(r.data)).catch(() => {});
+  useEffect(() => { load(); }, [productId]);
+
+  const upload = async (file) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const fd = new FormData(); fd.append('image', file);
+      const { data } = await API.post('/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await API.post(`/admin/products/${productId}/images`, { url: data.url, is_primary: images.length === 0 });
+      load();
+    } catch { alert('Upload failed'); }
+    setUploading(false);
+  };
+
+  const remove = async (imgId) => { await API.delete(`/admin/products/${productId}/images/${imgId}`); load(); };
+  const setPrimary = async (imgId) => { await API.post(`/admin/products/${productId}/images`, { url: images.find(i => i.id === imgId)?.url, is_primary: true }); load(); };
+
+  return (
+    <div style={{ padding: '20px 24px 24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h3 style={{ margin: 0, fontWeight: 700, fontSize: '1rem', color: '#1a1a2e' }}>Image Gallery</h3>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#888' }}>×</button>
+      </div>
+      <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '14px', border: '2px dashed #e5e7eb', borderRadius: 10, cursor: 'pointer', marginBottom: 16, color: '#64748b', fontSize: '0.88rem' }}>
+        {uploading ? '⏳ Uploading...' : '📷 Click to add image'}
+        <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => upload(e.target.files[0])} disabled={uploading} />
+      </label>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+        {images.map(img => (
+          <div key={img.id} style={{ position: 'relative', width: 90, height: 90 }}>
+            <img src={img.url} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8, border: img.is_primary ? '2px solid #e94560' : '2px solid #e5e7eb' }} />
+            {img.is_primary && <span style={{ position: 'absolute', top: 2, left: 2, background: '#e94560', color: '#fff', fontSize: '0.6rem', fontWeight: 700, padding: '1px 5px', borderRadius: 4 }}>PRIMARY</span>}
+            <div style={{ position: 'absolute', top: 2, right: 2, display: 'flex', gap: 3 }}>
+              {!img.is_primary && <button onClick={() => setPrimary(img.id)} title="Set primary" style={{ background: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: '0.7rem', padding: '2px 4px' }}>★</button>}
+              <button onClick={() => remove(img.id)} style={{ background: '#ef4444', border: 'none', borderRadius: 4, cursor: 'pointer', color: '#fff', fontSize: '0.7rem', padding: '2px 4px' }}>✕</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function VariantsManager({ productId, basePrice, onClose }) {
+  const [options, setOptions] = useState([]);
+  const [variants, setVariants] = useState([]);
+  const [newOpt, setNewOpt] = useState('');
+  const [vForm, setVForm] = useState({ combination: '', price: '', stock: '', sku: '', image_url: '', description: '' });
+  const [editingV, setEditingV] = useState(null);
+  const [uploading, setUploading] = useState(false);
+
+  const load = () => Promise.all([
+    API.get(`/admin/products/${productId}/options`),
+    API.get(`/admin/products/${productId}/variants`),
+  ]).then(([o, v]) => { setOptions(o.data); setVariants(v.data); }).catch(() => {});
+
+  useEffect(() => { load(); }, [productId]);
+
+  const addOption = async () => {
+    if (!newOpt.trim()) return;
+    await API.post(`/admin/products/${productId}/options`, { name: newOpt.trim() });
+    setNewOpt(''); load();
+  };
+  const delOption = async (id) => { await API.delete(`/admin/products/${productId}/options/${id}`); load(); };
+
+  const uploadVariantImg = async (file) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const fd = new FormData(); fd.append('image', file);
+      const { data } = await API.post('/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setVForm(f => ({ ...f, image_url: data.url }));
+    } catch { alert('Upload failed'); }
+    setUploading(false);
+  };
+
+  const saveVariant = async () => {
+    if (!vForm.combination.trim()) return alert('Combination required');
+    if (editingV) {
+      await API.put(`/admin/products/${productId}/variants/${editingV}`, vForm);
+    } else {
+      await API.post(`/admin/products/${productId}/variants`, vForm);
+    }
+    setVForm({ combination: '', price: '', stock: '', sku: '', image_url: '', description: '' });
+    setEditingV(null); load();
+  };
+
+  const delVariant = async (id) => { await API.delete(`/admin/products/${productId}/variants/${id}`); load(); };
+  const editVariant = (v) => { setVForm({ combination: v.combination, price: v.price || '', stock: v.stock ?? '', sku: v.sku || '', image_url: v.image_url || '', description: v.description || '' }); setEditingV(v.id); };
+
+  const inp = { padding: '7px 10px', borderRadius: 7, border: '1px solid #e5e7eb', fontSize: '0.82rem', outline: 'none', width: '100%', boxSizing: 'border-box' };
+
+  return (
+    <div style={{ padding: '20px 24px 24px', maxHeight: '80vh', overflowY: 'auto' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h3 style={{ margin: 0, fontWeight: 700, fontSize: '1rem', color: '#1a1a2e' }}>Variants</h3>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#888' }}>×</button>
+      </div>
+
+      {/* Options */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 8 }}>Option Types (e.g. Color, Size)</div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+          <input value={newOpt} onChange={e => setNewOpt(e.target.value)} onKeyDown={e => e.key === 'Enter' && addOption()} placeholder="e.g. Color" style={{ ...inp, flex: 1 }} />
+          <button onClick={addOption} style={{ padding: '7px 14px', background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700 }}>Add</button>
+        </div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {options.map(o => (
+            <span key={o.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: '#f1f5f9', borderRadius: 20, fontSize: '0.8rem', fontWeight: 600 }}>
+              {o.name}
+              <button onClick={() => delOption(o.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontSize: '0.8rem', padding: 0, lineHeight: 1 }}>✕</button>
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Variant form */}
+      <div style={{ background: '#f8f9fb', borderRadius: 10, padding: 14, marginBottom: 16 }}>
+        <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 10 }}>{editingV ? 'Edit Variant' : 'Add Variant'}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+          <div><label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#555' }}>Combination *</label><input value={vForm.combination} onChange={e => setVForm(f => ({ ...f, combination: e.target.value }))} placeholder="e.g. Red / XL" style={inp} /></div>
+          <div><label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#555' }}>Price (leave blank = base {basePrice})</label><input type="number" value={vForm.price} onChange={e => setVForm(f => ({ ...f, price: e.target.value }))} placeholder="Optional" style={inp} step="0.01" /></div>
+          <div><label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#555' }}>Stock</label><input type="number" value={vForm.stock} onChange={e => setVForm(f => ({ ...f, stock: e.target.value }))} placeholder="Optional" style={inp} /></div>
+          <div><label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#555' }}>SKU</label><input value={vForm.sku} onChange={e => setVForm(f => ({ ...f, sku: e.target.value }))} placeholder="Optional" style={inp} /></div>
+        </div>
+        <div style={{ marginBottom: 8 }}>
+          <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#555' }}>Variant Image</label>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
+            {vForm.image_url && <img src={vForm.image_url} style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 6 }} />}
+            <label style={{ padding: '6px 12px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 7, cursor: 'pointer', fontSize: '0.78rem' }}>
+              {uploading ? '⏳' : '📷 Upload'}
+              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => uploadVariantImg(e.target.files[0])} disabled={uploading} />
+            </label>
+            <input value={vForm.image_url} onChange={e => setVForm(f => ({ ...f, image_url: e.target.value }))} placeholder="Or paste URL" style={{ ...inp, flex: 1 }} />
+          </div>
+        </div>
+        <div style={{ marginBottom: 10 }}>
+          <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#555' }}>Variant Description</label>
+          <textarea value={vForm.description} onChange={e => setVForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional — overrides product description for this variant" rows={2} style={{ ...inp, resize: 'vertical', marginTop: 4 }} />
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={saveVariant} style={{ padding: '8px 18px', background: '#e94560', color: '#fff', border: 'none', borderRadius: 7, cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem' }}>{editingV ? '💾 Update' : '➕ Add Variant'}</button>
+          {editingV && <button onClick={() => { setEditingV(null); setVForm({ combination: '', price: '', stock: '', sku: '', image_url: '', description: '' }); }} style={{ padding: '8px 14px', background: '#f1f5f9', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: '0.82rem' }}>Cancel</button>}
+        </div>
+      </div>
+
+      {/* Variants list */}
+      {variants.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {variants.map(v => (
+            <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+              {v.image_url && <img src={v.image_url} style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} />}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#1a1a2e' }}>{v.combination}</div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                  {v.price ? `$${v.price}` : 'Base price'} · Stock: {v.stock ?? 'default'} {v.sku ? `· SKU: ${v.sku}` : ''}
+                </div>
+              </div>
+              <button onClick={() => editVariant(v)} style={{ padding: '4px 10px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff', cursor: 'pointer', fontSize: '0.75rem' }}>✏️</button>
+              <button onClick={() => delVariant(v.id)} style={{ padding: '4px 10px', border: 'none', borderRadius: 6, background: '#ef4444', color: '#fff', cursor: 'pointer', fontSize: '0.75rem' }}>🗑</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminProducts() {
   const { formatPrice } = useSettings();
   const [products, setProducts] = useState([]);
@@ -24,6 +197,9 @@ export default function AdminProducts() {
   const [page, setPage] = useState(1);
   const [checked, setChecked] = useState([]);
   const [aiGenerating, setAiGenerating] = useState(false);
+  const [galleryProductId, setGalleryProductId] = useState(null);
+  const [variantsProductId, setVariantsProductId] = useState(null);
+  const [variantsBasePrice, setVariantsBasePrice] = useState('');
   const PER = 10;
 
   const notify = (msg, type = 'success') => setToast({ message: msg, type });
@@ -124,6 +300,14 @@ export default function AdminProducts() {
   return (
     <div style={s.wrap}>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+      {galleryProductId && (
+        <div style={s.overlay}><div style={s.modal}><GalleryManager productId={galleryProductId} onClose={() => setGalleryProductId(null)} /></div></div>
+      )}
+
+      {variantsProductId && (
+        <div style={s.overlay}><div style={s.modal}><VariantsManager productId={variantsProductId} basePrice={variantsBasePrice} onClose={() => setVariantsProductId(null)} /></div></div>
+      )}
 
       {deleteId && (
         <div style={s.overlay}><div style={s.dialog}>
@@ -254,8 +438,10 @@ export default function AdminProducts() {
                   <td style={s.td}>
                     <div style={s.actions}>
                       <button onClick={() => openEdit(p)} style={s.btnEdit}>✏️ Edit</button>
+                      <button onClick={() => { setGalleryProductId(p.id); }} style={s.btnEdit} title="Images">🖼️</button>
+                      <button onClick={() => { setVariantsProductId(p.id); setVariantsBasePrice(p.price); }} style={s.btnEdit} title="Variants">🎯</button>
                       <button onClick={() => duplicateProduct(p.id)} style={s.btnEdit} title="Duplicate">⧉</button>
-                      <button onClick={() => setDeleteId(p.id)} style={s.btnDel}>🗑</button>
+                      <button onClick={() => setDeleteId(p.id)} style={s.btnDel}>🗑 Delete</button>
                     </div>
                   </td>
                 </tr>

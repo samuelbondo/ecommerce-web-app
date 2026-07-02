@@ -25,19 +25,20 @@ export default function Cart() {
     <div style={styles.container}>
       <h2>Your Cart</h2>
       {cart.map((item) => (
-        <div key={item.id} style={styles.item}>
+        <div key={item._key} style={styles.item}>
           <img src={item.image_url} alt={item.name} style={styles.img} onError={(e) => { e.target.src = 'https://placehold.co/80x80?text=?'; }} />
           <div style={styles.info}>
             <h3 style={styles.name}>{item.name}</h3>
+            {item.variant_name && <p style={{ fontSize: '0.78rem', color: '#e94560', fontWeight: 600, margin: '2px 0 0' }}>{item.variant_name}</p>}
             <p style={styles.price}>{formatPrice(item.price)}</p>
           </div>
           <div style={styles.qtyRow}>
-            <button style={styles.qtyBtn} onClick={() => updateQuantity(item.id, item.quantity - 1)}>−</button>
+            <button style={styles.qtyBtn} onClick={() => updateQuantity(item._key, item.quantity - 1)}>−</button>
             <span style={styles.qtyNum}>{item.quantity}</span>
-            <button style={styles.qtyBtn} onClick={() => updateQuantity(item.id, item.quantity + 1)}>+</button>
+            <button style={styles.qtyBtn} onClick={() => updateQuantity(item._key, item.quantity + 1)}>+</button>
           </div>
           <span style={styles.subtotal}>{formatPrice(item.price * item.quantity)}</span>
-          <button onClick={() => removeFromCart(item.id)} style={styles.remove}>Remove</button>
+          <button onClick={() => removeFromCart(item._key)} style={styles.remove}>Remove</button>
         </div>
       ))}
       <div style={styles.footer}>

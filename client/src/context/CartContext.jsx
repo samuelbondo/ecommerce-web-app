@@ -2,22 +2,40 @@ import { createContext, useContext, useState } from 'react';
 
 const CartContext = createContext();
 
+const itemKey = (product_id, variant_id) => `${product_id}_${variant_id || ''}`;
+
 export function CartProvider({ children }) {
   const [cart, setCart] = useState([]);
 
-  const addToCart = (product) => {
-    setCart((prev) => {
-      const existing = prev.find((i) => i.id === product.id);
-      if (existing) return prev.map((i) => i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
-      return [...prev, { ...product, quantity: 1 }];
+  const addToCart = (product, variant = null) => {
+    const key = itemKey(product.id, variant?.id);
+    const price = variant?.price ?? product.price;
+    const image = variant?.image_url || product.image_url;
+    const variantName = variant?.combination || null;
+
+    setCart(prev => {
+      const existing = prev.find(i => i._key === key);
+      if (existing) return prev.map(i => i._key === key ? { ...i, quantity: i.quantity + 1 } : i);
+      return [...prev, {
+        _key: key,
+        id: product.id,
+        product_id: product.id,
+        variant_id: variant?.id || null,
+        variant_name: variantName,
+        name: product.name,
+        price,
+        image_url: image,
+        stock: variant?.stock ?? product.stock,
+        quantity: 1,
+      }];
     });
   };
 
-  const removeFromCart = (id) => setCart((prev) => prev.filter((i) => i.id !== id));
+  const removeFromCart = (key) => setCart(prev => prev.filter(i => i._key !== key));
 
-  const updateQuantity = (id, qty) => {
+  const updateQuantity = (key, qty) => {
     if (qty < 1) return;
-    setCart((prev) => prev.map((i) => i.id === id ? { ...i, quantity: qty } : i));
+    setCart(prev => prev.map(i => i._key === key ? { ...i, quantity: qty } : i));
   };
 
   const clearCart = () => setCart([]);

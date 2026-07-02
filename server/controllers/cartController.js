@@ -7,12 +7,12 @@ const getCart = asyncHandler(async (req, res) => {
 });
 
 const addToCart = asyncHandler(async (req, res) => {
-  const { user_id, product_id, quantity } = req.body;
-  const [existing] = await Cart.findItem(user_id, product_id);
+  const { user_id, product_id, quantity, variant_id } = req.body;
+  const [existing] = await Cart.findItem(user_id, product_id, variant_id || null);
   if (existing.length) {
     await Cart.updateQuantity(existing[0].id, quantity || 1);
   } else {
-    await Cart.addItem(user_id, product_id, quantity || 1);
+    await Cart.addItem(user_id, product_id, quantity || 1, variant_id || null);
   }
   res.json({ message: 'Cart updated' });
 });

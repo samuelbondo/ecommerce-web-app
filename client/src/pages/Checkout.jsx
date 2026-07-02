@@ -113,7 +113,7 @@ export default function Checkout() {
       onApprove: async (data, actions) => {
         try {
           const details = await actions.order.capture();
-          const items = cart.map(i => ({ product_id: i.id, quantity: i.quantity, price: i.price }));
+          const items = cart.map(i => ({ product_id: i.product_id || i.id, variant_id: i.variant_id || null, quantity: i.quantity, price: i.price }));
           const res = await API.post('/orders', {
             user_id: user.id,
             items,
@@ -138,7 +138,7 @@ export default function Checkout() {
     const errs = validate();
     if (Object.keys(errs).length) return setErrors(errs);
     try {
-      const items = cart.map(i => ({ product_id: i.id, quantity: i.quantity, price: i.price }));
+      const items = cart.map(i => ({ product_id: i.product_id || i.id, variant_id: i.variant_id || null, quantity: i.quantity, price: i.price }));
       const res = await API.post('/orders', {
         user_id: user.id,
         items,

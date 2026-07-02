@@ -42,9 +42,16 @@ export default function ProductDetail() {
   const [reviewMsg, setReviewMsg] = useState(null);
   const [aiSummary, setAiSummary] = useState('');
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [activeImg, setActiveImg] = useState(null);
+  const [selectedOptions, setSelectedOptions] = useState({});
+  const [activeVariant, setActiveVariant] = useState(null);
+  const [activeImg, setActiveImg] = useState(null);
+  const [selectedOptions, setSelectedOptions] = useState({});
+  const [activeVariant, setActiveVariant] = useState(null);
 
   useEffect(() => {
     setProduct(null); setReviews([]); setRelated([]); setQty(1); setAdded(false); setTab('description');
+    setActiveImg(null); setSelectedOptions({}); setActiveVariant(null);
     Promise.all([
       API.get(`/products/${id}`),
       API.get(`/products/${id}/reviews`).catch(() => ({ data: [] })),
@@ -65,14 +72,29 @@ export default function ProductDetail() {
     }).catch(() => setProduct({}));
   }, [id]);
 
+  // Resolve matching variant from selected options
+  const resolveVariant = (opts, variants) => {
+    if (!variants?.length || !Object.keys(opts).length) return null;
+    const combo = Object.values(opts).join(' / ');
+    return variants.find(v => v.combination === combo) || null;
+  };
+
+  const handleOptionSelect = (optionName, value) => {
+    const newOpts = { ...selectedOptions, [optionName]: value };
+    setSelectedOptions(newOpts);
+    const v = resolveVariant(newOpts, product?.variants);
+    setActiveVariant(v);
+    if (v?.image_url) setActiveImg(v.image_url);
+  };
+
   const handleAddToCart = () => {
-    for (let i = 0; i < qty; i++) addToCart(product);
+    for (let i = 0; i < qty; i++) addToCart(product, activeVariant);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
 
   const handleBuyNow = () => {
-    for (let i = 0; i < qty; i++) addToCart(product);
+    for (let i = 0; i < qty; i++) addToCart(product, activeVariant);
     navigate('/checkout');
   };
 
@@ -116,7 +138,8 @@ export default function ProductDetail() {
   );
 
   const avg = avgRating(reviews);
-  const inStock = product.stock > 0;
+  const activeStock = activeVariant?.stock ?? product.stock;
+  const inStock = activeStock > 0;
 
   return (
     <div style={{ background: '#f8f9fb', minHeight: '100vh' }}>
@@ -149,13 +172,24 @@ export default function ProductDetail() {
         {/* Main Section */}
         <div className="pd-main" style={{ display: 'flex', gap: 40, alignItems: 'flex-start', marginBottom: 40 }}>
 
-          {/* Image */}
+          {/* Image Gallery */}
           <div className="pd-img-main" style={{ width: 440, flexShrink: 0 }}>
             <div style={{ background: '#fff', borderRadius: 16, overflow: 'hidden', border: '1px solid #f1f5f9', aspectRatio: '1/1' }}>
-              <img src={product.image_url} alt={product.name}
+              <img src={activeImg || product.image_url} alt={product.name}
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                 onError={e => { e.target.src = 'https://placehold.co/440x440?text=No+Image'; }} />
             </div>
+            {product.images?.length > 0 && (
+              <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                {[{ url: product.image_url }, ...product.images].filter((img, i, arr) => arr.findIndex(x => x.url === img.url) === i).map((img, i) => (
+                  <div key={i} onClick={() => setActiveImg(img.url)}
+                    style={{ width: 64, height: 64, borderRadius: 8, overflow: 'hidden', cursor: 'pointer', border: `2px solid ${activeImg === img.url ? accent : '#e5e7eb'}`, flexShrink: 0 }}>
+                    <img src={img.url} alt={`view ${i}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={e => { e.target.src = 'https://placehold.co/64x64?text=?'; }} />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Info */}
@@ -177,27 +211,55 @@ export default function ProductDetail() {
               </span>
             </div>
 
-            {/* Price */}
-            <div style={{ fontSize: '2rem', fontWeight: 900, color: accent, marginBottom: 20 }}>
-              {formatPrice(product.price)}
+            {/* Price — updates per variant */}
+            <div style={{ fontSize: '2rem', fontWeight: 900, color: accent, marginBottom: 4 }}>
+              {formatPrice(activeVariant?.price ?? product.price)}
             </div>
+            {activeVariant?.price && activeVariant.price !== product.price && (
+              <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginBottom: 16 }}>Base price: {formatPrice(product.price)}</div>
+            )}
+            {!activeVariant?.price && <div style={{ marginBottom: 16 }} />}
+
+            {/* Variant selectors */}
+            {product.options?.length > 0 && (
+              <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {product.options.map(opt => {
+                  const values = [...new Set(product.variants?.map(v => v.combination.split(' / ')[product.options.indexOf(opt)]).filter(Boolean))];
+                  return (
+                    <div key={opt.id}>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#374151', marginBottom: 8 }}>
+                        {opt.name}: <span style={{ color: accent }}>{selectedOptions[opt.name] || 'Select'}</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        {values.map(val => (
+                          <button key={val} onClick={() => handleOptionSelect(opt.name, val)}
+                            style={{ padding: '6px 16px', borderRadius: 8, border: `2px solid ${selectedOptions[opt.name] === val ? accent : '#e5e7eb'}`, background: selectedOptions[opt.name] === val ? accent + '18' : '#fff', color: selectedOptions[opt.name] === val ? accent : '#374151', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.15s' }}>
+                            {val}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+                {activeVariant?.sku && <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>SKU: {activeVariant.sku}</div>}
+              </div>
+            )}
 
             {/* Stock status */}
-            <div style={{ marginBottom: 20 }}>
-              {product.stock === 0 ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', background: '#fee2e2', color: '#ef4444', borderRadius: 20, fontSize: '0.8rem', fontWeight: 700 }}>
-                  ✕ Out of Stock
-                </span>
-              ) : product.stock <= 5 ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', background: '#fef3c7', color: '#d97706', borderRadius: 20, fontSize: '0.8rem', fontWeight: 700 }}>
-                  ⚡ Only {product.stock} left
-                </span>
-              ) : (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', background: '#dcfce7', color: '#16a34a', borderRadius: 20, fontSize: '0.8rem', fontWeight: 700 }}>
-                  ✓ In Stock ({product.stock} available)
-                </span>
-              )}
-            </div>
+            {(() => {
+              const stock = activeVariant?.stock ?? product.stock;
+              return (
+                <div style={{ marginBottom: 20 }}>
+                  {stock === 0 ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', background: '#fee2e2', color: '#ef4444', borderRadius: 20, fontSize: '0.8rem', fontWeight: 700 }}>✕ Out of Stock</span>
+                  ) : stock <= 5 ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', background: '#fef3c7', color: '#d97706', borderRadius: 20, fontSize: '0.8rem', fontWeight: 700 }}>⚡ Only {stock} left</span>
+                  ) : (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', background: '#dcfce7', color: '#16a34a', borderRadius: 20, fontSize: '0.8rem', fontWeight: 700 }}>✓ In Stock ({stock} available)</span>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Quantity */}
             {inStock && (
@@ -206,7 +268,7 @@ export default function ProductDetail() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f8f9fb', borderRadius: 10, padding: '4px 8px', border: '1.5px solid #e5e7eb' }}>
                   <button className="qty-btn" onClick={() => setQty(q => Math.max(1, q - 1))} disabled={qty <= 1}>−</button>
                   <span style={{ minWidth: 28, textAlign: 'center', fontWeight: 700, fontSize: '1rem' }}>{qty}</span>
-                  <button className="qty-btn" onClick={() => setQty(q => Math.min(product.stock, q + 1))} disabled={qty >= product.stock}>+</button>
+                  <button className="qty-btn" onClick={() => setQty(q => Math.min(activeStock, q + 1))} disabled={qty >= activeStock}>+</button>
                 </div>
               </div>
             )}
@@ -243,6 +305,11 @@ export default function ProductDetail() {
           <div style={{ padding: '16px' }}>
             {tab === 'description' && (
               <div style={{ color: '#374151', lineHeight: 1.8, fontSize: '0.95rem' }}>
+                {activeVariant?.description && (
+                  <div style={{ marginBottom: 16, padding: '12px 16px', background: '#f0fdf4', borderRadius: 10, borderLeft: `3px solid #16a34a`, fontSize: '0.9rem' }}>
+                    <strong style={{ color: '#16a34a' }}>{activeVariant.combination}:</strong> {activeVariant.description}
+                  </div>
+                )}
                 {product.description || <span style={{ color: '#94a3b8' }}>No description provided for this product.</span>}
               </div>
             )}

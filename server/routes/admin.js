@@ -87,6 +87,107 @@ router.put('/products/:id/visible', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── Product Images ─────────────────────────────────────
+router.get('/products/:id/images', async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT * FROM product_images WHERE product_id=? ORDER BY sort_order ASC, id ASC', [req.params.id]);
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/products/:id/images', async (req, res) => {
+  const { url, is_primary, sort_order } = req.body;
+  if (!url) return res.status(400).json({ error: 'url required' });
+  try {
+    if (is_primary) await db.query('UPDATE product_images SET is_primary=0 WHERE product_id=?', [req.params.id]);
+    const [r] = await db.query('INSERT INTO product_images (product_id, url, sort_order, is_primary) VALUES (?,?,?,?)',
+      [req.params.id, url, sort_order || 0, is_primary ? 1 : 0]);
+    // If first image, also set as product primary image_url
+    const [[count]] = await db.query('SELECT COUNT(*) AS c FROM product_images WHERE product_id=?', [req.params.id]);
+    if (count.c === 1 || is_primary) await db.query('UPDATE products SET image_url=? WHERE id=?', [url, req.params.id]);
+    res.status(201).json({ id: r.insertId, message: 'Image added' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/products/:id/images/reorder', async (req, res) => {
+  const { order } = req.body; // array of { id, sort_order }
+  try {
+    for (const item of order) await db.query('UPDATE product_images SET sort_order=? WHERE id=? AND product_id=?', [item.sort_order, item.id, req.params.id]);
+    res.json({ message: 'Reordered' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/products/:productId/images/:imageId', async (req, res) => {
+  try {
+    await db.query('DELETE FROM product_images WHERE id=? AND product_id=?', [req.params.imageId, req.params.productId]);
+    // Update product image_url to next primary
+    const [[first]] = await db.query('SELECT url FROM product_images WHERE product_id=? ORDER BY sort_order ASC, id ASC LIMIT 1', [req.params.productId]);
+    if (first) await db.query('UPDATE products SET image_url=? WHERE id=?', [first.url, req.params.productId]);
+    res.json({ message: 'Image deleted' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── Product Options & Variants ─────────────────────────
+router.get('/products/:id/options', async (req, res) => {
+  try {
+    const [options] = await db.query('SELECT * FROM product_options WHERE product_id=? ORDER BY sort_order ASC', [req.params.id]);
+    res.json(options);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/products/:id/options', async (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'name required' });
+  try {
+    const [r] = await db.query('INSERT INTO product_options (product_id, name) VALUES (?,?)', [req.params.id, name]);
+    res.status(201).json({ id: r.insertId, message: 'Option added' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/products/:productId/options/:optionId', async (req, res) => {
+  try {
+    await db.query('DELETE FROM product_options WHERE id=? AND product_id=?', [req.params.optionId, req.params.productId]);
+    res.json({ message: 'Option deleted' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.get('/products/:id/variants', async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT * FROM product_variants WHERE product_id=? ORDER BY id ASC', [req.params.id]);
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/products/:id/variants', async (req, res) => {
+  const { combination, price, stock, sku, image_url, description } = req.body;
+  if (!combination) return res.status(400).json({ error: 'combination required' });
+  try {
+    const [r] = await db.query(
+      'INSERT INTO product_variants (product_id, combination, price, stock, sku, image_url, description) VALUES (?,?,?,?,?,?,?)',
+      [req.params.id, combination, price || null, stock ?? null, sku || null, image_url || null, description || null]
+    );
+    res.status(201).json({ id: r.insertId, message: 'Variant added' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/products/:productId/variants/:variantId', async (req, res) => {
+  const { combination, price, stock, sku, image_url, description } = req.body;
+  try {
+    await db.query(
+      'UPDATE product_variants SET combination=?, price=?, stock=?, sku=?, image_url=?, description=? WHERE id=? AND product_id=?',
+      [combination, price || null, stock ?? null, sku || null, image_url || null, description || null, req.params.variantId, req.params.productId]
+    );
+    res.json({ message: 'Variant updated' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/products/:productId/variants/:variantId', async (req, res) => {
+  try {
+    await db.query('DELETE FROM product_variants WHERE id=? AND product_id=?', [req.params.variantId, req.params.productId]);
+    res.json({ message: 'Variant deleted' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.put('/products/:id/featured', async (req, res) => {
   const { featured } = req.body;
   try {

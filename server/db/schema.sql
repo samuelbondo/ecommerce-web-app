@@ -110,3 +110,32 @@ CREATE TABLE IF NOT EXISTS banners (
   sort_order INT DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS product_images (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  product_id INT NOT NULL,
+  url VARCHAR(500) NOT NULL,
+  sort_order INT DEFAULT 0,
+  is_primary TINYINT(1) DEFAULT 0,
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS product_options (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  product_id INT NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  sort_order INT DEFAULT 0,
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS product_variants (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  product_id INT NOT NULL,
+  combination VARCHAR(500) NOT NULL,
+  price DECIMAL(10,2) DEFAULT NULL,
+  stock INT DEFAULT NULL,
+  sku VARCHAR(100) DEFAULT NULL,
+  image_url VARCHAR(500) DEFAULT NULL,
+  description TEXT DEFAULT NULL,
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
