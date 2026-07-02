@@ -78,11 +78,15 @@ router.post('/chat', async (req, res) => {
     const result = await ai.chatAssistant(messages, products);
     if (!result.ok) return res.status(503).json({ error: result.error });
 
-    // Find products mentioned in the reply so the frontend can show Add to Cart buttons
-    const reply = result.text;
-    const suggested = products.filter(p =>
-      reply.toLowerCase().includes(p.name.toLowerCase()) && p.stock > 0
-    ).slice(0, 3).map(p => ({ id: p.id, name: p.name, price: p.price, image_url: p.image_url }));
+    // Parse RECOMMENDED_IDS:[1,2,3] from the reply
+    const idMatch = result.text.match(/RECOMMENDED_IDS:\[([\d,\s]*)\]/);
+    const recommendedIds = idMatch ? idMatch[1].split(',').map(n => parseInt(n.trim())).filter(Boolean) : [];
+    const reply = result.text.replace(/\nRECOMMENDED_IDS:\[[\d,\s]*\]/, '').trim();
+
+    const suggested = products
+      .filter(p => recommendedIds.includes(p.id) && p.stock > 0)
+      .slice(0, 3)
+      .map(p => ({ id: p.id, name: p.name, price: p.price, image_url: p.image_url }));
 
     res.json({ reply, suggested });
   } catch (err) {

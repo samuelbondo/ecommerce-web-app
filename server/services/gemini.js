@@ -184,6 +184,7 @@ Rules:
 - If asked something you cannot answer, politely say so.
 - Never make up products that are not in the catalog.
 - Respond in the same language the customer is using.
+- At the end of your reply, if you recommended any products, add a line: RECOMMENDED_IDS:[id1,id2] using the exact product IDs from the catalog. If no products recommended, omit this line.
 
 Reply now:`;
 
