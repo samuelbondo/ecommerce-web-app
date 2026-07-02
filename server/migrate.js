@@ -350,6 +350,19 @@ async function migrate() {
       sql: `ALTER TABLE settings ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`,
     },
     {
+      desc: 'CREATE TABLE notifications',
+      check: `SELECT COUNT(*) AS c FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='notifications'`,
+      sql: `CREATE TABLE notifications (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        icon VARCHAR(10) DEFAULT '🔔',
+        message TEXT NOT NULL,
+        read_at TIMESTAMP NULL DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )`,
+    },
+    {
       desc: 'CREATE TABLE conversations',
       check: `SELECT COUNT(*) AS c FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='conversations'`,
       sql: `CREATE TABLE conversations (

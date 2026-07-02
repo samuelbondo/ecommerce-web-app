@@ -1,13 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Toast from '../../components/Toast';
-
-const SAMPLE_REVIEWS = [
-  { id: 1, product: 'Samsung Galaxy A15', image: 'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=60&h=60&fit=crop', rating: 5, comment: 'Excellent phone, great value!', date: '2026-06-20' },
-  { id: 2, product: 'Wireless Earbuds', image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=60&h=60&fit=crop', rating: 4, comment: 'Good sound quality.', date: '2026-06-25' },
-];
+import API from '../../api';
 
 export function DashReviews() {
-  const [reviews, setReviews] = useState(SAMPLE_REVIEWS);
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
   const [editing, setEditing] = useState(null);
   const [editComment, setEditComment] = useState('');
@@ -15,17 +12,40 @@ export function DashReviews() {
 
   const notify = (msg, type = 'success') => setToast({ message: msg, type });
 
-  const handleEdit = (r) => { setEditing(r.id); setEditComment(r.comment); setEditRating(r.rating); };
-  const handleSave = (id) => {
-    setReviews(prev => prev.map(r => r.id === id ? { ...r, comment: editComment, rating: editRating } : r));
-    setEditing(null); notify('Review updated!');
+  const load = () => {
+    setLoading(true);
+    API.get('/reviews/my')
+      .then(r => setReviews(r.data))
+      .catch(() => notify('Failed to load reviews', 'error'))
+      .finally(() => setLoading(false));
   };
-  const handleDelete = (id) => { setReviews(prev => prev.filter(r => r.id !== id)); notify('Review deleted.', 'info'); };
+
+  useEffect(() => { load(); }, []);
+
+  const handleEdit = (r) => { setEditing(r.id); setEditComment(r.comment); setEditRating(r.rating); };
+
+  const handleSave = async (id) => {
+    try {
+      await API.put(`/reviews/${id}`, { rating: editRating, comment: editComment });
+      setEditing(null);
+      notify('Review updated!');
+      load();
+    } catch { notify('Failed to update', 'error'); }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await API.delete(`/reviews/${id}`);
+      notify('Review deleted.', 'info');
+      setReviews(prev => prev.filter(r => r.id !== id));
+    } catch { notify('Failed to delete', 'error'); }
+  };
 
   const Stars = ({ rating, onChange }) => (
     <div style={{ display: 'flex', gap: '2px' }}>
       {[1,2,3,4,5].map(i => (
-        <span key={i} onClick={() => onChange && onChange(i)} style={{ fontSize: '1.1rem', cursor: onChange ? 'pointer' : 'default', color: i <= rating ? '#f59e0b' : '#e5e7eb' }}>★</span>
+        <span key={i} onClick={() => onChange && onChange(i)}
+          style={{ fontSize: '1.1rem', cursor: onChange ? 'pointer' : 'default', color: i <= rating ? '#f59e0b' : '#e5e7eb' }}>★</span>
       ))}
     </div>
   );
@@ -34,11 +54,13 @@ export function DashReviews() {
     <div style={s.container}>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <h2 style={s.title}>My Reviews</h2>
-      {reviews.length === 0 ? (
+      {loading ? (
+        <div style={s.empty}>Loading...</div>
+      ) : reviews.length === 0 ? (
         <div style={s.empty}>⭐ No reviews yet. Purchase products to leave a review.</div>
       ) : reviews.map(r => (
         <div key={r.id} style={s.card}>
-          <img src={r.image} alt={r.product} style={s.img} onError={e => { e.target.src = 'https://placehold.co/60x60?text=?'; }} />
+          <img src={r.image_url} alt={r.product} style={s.img} onError={e => { e.target.src = 'https://placehold.co/60x60?text=?'; }} />
           <div style={{ flex: 1 }}>
             <div style={s.productName}>{r.product}</div>
             <Stars rating={editing === r.id ? editRating : r.rating} onChange={editing === r.id ? setEditRating : null} />
@@ -47,7 +69,8 @@ export function DashReviews() {
             ) : (
               <p style={s.comment}>{r.comment}</p>
             )}
-            <div style={s.date}>{new Date(r.date).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+            {r.admin_reply && <p style={s.adminReply}>💬 Admin: {r.admin_reply}</p>}
+            <div style={s.date}>{new Date(r.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
           </div>
           <div style={s.actions}>
             {editing === r.id
@@ -61,21 +84,51 @@ export function DashReviews() {
   );
 }
 
-const SAMPLE_NOTIFS = [
-  { id: 1, icon: '📦', message: 'Your order #2 has been placed successfully.', time: '2 hours ago', read: false },
-  { id: 2, icon: '🚚', message: 'Order #1 is out for delivery.', time: '1 day ago', read: false },
-  { id: 3, icon: '✅', message: 'Order #1 has been delivered.', time: '2 days ago', read: true },
-  { id: 4, icon: '🎉', message: 'Welcome to Samuel Store! Enjoy shopping.', time: '3 days ago', read: true },
-];
-
 export function DashNotifications() {
-  const [notifs, setNotifs] = useState(SAMPLE_NOTIFS);
+  const [notifs, setNotifs] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
 
-  const markRead = (id) => setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-  const markAll = () => setNotifs(prev => prev.map(n => ({ ...n, read: true })));
-  const remove = (id) => setNotifs(prev => prev.filter(n => n.id !== id));
-  const unread = notifs.filter(n => !n.read).length;
+  const load = () => {
+    setLoading(true);
+    API.get('/notifications')
+      .then(r => setNotifs(r.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const markRead = async (id) => {
+    try {
+      await API.put(`/notifications/${id}/read`);
+      setNotifs(prev => prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n));
+    } catch {}
+  };
+
+  const markAll = async () => {
+    try {
+      await API.put('/notifications/read-all');
+      setNotifs(prev => prev.map(n => ({ ...n, read_at: n.read_at || new Date().toISOString() })));
+    } catch {}
+  };
+
+  const remove = async (id) => {
+    try {
+      await API.delete(`/notifications/${id}`);
+      setNotifs(prev => prev.filter(n => n.id !== id));
+    } catch {}
+  };
+
+  const unread = notifs.filter(n => !n.read_at).length;
+
+  const timeAgo = (date) => {
+    const diff = Math.floor((Date.now() - new Date(date)) / 1000);
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
+  };
 
   return (
     <div style={s.container}>
@@ -84,16 +137,19 @@ export function DashNotifications() {
         <h2 style={s.title}>Notifications {unread > 0 && <span style={s.unreadBadge}>{unread}</span>}</h2>
         {unread > 0 && <button onClick={markAll} style={s.markAllBtn}>Mark all as read</button>}
       </div>
-      {notifs.length === 0 ? (
+      {loading ? (
+        <div style={s.empty}>Loading...</div>
+      ) : notifs.length === 0 ? (
         <div style={s.empty}>🔔 No notifications.</div>
       ) : notifs.map(n => (
-        <div key={n.id} onClick={() => markRead(n.id)} style={{ ...s.notifCard, background: n.read ? '#fff' : '#f0f7ff', cursor: 'pointer' }}>
-          <span style={s.notifIcon}>{n.icon}</span>
+        <div key={n.id} onClick={() => !n.read_at && markRead(n.id)}
+          style={{ ...s.notifCard, background: n.read_at ? '#fff' : '#f0f7ff', cursor: n.read_at ? 'default' : 'pointer' }}>
+          <span style={s.notifIcon}>{n.icon || '🔔'}</span>
           <div style={{ flex: 1 }}>
-            <p style={{ ...s.notifMsg, fontWeight: n.read ? '400' : '600' }}>{n.message}</p>
-            <span style={s.notifTime}>{n.time}</span>
+            <p style={{ ...s.notifMsg, fontWeight: n.read_at ? '400' : '600' }}>{n.message}</p>
+            <span style={s.notifTime}>{timeAgo(n.created_at)}</span>
           </div>
-          {!n.read && <span style={s.dot} />}
+          {!n.read_at && <span style={s.dot} />}
           <button onClick={e => { e.stopPropagation(); remove(n.id); }} style={s.removeBtn}>×</button>
         </div>
       ))}
@@ -131,7 +187,7 @@ export function DashSettings() {
         <Toggle label="Newsletter" desc="Weekly product highlights and news" value={prefs.newsletter} onToggle={() => toggle('newsletter')} />
         <h3 style={{ ...s.settingsSection, marginTop: '20px' }}>📱 SMS Notifications</h3>
         <Toggle label="SMS Order Alerts" desc="Receive SMS when orders are shipped or delivered" value={prefs.smsAlerts} onToggle={() => toggle('smsAlerts')} />
-        <button onClick={save} style={s.saveBtn}>💾 Save Preferences</button>
+        <button onClick={save} style={s.saveSettingsBtn}>💾 Save Preferences</button>
       </div>
     </div>
   );
@@ -145,11 +201,12 @@ const s = {
   img: { width: '60px', height: '60px', borderRadius: '10px', objectFit: 'cover', flexShrink: 0 },
   productName: { fontWeight: '700', color: '#1a1a2e', marginBottom: '4px', fontSize: '0.9rem' },
   comment: { color: '#555', fontSize: '0.85rem', margin: '6px 0 4px' },
+  adminReply: { color: '#3b82f6', fontSize: '0.82rem', margin: '4px 0', fontStyle: 'italic' },
   textarea: { width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.85rem', marginTop: '6px', resize: 'vertical', outline: 'none', boxSizing: 'border-box' },
   date: { color: '#aaa', fontSize: '0.75rem' },
   actions: { display: 'flex', flexDirection: 'column', gap: '6px' },
   editBtn: { padding: '5px 10px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontSize: '0.78rem' },
-  saveBtn: { padding: '10px', background: '#e94560', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem', marginTop: '16px', width: '100%' },
+  saveBtn: { padding: '5px 10px', background: '#e94560', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.78rem' },
   deleteBtn: { padding: '5px 10px', borderRadius: '6px', border: '1px solid #fee2e2', background: '#fff', cursor: 'pointer', fontSize: '0.78rem', color: '#ef4444' },
   notifHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
   unreadBadge: { background: '#e94560', color: '#fff', borderRadius: '50%', padding: '1px 7px', fontSize: '0.75rem' },
@@ -167,4 +224,5 @@ const s = {
   toggleDesc: { fontSize: '0.78rem', color: '#888', marginTop: '2px', minWidth: 0 },
   toggleTrack: { width: '44px', height: '24px', borderRadius: '99px', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 },
   toggleThumb: { position: 'absolute', top: '3px', left: '3px', width: '18px', height: '18px', borderRadius: '50%', background: '#fff', transition: 'transform 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' },
+  saveSettingsBtn: { padding: '10px', background: '#e94560', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem', marginTop: '16px', width: '100%' },
 };
