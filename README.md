@@ -28,16 +28,23 @@ Developed as a final project for **EWA408510 – E-Commerce and Web Application*
 - Product listing with search and category filtering
 - Product detail pages
 - Shopping cart with quantity controls (+/−)
-- Checkout page with customer info form and validation
+- Checkout page with saved address picker + manual entry fallback
 - Order confirmation page
-- Order history per user
+- Order history with tracking steps, view details, and HTML invoice download
 - User registration and login (JWT authentication)
 - Google OAuth 2.0 login — sign in / sign up with Google
-- OTP-based forgot password — 6-digit code sent via Nodemailer (cPanel SMTP)
+- OTP-based forgot password — 6-digit code sent via Nodemailer (Brevo SMTP)
 - Dual auth — users can link Google to an email account and use either method
 - Bcrypt password hashing
 - Role-based access control (admin / customer)
-- Customer dashboard (orders, profile, addresses, reviews, notifications, settings)
+- Customer dashboard:
+  - Overview with real order stats and spending summary
+  - My Orders — tracking steps, view details, HTML invoice download
+  - Profile — avatar upload, personal info, security, activity, linked accounts
+  - Addresses — up to 5 saved addresses, default address, used at checkout
+  - Reviews — real reviews from DB, edit and delete
+  - Notifications — real notifications from DB, mark read, delete
+  - Settings — notification preferences saved to DB
 - Admin dashboard (products, categories, orders, customers, inventory, coupons, reports, settings)
 - Fully Dockerized — 3-container setup (MySQL, Express, Nginx)
 - CI/CD pipeline via GitHub Actions
@@ -53,7 +60,7 @@ Developed as a final project for **EWA408510 – E-Commerce and Web Application*
 | Backend | Node.js 24, Express.js 4 |
 | Database | MySQL 8.4 (Aiven cloud / XAMPP local) |
 | Auth | JWT (jsonwebtoken), bcryptjs, Passport.js, Google OAuth 2.0 |
-| Email | Nodemailer + cPanel SMTP (transactional OTP emails) |
+| Email | Nodemailer + Brevo SMTP (transactional OTP emails) |
 | DevOps | Docker, Docker Compose, GitHub Actions |
 | Frontend Hosting | Vercel |
 | Backend Hosting | Render |
@@ -84,7 +91,7 @@ samuel_store/
 │   │       ├── Products.jsx
 │   │       ├── ProductDetail.jsx
 │   │       ├── Cart.jsx
-│   │       ├── Checkout.jsx
+│   │       ├── Checkout.jsx         # Saved address picker + payment
 │   │       ├── OrderConfirmation.jsx
 │   │       ├── Orders.jsx
 │   │       ├── Login.jsx
@@ -93,6 +100,12 @@ samuel_store/
 │   │       ├── AuthCallback.jsx     # Google OAuth redirect handler
 │   │       ├── admin/          # Admin dashboard pages
 │   │       └── dashboard/      # Customer dashboard pages
+│   │           ├── Dashboard.jsx        # Sidebar + topbar layout
+│   │           ├── Overview.jsx         # Stats, recent orders, recommendations
+│   │           ├── DashOrders.jsx       # Order history + tracking + invoice
+│   │           ├── DashProfile.jsx      # Profile, avatar, security, activity
+│   │           ├── DashAddresses.jsx    # Saved addresses (max 5)
+│   │           └── DashExtras.jsx       # Reviews, Notifications, Settings
 │   ├── Dockerfile              # Multi-stage build → Nginx
 │   ├── nginx.conf              # Nginx SPA config
 │   └── vite.config.js
@@ -108,7 +121,7 @@ samuel_store/
 │   │   ├── productController.js
 │   │   └── settingsController.js
 │   ├── db/
-│   │   ├── schema.sql          # Database table definitions (incl. otp_codes)
+│   │   ├── schema.sql          # Database table definitions
 │   │   └── seed.sql            # Sample data
 │   ├── middleware/
 │   │   ├── auth.js             # JWT authenticate + requireAdmin
@@ -122,17 +135,21 @@ samuel_store/
 │   │   └── userModel.js
 │   ├── routes/
 │   │   ├── admin.js            # Admin-only routes (protected)
-│   │   ├── auth.js
+│   │   ├── auth.js             # Auth + preferences endpoints
 │   │   ├── cart.js
 │   │   ├── categories.js
 │   │   ├── orders.js
 │   │   ├── products.js
-│   │   └── settings.js
+│   │   ├── settings.js
+│   │   ├── addresses.js        # Customer saved addresses (max 5)
+│   │   ├── reviews.js          # Customer reviews CRUD
+│   │   └── notifications.js    # Customer notifications
 │   ├── utils/
 │   │   ├── AppError.js         # Custom error class
 │   │   └── asyncHandler.js     # Async try/catch wrapper
 │   ├── Dockerfile
 │   ├── index.js                # Express app entry point
+│   ├── migrate.js              # Idempotent DB migration script
 │   ├── .env.example            # Environment variable template
 │   └── setup-db.js             # Local DB setup utility script
 ├── docker-compose.yml
@@ -143,8 +160,6 @@ samuel_store/
 ---
 
 ## Prerequisites
-
-Before running this project, make sure you have:
 
 | Tool | Version | Download |
 |------|---------|----------|
@@ -158,18 +173,11 @@ Before running this project, make sure you have:
 
 ## Option 1 — Run with Docker (Recommended)
 
-This runs all 3 services (MySQL, backend, frontend) in containers automatically.
-
 ```bash
-# 1. Clone the repository
 git clone https://github.com/samuelbondo/ecommerce-web-app.git
 cd ecommerce-web-app
-
-# 2. Start all containers
 docker-compose up --build
 ```
-
-Wait about 2–3 minutes for MySQL to initialize. Then open:
 
 | Service | URL |
 |---------|-----|
@@ -177,97 +185,36 @@ Wait about 2–3 minutes for MySQL to initialize. Then open:
 | Backend API | http://localhost:5000/api/products |
 | MySQL | localhost:3307 (user: root, password: root) |
 
-To stop:
 ```bash
-docker-compose down
-```
-
-To stop and delete all data (fresh start):
-```bash
-docker-compose down -v
-```
-
-To rebuild after code changes:
-```bash
-docker-compose up --build
+docker-compose down        # stop
+docker-compose down -v     # stop + delete data
+docker-compose up --build  # rebuild after changes
 ```
 
 ---
 
 ## Option 2 — Run Locally without Docker
 
-### Step 1 — Clone the repository
-
 ```bash
 git clone https://github.com/samuelbondo/ecommerce-web-app.git
 cd ecommerce-web-app
-```
 
-### Step 2 — Set up the database
-
-Start XAMPP and make sure MySQL is running, then:
-
-```bash
-# Create database and tables
+# Setup database
 mysql -u root -p < server/db/schema.sql
-
-# Seed sample data
 mysql -u root -p samuel_store < server/db/seed.sql
-```
 
-### Step 3 — Configure backend environment
-
-```bash
+# Backend
 cd server
-copy .env.example .env
-```
-
-Edit `server/.env`:
-
-```env
-PORT=5000
-NODE_ENV=development
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=
-DB_NAME=samuel_store
-JWT_SECRET=samuel_store_secret_key_2024
-```
-
-### Step 4 — Start the backend
-
-```bash
-cd server
+copy .env.example .env   # edit .env with your values
 npm install
 npm start
-```
 
-Backend runs at: http://localhost:5000  
-Test it: http://localhost:5000/api/products
-
-### Step 5 — Configure frontend environment
-
-Open a new terminal:
-
-```bash
+# Frontend (new terminal)
 cd client
-```
-
-Create `client/.env`:
-
-```env
-VITE_API_URL=http://localhost:5000/api
-```
-
-### Step 6 — Start the frontend
-
-```bash
+# create client/.env with VITE_API_URL=http://localhost:5000/api
 npm install
 npm run dev
 ```
-
-Frontend runs at: http://localhost:5173
 
 ---
 
@@ -300,26 +247,22 @@ GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
 
-# cPanel SMTP — for OTP emails (Nodemailer)
-MAIL_HOST=your-cpanel-domain.com
+# Brevo SMTP — for OTP emails (Nodemailer)
+# Render free tier blocks cPanel SMTP — use Brevo (free, 300 emails/day)
+MAIL_HOST=smtp-relay.brevo.com
 MAIL_PORT=587
-MAIL_USER=no-reply@your-cpanel-domain.com
-MAIL_PASSWORD=your_mail_password
+MAIL_USER=your_brevo_login@smtp-brevo.com
+MAIL_PASSWORD=your_brevo_smtp_key
+MAIL_FROM=no-reply@yourdomain.com
 
 # Frontend URL (used after Google OAuth redirect)
 FRONTEND_URL=http://localhost:5173
 ```
 
-### client/.env (local development)
+### client/.env
 
 ```env
 VITE_API_URL=http://localhost:5000/api
-```
-
-### client/.env (pointing to production backend)
-
-```env
-VITE_API_URL=https://samuel-store-server.onrender.com/api
 ```
 
 ---
@@ -332,41 +275,48 @@ VITE_API_URL=https://samuel-store-server.onrender.com/api
 |-------|-------------|
 | `categories` | Product categories |
 | `products` | Product catalog |
-| `users` | Registered users — includes `google_id`, `auth_provider`, `avatar`, `admin_notes` |
+| `users` | Registered users — includes `google_id`, `auth_provider`, `avatar`, `admin_notes`, notification preferences |
 | `orders` | Customer orders |
 | `order_items` | Items within each order |
 | `cart` | Shopping cart items |
+| `addresses` | Customer saved addresses (max 5 per user) |
+| `reviews` | Product reviews by customers |
+| `notifications` | Per-user notifications |
 | `otp_codes` | OTP codes for password reset (email, code, expires_at, used) |
 | `settings` | Store configuration key-value pairs |
 
-### Schema file
-`server/db/schema.sql` — creates all tables with foreign key relationships.
+### Migration script
 
-### Seed file
-`server/db/seed.sql` — inserts 4 categories and 8 sample products.
+`server/migrate.js` — idempotent, safe to run multiple times.
 
-### Cloud Database (Aiven)
-
-The production database is hosted on Aiven MySQL 8.4 (DigitalOcean Amsterdam).
-
-- Host: `mysql-2701278c-ecommerce-web-app.h.aivencloud.com`
-- Port: `17137`
-- Database: `defaultdb`
-- SSL: Required
-
-To run setup script against Aiven (from `server/` folder):
-
-```bash
-# Set environment variables first
+```cmd
+# Run against Aiven (production)
+cd server
 set DB_HOST=mysql-2701278c-ecommerce-web-app.h.aivencloud.com
 set DB_PORT=17137
 set DB_USER=avnadmin
-set DB_PASSWORD=<password>
+set DB_PASSWORD=your_aiven_password
 set DB_NAME=defaultdb
 set DB_SSL=true
+node migrate.js
 
-node setup-db.js
+# Run against local XAMPP
+cd server
+node migrate.js
 ```
+
+### Migration history
+
+| Applied to | What was added |
+|---|---|
+| `products` | `featured`, `visible` |
+| `orders` | `payment_method`, `payment_status`, `payment_id`, `customer_name`, `customer_email`, `customer_phone`, `customer_address`, `total_amount` |
+| `order_items` | `variant_id`, `variant_name` |
+| `users` | `status`, `phone`, `address`, `city`, `country`, `avatar`, `admin_notes`, `google_id`, `auth_provider`, `last_login`, `password` (nullable), `notif_email_orders`, `notif_email_promos`, `notif_newsletter`, `notif_sms` |
+| `cart` | `session_id`, `created_at`, `variant_id` |
+| `categories` | `description` |
+| `settings` | `updated_at` |
+| New tables | `otp_codes`, `reviews`, `notifications`, `addresses`, `banners`, `settings`, `product_images`, `product_options`, `product_variants`, `payments`, `cart_items`, `conversations`, `conversation_messages` |
 
 ---
 
@@ -381,14 +331,14 @@ node setup-db.js
 | GET | `/api/categories` | List all categories |
 | POST | `/api/auth/register` | Register new user |
 | POST | `/api/auth/login` | Login and get JWT token |
-| GET | `/api/auth/google` | Redirect to Google OAuth consent screen |
-| GET | `/api/auth/google/callback` | Google OAuth callback — issues JWT, redirects to frontend |
+| GET | `/api/auth/google` | Redirect to Google OAuth |
+| GET | `/api/auth/google/callback` | Google OAuth callback |
 | POST | `/api/auth/forgot-password` | Send 6-digit OTP to email |
-| POST | `/api/auth/verify-otp` | Verify OTP — returns short-lived reset token |
+| POST | `/api/auth/verify-otp` | Verify OTP — returns reset token |
 | POST | `/api/auth/reset-password` | Set new password using reset token |
 | GET | `/api/settings` | Get store settings |
 
-### Protected (requires JWT token)
+### Protected (requires JWT)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -397,8 +347,23 @@ node setup-db.js
 | DELETE | `/api/cart/:id` | Remove cart item |
 | POST | `/api/orders` | Place an order |
 | GET | `/api/orders/:user_id` | Get user's orders |
-| POST | `/api/auth/set-password` | Google user sets a password (enables both login methods) |
-| POST | `/api/auth/link-google` | Link Google to existing email account |
+| GET | `/api/auth/preferences` | Get notification preferences |
+| PUT | `/api/auth/preferences` | Save notification preferences |
+| POST | `/api/auth/set-password` | Google user sets a password |
+| POST | `/api/auth/link-google` | Link Google to email account |
+| GET | `/api/addresses` | Get saved addresses |
+| POST | `/api/addresses` | Add address (max 5) |
+| PUT | `/api/addresses/:id` | Update address |
+| PUT | `/api/addresses/:id/default` | Set default address |
+| DELETE | `/api/addresses/:id` | Delete address |
+| GET | `/api/reviews/my` | Get own reviews |
+| POST | `/api/reviews` | Submit a review |
+| PUT | `/api/reviews/:id` | Edit own review |
+| DELETE | `/api/reviews/:id` | Delete own review |
+| GET | `/api/notifications` | Get notifications |
+| PUT | `/api/notifications/:id/read` | Mark one as read |
+| PUT | `/api/notifications/read-all` | Mark all as read |
+| DELETE | `/api/notifications/:id` | Delete notification |
 
 ### Admin only (requires JWT + admin role)
 
@@ -414,233 +379,53 @@ node setup-db.js
 | GET | `/api/admin/customers` | List all customers |
 | GET | `/api/admin/inventory` | Inventory management |
 | PUT | `/api/admin/inventory/:id` | Update stock |
-
-### Sending authenticated requests
-
-Include this header with every protected request:
-
-```
-Authorization: Bearer <your_jwt_token>
-```
+| GET | `/api/admin/reviews` | List all reviews |
+| PUT | `/api/admin/reviews/:id/status` | Approve/reject review |
+| PUT | `/api/admin/reviews/:id/reply` | Admin reply to review |
+| DELETE | `/api/admin/reviews/:id` | Delete review |
 
 ---
 
-## Docker
+## Email — Brevo SMTP
 
-### How it works
+Render free tier **blocks all outbound SMTP** (cPanel, Gmail, etc.) due to port restrictions.  
+Samuel Store uses **Brevo** (formerly Sendinblue) — free tier, 300 emails/day, HTTP-based SMTP relay that works on Render.
 
-`docker-compose.yml` defines 3 services:
+### Setup
 
-| Container | Image | Port | Purpose |
-|-----------|-------|------|---------|
-| `samuel_store_db` | mysql:8.0 | 3307→3306 | MySQL database |
-| `samuel_store_server` | node:22-alpine | 5000→5000 | Express API |
-| `samuel_store_client` | nginx:alpine | 80→80 | React frontend |
-
-The `db` container automatically runs `schema.sql` and `seed.sql` on first start.  
-The `server` container waits for the `db` health check to pass before starting.
-
-### Common Docker commands
-
-```bash
-# Start all containers (build images first)
-docker-compose up --build
-
-# Start in background (detached)
-docker-compose up --build -d
-
-# Stop all containers
-docker-compose down
-
-# Stop and remove all data volumes (complete reset)
-docker-compose down -v
-
-# View running containers
-docker ps
-
-# View logs for a specific container
-docker logs samuel_store_server
-docker logs samuel_store_db
-docker logs samuel_store_client
-
-# Rebuild only one service
-docker-compose up --build server
-
-# Access MySQL inside container
-docker exec -it samuel_store_db mysql -u root -proot samuel_store
-```
-
----
-
-## GitHub
-
-### Repository
-https://github.com/samuelbondo/ecommerce-web-app
-
-### Key Git commands used in this project
-
-```bash
-# Clone the repo
-git clone https://github.com/samuelbondo/ecommerce-web-app.git
-
-# Check current status
-git status
-
-# Stage all changes
-git add .
-
-# Commit with a message
-git commit -m "feat: description of change"
-
-# Push to GitHub
-git push origin main
-
-# Pull latest changes
-git pull origin main
-
-# View commit history
-git log --oneline
-```
-
-### Commit message convention used
+1. Create account at https://brevo.com
+2. Go to **Settings → SMTP & API** → Generate SMTP key
+3. Set these env vars in Render:
 
 ```
-feat:     new feature
-fix:      bug fix
-docs:     documentation only
-refactor: code restructure without feature change
+MAIL_HOST=smtp-relay.brevo.com
+MAIL_PORT=587
+MAIL_USER=your_brevo_login@smtp-brevo.com
+MAIL_PASSWORD=your_brevo_smtp_key
+MAIL_FROM=no-reply@yourdomain.com
 ```
-
----
-
-## CI/CD Pipeline
-
-File: `.github/workflows/ci.yml`
-
-Runs automatically on every push or pull request to `main`.
-
-### Pipeline jobs
-
-```
-push to main
-    │
-    ├── test-server
-    │     Install server dependencies
-    │     Run npm test (if present)
-    │     Smoke test: node starts without crash
-    │
-    ├── test-client
-    │     Install client dependencies
-    │     Build Vite app (npm run build)
-    │
-    └── docker-build (runs after both above pass)
-          Build server Docker image
-          Build client Docker image
-```
-
-To see workflow results:
-1. Go to https://github.com/samuelbondo/ecommerce-web-app
-2. Click **Actions** tab
-3. Click any workflow run to see logs
 
 ---
 
 ## Deployment
 
-### Architecture
-
-```
-User Browser
-     │
-     ▼
-Vercel (React + Nginx)
-     │  HTTPS API calls
-     ▼
-Render (Node.js + Express)
-     │  SSL MySQL connection
-     ▼
-Aiven (MySQL 8.4 — Amsterdam)
-```
-
-### Deploy Backend to Render
+### Render (Backend)
 
 1. Go to https://render.com → New → Web Service
-2. Connect GitHub repo: `samuelbondo/ecommerce-web-app`
-3. Settings:
-   - Root Directory: `server`
-   - Runtime: `Node`
-   - Build Command: `npm install`
-   - Start Command: `node index.js`
-4. Environment variables to set:
+2. Connect: `samuelbondo/ecommerce-web-app`
+3. Root Directory: `server` | Runtime: `Node` | Start: `node index.js`
+4. Set all environment variables listed above
 
-```
-PORT=5000
-NODE_ENV=production
-DB_HOST=mysql-2701278c-ecommerce-web-app.h.aivencloud.com
-DB_PORT=17137
-DB_USER=avnadmin
-DB_PASSWORD=<aiven_password>
-DB_NAME=defaultdb
-JWT_SECRET=samuel_store_secret_key_2024
-GOOGLE_CLIENT_ID=955707634714-99jiohu664ovbioknt6t5nnda59iakhm.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=<your_google_client_secret>
-GOOGLE_CALLBACK_URL=https://samuel-store-server.onrender.com/api/auth/google/callback
-MAIL_HOST=your-cpanel-domain.com
-MAIL_PORT=587
-MAIL_USER=no-reply@your-cpanel-domain.com
-MAIL_PASSWORD=<your_mail_password>
-FRONTEND_URL=https://samuel-store.vercel.app
-```
-
-### Deploy Frontend to Vercel
+### Vercel (Frontend)
 
 1. Go to https://vercel.com → Add New Project
 2. Import: `samuelbondo/ecommerce-web-app`
-3. Settings:
-   - Root Directory: `client`
-   - Framework: Vite
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
-4. Environment variable to set:
-
-```
-VITE_API_URL=https://samuel-store-server.onrender.com/api
-```
-
-### Redeploy after code changes
-
-```bash
-# Push to GitHub — Render and Vercel auto-deploy on push to main
-git add .
-git commit -m "feat: your change description"
-git push origin main
-```
-
-Both Render and Vercel are connected to GitHub and will automatically redeploy within 1–2 minutes of every push to `main`.
-
----
-
-## User Accounts
-
-### Create a customer account
-Register at: https://samuel-store.vercel.app/register
-
-### Create an admin account
-Register normally, then update the role in the database:
-
-```sql
-UPDATE users SET role = 'admin' WHERE email = 'your@email.com';
-```
-
-Run this on Aiven via the setup script or any MySQL client connected to the production database.
+3. Root Directory: `client` | Framework: Vite
+4. Set: `VITE_API_URL=https://samuel-store-server.onrender.com/api`
 
 ---
 
 ## Authentication
-
-### Login methods
-
-Samuel Store supports three auth methods. Users can switch between them freely.
 
 | Method | How |
 |--------|-----|
@@ -648,76 +433,23 @@ Samuel Store supports three auth methods. Users can switch between them freely.
 | Google OAuth | One-click sign in/up via Google account |
 | Both | User has linked both — can use either |
 
-### auth_provider field
-
-Every user row has an `auth_provider` value:
-
-| Value | Meaning |
-|-------|---------|
-| `local` | Email + password only |
-| `google` | Google only (no password set yet) |
-| `both` | Both methods linked — user can use either |
-
-### Google OAuth flow
-
-```
-User clicks "Continue with Google"
-        ↓
-GET /api/auth/google  (backend)
-        ↓
-Google consent screen
-        ↓
-GET /api/auth/google/callback
-        ↓
-Backend: find or create user
-  • google_id exists → log in
-  • email exists (local) → link Google, auth_provider = both
-  • new user → create with auth_provider = google
-        ↓
-JWT issued → redirect to:
-https://samuel-store.vercel.app/auth/callback?token=...&user=...
-        ↓
-AuthCallback.jsx reads token → localStorage → dashboard
-```
-
 ### OTP Forgot Password flow
-
-3-step process at `/forgot-password`:
 
 ```
 Step 1 — Enter email
   POST /auth/forgot-password
   → 6-digit OTP generated, stored in otp_codes (expires 10 min)
-  → Email sent via Nodemailer (cPanel SMTP) with styled OTP card
+  → Email sent via Nodemailer (Brevo SMTP)
 
 Step 2 — Enter OTP code
   POST /auth/verify-otp
   → Validates code (expiry + used flag)
-  → Marks OTP as used
-  → Returns resetToken (JWT, 5 min expiry, purpose: reset)
+  → Returns resetToken (JWT, 5 min, purpose: reset)
 
 Step 3 — Set new password
   POST /auth/reset-password
-  → Verifies resetToken
-  → Hashes new password with bcrypt
-  → If Google user: auth_provider set to both
-  → Redirects to /login
+  → Verifies resetToken → hashes password → updates DB
 ```
-
-### Switching between login methods
-
-In **Dashboard → Profile → Security tab**:
-
-- Google-only user → "Set a Password" form → after saving, `auth_provider = both`
-- Email-only user → "Link Google" button → Google OAuth flow → `auth_provider = both`
-- Both linked → can use either method at any time
-
-### External services
-
-| Service | Purpose | Free tier |
-|---------|---------|----------|
-| Google Cloud Console | OAuth 2.0 credentials | Free |
-| cPanel SMTP (Nodemailer) | Transactional OTP emails | Included with hosting |
 
 ---
 
@@ -727,124 +459,41 @@ In **Dashboard → Profile → Security tab**:
 |---------|---------------|
 | Password hashing | bcryptjs (salt rounds: 10) |
 | Authentication | JWT tokens (7-day expiry) |
-| Google OAuth | passport-google-oauth20, validated by Passport |
-| OTP codes | 6-digit, 10-min expiry, single-use, invalidated after verify |
-| Reset tokens | Short-lived JWT (5 min), purpose-scoped (`purpose: reset`) |
-| Authorization | Middleware: `authenticate`, `requireAdmin` |
+| Google OAuth | passport-google-oauth20 |
+| OTP codes | 6-digit, 10-min expiry, single-use |
+| Reset tokens | Short-lived JWT (5 min), purpose-scoped |
+| Authorization | `authenticate`, `requireAdmin` middleware |
 | SQL injection | Parameterized queries via mysql2 |
 | Input validation | `validate` middleware on all POST routes |
 | Secrets | Environment variables only — never committed |
-| Admin routes | Protected by `router.use(authenticate, requireAdmin)` |
-
----
-
-## Database Migrations
-
-The `server/migrate.js` script keeps the production Aiven database in sync with your local schema. It is fully idempotent — safe to run multiple times.
-
-### Workflow — every time you add a new table or column locally
-
-```
-1. Make your schema change locally (XAMPP / schema.sql)
-2. Add a new entry to the migrations array in server/migrate.js
-3. Run migrate.js against Aiven BEFORE pushing to GitHub
-4. Push — Render redeploys automatically, Aiven is already up to date
-```
-
-### Run against Aiven (production)
-
-```cmd
-cd server
-set DB_HOST=mysql-2701278c-ecommerce-web-app.h.aivencloud.com
-set DB_PORT=17137
-set DB_USER=avnadmin
-set DB_PASSWORD=your_aiven_password
-set DB_NAME=defaultdb
-set DB_SSL=true
-node migrate.js
-```
-
-### Run against local XAMPP
-
-```cmd
-cd server
-node migrate.js
-```
-
-### Adding a new migration entry
-
-Open `server/migrate.js` and add to the `migrations` array:
-
-```js
-// For a new column:
-{
-  desc: 'table_name.column_name',
-  check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS
-          WHERE TABLE_SCHEMA=DATABASE()
-          AND TABLE_NAME='table_name'
-          AND COLUMN_NAME='column_name'`,
-  sql: `ALTER TABLE table_name ADD COLUMN column_name VARCHAR(100) DEFAULT NULL`,
-},
-
-// For a new table:
-{
-  desc: 'CREATE TABLE table_name',
-  check: `SELECT COUNT(*) AS c FROM information_schema.TABLES
-          WHERE TABLE_SCHEMA=DATABASE()
-          AND TABLE_NAME='table_name'`,
-  sql: `CREATE TABLE table_name (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    ...
-  )`,
-},
-```
-
-### Migration history
-
-| Applied to | What was added |
-|---|---|
-| `products` | `featured`, `visible` |
-| `orders` | `payment_method`, `payment_status`, `payment_id`, `customer_name`, `customer_email`, `customer_phone`, `customer_address`, `total_amount` |
-| `order_items` | `variant_id`, `variant_name` |
-| `users` | `status`, `phone`, `address`, `city`, `country`, `avatar`, `admin_notes`, `google_id`, `auth_provider`, `last_login`, `password` (nullable) |
-| `cart` | `session_id`, `created_at`, `variant_id` |
-| `categories` | `description` |
-| `settings` | `updated_at` |
-| New tables | `otp_codes`, `reviews`, `banners`, `settings`, `product_images`, `product_options`, `product_variants`, `payments`, `cart_items` |
+| Address limit | Max 5 addresses per user (enforced server + client) |
 
 ---
 
 ## Troubleshooting
 
-**Google login fails or redirects to `/login?error=google_failed`**
-- Verify `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL` in Render env vars
-- Callback URL in Google Console must match exactly: `https://samuel-store-server.onrender.com/api/auth/google/callback`
-- If app is in testing mode on Google Console, add your Gmail as a test user
-
 **OTP email not received**
+- Brevo free tier: 300 emails/day limit
 - Check spam/junk folder
-- Verify `MAIL_HOST`, `MAIL_USER`, `MAIL_PASSWORD` are set in Render environment variables
+- Verify `MAIL_HOST`, `MAIL_USER`, `MAIL_PASSWORD` in Render env vars
 - OTP expires in 10 minutes — request a new one if expired
-- Confirm your cPanel SMTP credentials are correct and the mailbox exists
+
+**Google login fails**
+- Verify `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL` in Render
+- Callback URL must match exactly: `https://samuel-store-server.onrender.com/api/auth/google/callback`
 
 **Backend returns `{"error":"Internal server error"}`**
 - Check Render logs for the actual error
-- Verify all environment variables are set correctly in Render dashboard
-- Confirm Aiven database is running (Aiven free tier powers off after inactivity)
+- Verify all environment variables are set in Render dashboard
+- Confirm Aiven database is running (free tier powers off after inactivity)
 
 **Frontend shows no products**
-- The Render free instance may be sleeping — wait 30–50 seconds and refresh
+- Render free instance may be sleeping — wait 30–50 seconds and refresh
 - Check browser console for CORS or network errors
-- Verify `VITE_API_URL` in Vercel environment variables
 
 **Docker containers won't start**
 - Run `docker-compose down -v` then `docker-compose up --build`
-- Make sure ports 80, 5000, and 3307 are not in use by another process
-- Check logs: `docker logs samuel_store_db`
-
-**`git push` rejected**
-- Run `git pull origin main` first to sync, then push again
-- If push is blocked due to secrets: remove the secret from the file, commit the fix, then push
+- Make sure ports 80, 5000, and 3307 are not in use
 
 ---
 
