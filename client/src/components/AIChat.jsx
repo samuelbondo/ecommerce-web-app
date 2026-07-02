@@ -19,7 +19,6 @@ import { useLocation } from 'react-router-dom';
 import API from '../api';
 import { useSettings } from '../context/SettingsContext';
 import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext';
 
 // Context-aware proactive messages per page
 const PROACTIVE = {
@@ -45,7 +44,6 @@ const QUICK_REPLIES = {
 export default function AIChat() {
   const { settings } = useSettings();
   const { cart, addToCart } = useCart();
-  const { user } = useAuth();
   const location = useLocation();
   const accent = settings.accent_color || '#e94560';
   const siteName = settings.site_name || 'Samuel Store';

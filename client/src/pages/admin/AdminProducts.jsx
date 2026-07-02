@@ -110,7 +110,7 @@ function VariantsManager({ productId, basePrice, onClose, hideClose }) {
         {!hideClose && <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#888' }}>×</button>}
       </div>
 
-      {/* Options */
+      {/* Options */}
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 8 }}>Option Types (e.g. Color, Size)</div>
         <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
