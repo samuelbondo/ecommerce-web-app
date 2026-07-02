@@ -14,9 +14,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
       - name: Install server dependencies
-        run: npm install
+        run: npm ci
         working-directory: server
       - name: Run server tests
         run: npm test --if-present
@@ -46,9 +46,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
       - name: Install client dependencies
-        run: npm install
+        run: npm ci
         working-directory: client
       - name: Build client
         run: npm run build
@@ -62,6 +62,9 @@ jobs:
     needs: [test-server, test-client]
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
       - name: Build server image
         run: docker build -t samuel-store-server ./server
       - name: Build client image
