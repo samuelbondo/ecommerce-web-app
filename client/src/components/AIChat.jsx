@@ -20,6 +20,13 @@ import API from '../api';
 import { useSettings } from '../context/SettingsContext';
 import { useCart } from '../context/CartContext';
 
+// Generate or retrieve a persistent session ID
+const getSessionId = () => {
+  let sid = sessionStorage.getItem('chat_sid');
+  if (!sid) { sid = 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2); sessionStorage.setItem('chat_sid', sid); }
+  return sid;
+};
+
 // Context-aware proactive messages per page
 const PROACTIVE = {
   '/':          "👋 Welcome! I can help you find the perfect product. What are you looking for today?",
@@ -53,14 +60,17 @@ export default function AIChat() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [unread, setUnread] = useState(0);
-  const [preview, setPreview] = useState('');   // proactive bubble text
+  const [preview, setPreview] = useState('');
   const [showPreview, setShowPreview] = useState(false);
-  const [entered, setEntered] = useState(false); // button entrance animation done
+  const [entered, setEntered] = useState(false);
+  const [takenOver, setTakenOver] = useState(false);
 
   const bottomRef = useRef(null);
   const proactiveTimer = useRef(null);
   const nudgeTimer = useRef(null);
   const hasGreeted = useRef(false);
+  const pollRef = useRef(null);
+  const sessionId = useRef(getSessionId());
 
   // Button entrance animation on mount
   useEffect(() => {
@@ -107,6 +117,27 @@ export default function AIChat() {
     };
   }, [location.pathname, cart.length]);
 
+  // Poll for admin replies every 4s when chat is open
+  useEffect(() => {
+    if (!open) { clearInterval(pollRef.current); return; }
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await API.get(`/ai/chat/poll?session_id=${sessionId.current}`);
+        if (res.data.messages?.length) {
+          res.data.messages.forEach(m => {
+            setMessages(prev => {
+              if (prev.some(p => p._id === m.id)) return prev;
+              return [...prev, { role: 'admin', content: m.content, _id: m.id, suggested: [] }];
+            });
+            setUnread(u => u + 1);
+          });
+        }
+        if (res.data.taken_over !== undefined) setTakenOver(res.data.taken_over);
+      } catch {}
+    }, 4000);
+    return () => clearInterval(pollRef.current);
+  }, [open]);
+
   // Scroll to bottom on new messages
   useEffect(() => {
     if (open) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -138,8 +169,15 @@ export default function AIChat() {
     setInput('');
     setLoading(true);
     try {
-      const res = await API.post('/ai/chat', { messages: next });
-      setMessages(m => [...m, { role: 'assistant', content: res.data.reply, suggested: res.data.suggested || [] }]);
+      const res = await API.post('/ai/chat', { messages: next, session_id: sessionId.current, guest_name: 'Guest' });
+      if (res.data.taken_over) {
+        setTakenOver(true);
+        setLoading(false);
+        return;
+      }
+      if (res.data.reply) {
+        setMessages(m => [...m, { role: 'assistant', content: res.data.reply, suggested: res.data.suggested || [] }]);
+      }
     } catch {
       setMessages(m => [...m, { role: 'assistant', content: "Sorry, I'm having a connection issue. Please try again in a moment.", suggested: [] }]);
     }
@@ -336,6 +374,17 @@ export default function AIChat() {
           padding: 0 0 10px; flex-shrink: 0;
         }
 
+        .aic-msg-admin {
+          background: #eff6ff; color: #1e40af;
+          align-self: flex-start; border-bottom-left-radius: 4px;
+          border-left: 3px solid #3b82f6;
+        }
+        .aic-takeover-banner {
+          margin: 8px 14px; padding: 8px 12px; background: #eff6ff;
+          border-radius: 8px; font-size: 0.78rem; color: #1d4ed8;
+          font-weight: 600; text-align: center; border: 1px solid #bfdbfe;
+        }
+
         /* ── Add to Cart chips ── */
         .aic-atc-row { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; align-self: flex-start; max-width: 82%; }
         .aic-atc-btn {
@@ -398,8 +447,8 @@ export default function AIChat() {
                 <div className="aic-online" />
               </div>
               <div>
-                <div className="aic-title">{siteName} Assistant</div>
-                <div className="aic-sub">🟢 Online · Powered by Gemini AI</div>
+                <div className="aic-title">{takenOver ? 'Support Agent' : `${siteName} Assistant`}</div>
+                <div className="aic-sub">{takenOver ? '🟢 Live agent connected' : '🟢 Online · Powered by Gemini AI'}</div>
               </div>
             </div>
             <button className="aic-close" onClick={handleClose}>
@@ -409,10 +458,11 @@ export default function AIChat() {
 
           {/* Messages */}
           <div className="aic-messages">
+            {takenOver && <div className="aic-takeover-banner">👤 A support agent has joined the conversation</div>}
             {messages.map((m, i) => (
               <div key={i}>
                 <div
-                  className={`aic-msg ${m.role === 'user' ? 'aic-msg-user' : 'aic-msg-bot'}`}
+                  className={`aic-msg ${m.role === 'user' ? 'aic-msg-user' : m.role === 'admin' ? 'aic-msg-admin' : 'aic-msg-bot'}`}
                   dangerouslySetInnerHTML={m.role === 'assistant' ? { __html: m.content
                     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
                     .replace(/\*(.+?)\*/g, '<em>$1</em>')

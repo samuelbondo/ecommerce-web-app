@@ -440,4 +440,59 @@ router.delete('/reviews/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── Live Chat ─────────────────────────────────────────────────────────────────────────────
+router.get('/conversations', async (req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT c.*, u.name AS user_name, u.email AS user_email,
+        (SELECT COUNT(*) FROM conversation_messages WHERE conversation_id=c.id) AS message_count,
+        (SELECT content FROM conversation_messages WHERE conversation_id=c.id ORDER BY created_at DESC LIMIT 1) AS last_message
+      FROM conversations c LEFT JOIN users u ON c.user_id=u.id
+      ORDER BY c.updated_at DESC
+    `);
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.get('/conversations/:id/messages', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      'SELECT * FROM conversation_messages WHERE conversation_id=? ORDER BY created_at ASC',
+      [req.params.id]
+    );
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/conversations/:id/takeover', async (req, res) => {
+  try {
+    await db.query('UPDATE conversations SET status=?, admin_id=? WHERE id=?', ['taken_over', req.user.id, req.params.id]);
+    res.json({ message: 'Taken over' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/conversations/:id/release', async (req, res) => {
+  try {
+    await db.query('UPDATE conversations SET status=?, admin_id=NULL WHERE id=?', ['open', req.params.id]);
+    res.json({ message: 'Released back to AI' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/conversations/:id/reply', async (req, res) => {
+  const { content } = req.body;
+  if (!content?.trim()) return res.status(400).json({ error: 'content required' });
+  try {
+    await db.query('INSERT INTO conversation_messages (conversation_id, role, content) VALUES (?,?,?)', [req.params.id, 'admin', content.trim()]);
+    await db.query('UPDATE conversations SET updated_at=NOW() WHERE id=?', [req.params.id]);
+    res.json({ message: 'Reply sent' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/conversations/:id', async (req, res) => {
+  try {
+    await db.query('DELETE FROM conversations WHERE id=?', [req.params.id]);
+    res.json({ message: 'Conversation deleted' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 module.exports = router;

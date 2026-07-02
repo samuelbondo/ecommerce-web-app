@@ -349,6 +349,32 @@ async function migrate() {
       check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='settings' AND COLUMN_NAME='updated_at'`,
       sql: `ALTER TABLE settings ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`,
     },
+    {
+      desc: 'CREATE TABLE conversations',
+      check: `SELECT COUNT(*) AS c FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='conversations'`,
+      sql: `CREATE TABLE conversations (
+        id VARCHAR(64) PRIMARY KEY,
+        user_id INT DEFAULT NULL,
+        guest_name VARCHAR(100) DEFAULT 'Guest',
+        status ENUM('open','taken_over','closed') DEFAULT 'open',
+        admin_id INT DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+      )`,
+    },
+    {
+      desc: 'CREATE TABLE conversation_messages',
+      check: `SELECT COUNT(*) AS c FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='conversation_messages'`,
+      sql: `CREATE TABLE conversation_messages (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        conversation_id VARCHAR(64) NOT NULL,
+        role ENUM('user','assistant','admin') NOT NULL,
+        content TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
+      )`,
+    },
   ];
 
   let applied = 0;

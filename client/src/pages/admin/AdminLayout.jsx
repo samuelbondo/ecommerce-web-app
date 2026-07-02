@@ -13,6 +13,7 @@ import AdminReports from './AdminReports';
 import AdminSettings from './AdminSettings';
 import AdminBanners from './AdminBanners';
 import AdminProfile from './AdminProfile';
+import AdminLiveChat from './AdminLiveChat';
 
 const NAV_GROUPS = [
   { label: 'Main', items: [
@@ -29,6 +30,7 @@ const NAV_GROUPS = [
     { to: 'coupons', icon: '🎟️', label: 'Coupons' },
     { to: 'reviews', icon: '⭐', label: 'Reviews' },
     { to: 'banners', icon: '🖼️', label: 'Banners' },
+    { to: 'livechat', icon: '💬', label: 'Live Chat' },
   ]},
   { label: 'Analytics', items: [
     { to: 'reports', icon: '📈', label: 'Reports' },
@@ -39,7 +41,7 @@ const NAV_GROUPS = [
   ]},
 ];
 
-const BREADCRUMB = { '/admin': 'Overview', '/admin/orders': 'Orders', '/admin/customers': 'Customers', '/admin/products': 'Products', '/admin/categories': 'Categories', '/admin/inventory': 'Inventory', '/admin/coupons': 'Coupons', '/admin/reviews': 'Reviews', '/admin/reports': 'Reports', '/admin/settings': 'Settings', '/admin/profile': 'My Profile' };
+const BREADCRUMB = { '/admin': 'Overview', '/admin/orders': 'Orders', '/admin/customers': 'Customers', '/admin/products': 'Products', '/admin/categories': 'Categories', '/admin/inventory': 'Inventory', '/admin/coupons': 'Coupons', '/admin/reviews': 'Reviews', '/admin/reports': 'Reports', '/admin/settings': 'Settings', '/admin/profile': 'My Profile', '/admin/livechat': 'Live Chat' };
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
@@ -281,6 +283,7 @@ export default function AdminLayout() {
             <Route path="banners" element={<AdminBanners />} />
             <Route path="settings" element={<AdminSettings />} />
             <Route path="profile" element={<AdminProfile />} />
+            <Route path="livechat" element={<AdminLiveChat />} />
           </Routes>
         </main>
       </div>
