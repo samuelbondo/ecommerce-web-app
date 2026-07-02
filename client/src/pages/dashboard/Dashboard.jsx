@@ -45,7 +45,6 @@ export default function Dashboard() {
       <style>{`
         .dash-sidebar {
           width: 240px;
-          min-height: 100vh;
           background: #1a1a2e;
           display: flex;
           flex-direction: column;
@@ -53,7 +52,7 @@ export default function Dashboard() {
           position: sticky;
           top: 0;
           height: 100vh;
-          overflow-y: auto;
+          overflow: hidden;
           z-index: 99;
           transition: transform 0.25s ease;
         }
@@ -205,11 +204,11 @@ const s = {
   userAvatar: { width: '38px', height: '38px', borderRadius: '50%', background: 'linear-gradient(135deg,#e94560,#8b5cf6)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '0.9rem', flexShrink: 0, overflow: 'hidden' },
   userName: { color: '#fff', fontWeight: '600', fontSize: '0.88rem' },
   userRole: { color: '#a0aec0', fontSize: '0.75rem', textTransform: 'capitalize' },
-  nav: { flex: 1, padding: '12px 0', overflowY: 'auto' },
+  nav: { flex: 1, padding: '12px 0', overflowY: 'auto', minHeight: 0 },
   navItem: { display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 20px', color: '#a0aec0', textDecoration: 'none', fontSize: '0.88rem', transition: 'all 0.15s', borderLeft: '3px solid transparent' },
   navActive: { color: '#fff', background: 'rgba(233,69,96,0.12)', borderLeft: '3px solid #e94560' },
   navIcon: { fontSize: '1rem', width: '20px', textAlign: 'center' },
-  sidebarFooter: { padding: '16px 20px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: '4px' },
+  sidebarFooter: { padding: '16px 20px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: '4px', flexShrink: 0 },
   footerLink: { color: '#a0aec0', textDecoration: 'none', fontSize: '0.82rem', padding: '6px 0' },
   logoutBtn: { background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: '600', marginTop: '4px', textAlign: 'left' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' },
