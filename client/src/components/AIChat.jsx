@@ -19,6 +19,7 @@ import { useLocation } from 'react-router-dom';
 import API from '../api';
 import { useSettings } from '../context/SettingsContext';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 
 // Context-aware proactive messages per page
 const PROACTIVE = {
@@ -43,7 +44,8 @@ const QUICK_REPLIES = {
 
 export default function AIChat() {
   const { settings } = useSettings();
-  const { cart } = useCart();
+  const { cart, addToCart } = useCart();
+  const { user } = useAuth();
   const location = useLocation();
   const accent = settings.accent_color || '#e94560';
   const siteName = settings.site_name || 'Samuel Store';
@@ -139,9 +141,9 @@ export default function AIChat() {
     setLoading(true);
     try {
       const res = await API.post('/ai/chat', { messages: next });
-      setMessages(m => [...m, { role: 'assistant', content: res.data.reply }]);
+      setMessages(m => [...m, { role: 'assistant', content: res.data.reply, suggested: res.data.suggested || [] }]);
     } catch {
-      setMessages(m => [...m, { role: 'assistant', content: "Sorry, I'm having a connection issue. Please try again in a moment." }]);
+      setMessages(m => [...m, { role: 'assistant', content: "Sorry, I'm having a connection issue. Please try again in a moment.", suggested: [] }]);
     }
     setLoading(false);
   };
@@ -336,6 +338,18 @@ export default function AIChat() {
           padding: 0 0 10px; flex-shrink: 0;
         }
 
+        /* ── Add to Cart chips ── */
+        .aic-atc-row { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; align-self: flex-start; max-width: 82%; }
+        .aic-atc-btn {
+          display: flex; align-items: center; gap: 8px;
+          padding: 7px 12px; border-radius: 10px;
+          border: 1.5px solid ${accent}44; background: #fff;
+          cursor: pointer; font-size: 0.78rem; font-weight: 600; color: #1a1a2e;
+          transition: all 0.15s; text-align: left;
+        }
+        .aic-atc-btn:hover { background: ${accent}; color: #fff; border-color: ${accent}; }
+        .aic-atc-btn img { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
+
         /* ── Mobile: full-screen panel like WhatsApp / Messenger ── */
         @media (max-width: 600px) {
           .aic-btn { bottom: 16px; right: 16px; width: 52px; height: 52px; }
@@ -404,11 +418,28 @@ export default function AIChat() {
                   dangerouslySetInnerHTML={m.role === 'assistant' ? { __html: m.content
                     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
                     .replace(/\*(.+?)\*/g, '<em>$1</em>')
-                    .replace(/^\* (.+)/gm, '• $1')
+                    .replace(/^\* (.+)/gm, '\u2022 $1')
                     .replace(/\n/g, '<br/>') } : undefined}
                 >
                   {m.role === 'user' ? m.content : undefined}
                 </div>
+                {m.role === 'assistant' && m.suggested?.length > 0 && (
+                  <div className="aic-atc-row">
+                    {m.suggested.map(p => (
+                      <button key={p.id} className="aic-atc-btn" onClick={() => {
+                        addToCart(p);
+                        setMessages(prev => prev.map((msg, idx) => idx === i
+                          ? { ...msg, suggested: msg.suggested.filter(s => s.id !== p.id) }
+                          : msg
+                        ));
+                        setMessages(prev => [...prev, { role: 'assistant', content: `\u2705 **${p.name}** added to your cart!`, suggested: [] }]);
+                      }}>
+                        {p.image_url && <img src={p.image_url} alt={p.name} />}
+                        <span>\uD83D\uDED2 Add "{p.name}" — ${p.price}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className={`aic-msg-time ${m.role === 'user' ? 'aic-msg-time-user' : ''}`}>
                   {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>

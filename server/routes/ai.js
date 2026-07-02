@@ -73,11 +73,18 @@ router.post('/chat', async (req, res) => {
 
   try {
     const [products] = await db.query(
-      'SELECT p.id, p.name, p.price, p.stock, p.description, c.name AS category FROM products p LEFT JOIN categories c ON p.category_id = c.id'
+      'SELECT p.id, p.name, p.price, p.stock, p.description, p.image_url, c.name AS category FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.visible = 1'
     );
     const result = await ai.chatAssistant(messages, products);
     if (!result.ok) return res.status(503).json({ error: result.error });
-    res.json({ reply: result.text });
+
+    // Find products mentioned in the reply so the frontend can show Add to Cart buttons
+    const reply = result.text;
+    const suggested = products.filter(p =>
+      reply.toLowerCase().includes(p.name.toLowerCase()) && p.stock > 0
+    ).slice(0, 3).map(p => ({ id: p.id, name: p.name, price: p.price, image_url: p.image_url }));
+
+    res.json({ reply, suggested });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
