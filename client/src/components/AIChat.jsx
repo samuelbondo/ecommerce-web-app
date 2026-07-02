@@ -399,8 +399,15 @@ export default function AIChat() {
           <div className="aic-messages">
             {messages.map((m, i) => (
               <div key={i}>
-                <div className={`aic-msg ${m.role === 'user' ? 'aic-msg-user' : 'aic-msg-bot'}`}>
-                  {m.content}
+                <div
+                  className={`aic-msg ${m.role === 'user' ? 'aic-msg-user' : 'aic-msg-bot'}`}
+                  dangerouslySetInnerHTML={m.role === 'assistant' ? { __html: m.content
+                    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                    .replace(/^\* (.+)/gm, '• $1')
+                    .replace(/\n/g, '<br/>') } : undefined}
+                >
+                  {m.role === 'user' ? m.content : undefined}
                 </div>
                 <div className={`aic-msg-time ${m.role === 'user' ? 'aic-msg-time-user' : ''}`}>
                   {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
