@@ -347,8 +347,9 @@ router.post('/customers/:id/send-reset-link', async (req, res) => {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
     await db.query('UPDATE otp_codes SET used=1 WHERE email=? AND used=0', [user.email]);
     await db.query('INSERT INTO otp_codes (email, code, expires_at) VALUES (?,?,?)', [user.email, code, expiresAt]);
+    const mailerPort = parseInt(process.env.MAIL_PORT || '587');
     const mailer = require('nodemailer').createTransport({
-      host: process.env.MAIL_HOST, port: 587, secure: false,
+      host: process.env.MAIL_HOST, port: mailerPort, secure: mailerPort === 465,
       auth: { user: process.env.MAIL_USER, pass: process.env.MAIL_PASSWORD },
     });
     await mailer.sendMail({
