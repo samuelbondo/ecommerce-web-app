@@ -6,12 +6,18 @@ const db = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const passport = require('../config/passport');
-const { Resend } = require('resend');
-const resend = new Resend(process.env.RESEND_API_KEY);
+const nodemailer = require('nodemailer');
 
 const sendOTPEmail = async (toEmail, userName, code) => {
-  await resend.emails.send({
-    from: process.env.MAIL_FROM || 'no-reply@youngdevsofficial.com',
+  const mailerPort = parseInt(process.env.MAIL_PORT || '465');
+  const mailer = nodemailer.createTransport({
+    host: process.env.MAIL_HOST,
+    port: mailerPort,
+    secure: mailerPort === 465,
+    auth: { user: process.env.MAIL_USER, pass: process.env.MAIL_PASSWORD },
+  });
+  await mailer.sendMail({
+    from: `"Samuel Store" <${process.env.MAIL_USER}>`,
     to: toEmail,
     subject: 'Your Samuel Store password reset code',
     html: `
