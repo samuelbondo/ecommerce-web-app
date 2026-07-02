@@ -357,13 +357,14 @@ export default function ProductDetail() {
                 {reviews.length === 0 && <p style={{ color: '#94a3b8', marginBottom: 28 }}>No reviews yet. Be the first to review this product!</p>}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 32 }}>
                   {reviews.map(r => (
-                    <div key={r.id} style={{ background: '#f8f9fb', borderRadius: 12, padding: '16px 20px' }}>
+                    <div key={r.id} style={{ background: '#f8f9fb', borderRadius: 12, padding: '16px 20px', border: r.status === 'pending' ? '1.5px dashed #f59e0b' : 'none' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                         <div>
                           <div style={{ fontWeight: 700, color: '#1a1a2e', fontSize: '0.9rem' }}>{r.customer}</div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
                             <Stars rating={r.rating} />
                             <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{new Date(r.created_at).toLocaleDateString()}</span>
+                            {r.status === 'pending' && <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#d97706', background: '#fef3c7', padding: '2px 8px', borderRadius: 10 }}>⏳ Pending approval</span>}
                           </div>
                         </div>
                       </div>
@@ -384,6 +385,10 @@ export default function ProductDetail() {
                   {!user ? (
                     <div style={{ background: '#f8f9fb', borderRadius: 10, padding: '16px 20px', color: '#64748b', fontSize: '0.88rem' }}>
                       <Link to="/login" style={{ color: accent, fontWeight: 700 }}>Login</Link> or <Link to="/register" style={{ color: accent, fontWeight: 700 }}>Register</Link> to write a review.
+                    </div>
+                  ) : reviews.some(r => r.customer === user.name) ? (
+                    <div style={{ background: '#f0fdf4', borderRadius: 10, padding: '14px 18px', color: '#16a34a', fontSize: '0.88rem', fontWeight: 600 }}>
+                      ✓ You have already reviewed this product.
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
