@@ -6,18 +6,12 @@ const db = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const passport = require('../config/passport');
-const nodemailer = require('nodemailer');
-const mailerPort = parseInt(process.env.MAIL_PORT || '587');
-const mailer = nodemailer.createTransport({
-  host: process.env.MAIL_HOST,
-  port: mailerPort,
-  secure: mailerPort === 465,
-  auth: { user: process.env.MAIL_USER, pass: process.env.MAIL_PASSWORD },
-});
+const { Resend } = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendOTPEmail = async (toEmail, userName, code) => {
-  await mailer.sendMail({
-    from: `"Samuel Store" <${process.env.MAIL_USER}>`,
+  await resend.emails.send({
+    from: process.env.MAIL_FROM || 'no-reply@youngdevsofficial.com',
     to: toEmail,
     subject: 'Your Samuel Store password reset code',
     html: `
@@ -170,7 +164,7 @@ router.post('/forgot-password', async (req, res) => {
     await sendOTPEmail(email, user.name, code);
 
     res.json({ message: 'OTP sent to your email' });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error('forgot-password error:', err); res.status(500).json({ error: err.message }); }
 });
 
 // ── Forgot password — Step 2: verify OTP ──────────────
