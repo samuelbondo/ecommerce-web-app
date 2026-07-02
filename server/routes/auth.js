@@ -127,6 +127,27 @@ router.post('/link-google', authenticate, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+router.get('/preferences', authenticate, async (req, res) => {
+  try {
+    const [[u]] = await db.query(
+      'SELECT notif_email_orders, notif_email_promos, notif_newsletter, notif_sms FROM users WHERE id=?',
+      [req.user.id]
+    );
+    res.json(u);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/preferences', authenticate, async (req, res) => {
+  const { notif_email_orders, notif_email_promos, notif_newsletter, notif_sms } = req.body;
+  try {
+    await db.query(
+      'UPDATE users SET notif_email_orders=?, notif_email_promos=?, notif_newsletter=?, notif_sms=? WHERE id=?',
+      [notif_email_orders ? 1:0, notif_email_promos ? 1:0, notif_newsletter ? 1:0, notif_sms ? 1:0, req.user.id]
+    );
+    res.json({ message: 'Preferences saved' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ── Forgot password — Step 1: send OTP ────────────────
 router.post('/forgot-password', async (req, res) => {
   const { email } = req.body;

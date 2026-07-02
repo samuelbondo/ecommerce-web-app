@@ -158,11 +158,35 @@ export function DashNotifications() {
 }
 
 export function DashSettings() {
-  const [prefs, setPrefs] = useState({ emailOrders: true, emailPromos: false, smsAlerts: true, newsletter: false });
+  const [prefs, setPrefs] = useState(null);
   const [toast, setToast] = useState(null);
 
+  useEffect(() => {
+    API.get('/auth/preferences')
+      .then(r => setPrefs({
+        emailOrders: !!r.data.notif_email_orders,
+        emailPromos: !!r.data.notif_email_promos,
+        newsletter:  !!r.data.notif_newsletter,
+        smsAlerts:   !!r.data.notif_sms,
+      }))
+      .catch(() => setPrefs({ emailOrders: true, emailPromos: false, newsletter: false, smsAlerts: true }));
+  }, []);
+
   const toggle = (key) => setPrefs(prev => ({ ...prev, [key]: !prev[key] }));
-  const save = () => setToast({ message: 'Settings saved!', type: 'success' });
+
+  const save = async () => {
+    try {
+      await API.put('/auth/preferences', {
+        notif_email_orders: prefs.emailOrders,
+        notif_email_promos: prefs.emailPromos,
+        notif_newsletter:   prefs.newsletter,
+        notif_sms:          prefs.smsAlerts,
+      });
+      setToast({ message: 'Preferences saved!', type: 'success' });
+    } catch {
+      setToast({ message: 'Failed to save', type: 'error' });
+    }
+  };
 
   const Toggle = ({ label, desc, value, onToggle }) => (
     <div style={s.toggleRow}>
@@ -180,15 +204,17 @@ export function DashSettings() {
     <div style={s.container}>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <h2 style={s.title}>Account Settings</h2>
-      <div style={s.settingsCard}>
-        <h3 style={s.settingsSection}>📧 Email Notifications</h3>
-        <Toggle label="Order Updates" desc="Get notified when your order status changes" value={prefs.emailOrders} onToggle={() => toggle('emailOrders')} />
-        <Toggle label="Promotions & Offers" desc="Receive deals and discount emails" value={prefs.emailPromos} onToggle={() => toggle('emailPromos')} />
-        <Toggle label="Newsletter" desc="Weekly product highlights and news" value={prefs.newsletter} onToggle={() => toggle('newsletter')} />
-        <h3 style={{ ...s.settingsSection, marginTop: '20px' }}>📱 SMS Notifications</h3>
-        <Toggle label="SMS Order Alerts" desc="Receive SMS when orders are shipped or delivered" value={prefs.smsAlerts} onToggle={() => toggle('smsAlerts')} />
-        <button onClick={save} style={s.saveSettingsBtn}>💾 Save Preferences</button>
-      </div>
+      {!prefs ? <div style={s.empty}>Loading...</div> : (
+        <div style={s.settingsCard}>
+          <h3 style={s.settingsSection}>📧 Email Notifications</h3>
+          <Toggle label="Order Updates" desc="Get notified when your order status changes" value={prefs.emailOrders} onToggle={() => toggle('emailOrders')} />
+          <Toggle label="Promotions & Offers" desc="Receive deals and discount emails" value={prefs.emailPromos} onToggle={() => toggle('emailPromos')} />
+          <Toggle label="Newsletter" desc="Weekly product highlights and news" value={prefs.newsletter} onToggle={() => toggle('newsletter')} />
+          <h3 style={{ ...s.settingsSection, marginTop: '20px' }}>📱 SMS Notifications</h3>
+          <Toggle label="SMS Order Alerts" desc="Receive SMS when orders are shipped or delivered" value={prefs.smsAlerts} onToggle={() => toggle('smsAlerts')} />
+          <button onClick={save} style={s.saveSettingsBtn}>💾 Save Preferences</button>
+        </div>
+      )}
     </div>
   );
 }

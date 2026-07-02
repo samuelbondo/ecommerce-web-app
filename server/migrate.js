@@ -350,6 +350,26 @@ async function migrate() {
       sql: `ALTER TABLE settings ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`,
     },
     {
+      desc: 'users.notif_email_orders',
+      check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='notif_email_orders'`,
+      sql: `ALTER TABLE users ADD COLUMN notif_email_orders TINYINT(1) DEFAULT 1`,
+    },
+    {
+      desc: 'users.notif_email_promos',
+      check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='notif_email_promos'`,
+      sql: `ALTER TABLE users ADD COLUMN notif_email_promos TINYINT(1) DEFAULT 0`,
+    },
+    {
+      desc: 'users.notif_newsletter',
+      check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='notif_newsletter'`,
+      sql: `ALTER TABLE users ADD COLUMN notif_newsletter TINYINT(1) DEFAULT 0`,
+    },
+    {
+      desc: 'users.notif_sms',
+      check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='notif_sms'`,
+      sql: `ALTER TABLE users ADD COLUMN notif_sms TINYINT(1) DEFAULT 1`,
+    },
+    {
       desc: 'CREATE TABLE addresses',
       check: `SELECT COUNT(*) AS c FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='addresses'`,
       sql: `CREATE TABLE addresses (
