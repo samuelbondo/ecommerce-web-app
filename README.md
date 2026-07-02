@@ -33,7 +33,7 @@ Developed as a final project for **EWA408510 – E-Commerce and Web Application*
 - Order history per user
 - User registration and login (JWT authentication)
 - Google OAuth 2.0 login — sign in / sign up with Google
-- OTP-based forgot password — 6-digit code sent via Resend email
+- OTP-based forgot password — 6-digit code sent via Nodemailer (cPanel SMTP)
 - Dual auth — users can link Google to an email account and use either method
 - Bcrypt password hashing
 - Role-based access control (admin / customer)
@@ -53,7 +53,7 @@ Developed as a final project for **EWA408510 – E-Commerce and Web Application*
 | Backend | Node.js 24, Express.js 4 |
 | Database | MySQL 8.4 (Aiven cloud / XAMPP local) |
 | Auth | JWT (jsonwebtoken), bcryptjs, Passport.js, Google OAuth 2.0 |
-| Email | Resend (transactional OTP emails) |
+| Email | Nodemailer + cPanel SMTP (transactional OTP emails) |
 | DevOps | Docker, Docker Compose, GitHub Actions |
 | Frontend Hosting | Vercel |
 | Backend Hosting | Render |
@@ -300,8 +300,11 @@ GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
 
-# Resend (resend.com) — for OTP emails
-RESEND_API_KEY=your_resend_api_key
+# cPanel SMTP — for OTP emails (Nodemailer)
+MAIL_HOST=your-cpanel-domain.com
+MAIL_PORT=587
+MAIL_USER=no-reply@your-cpanel-domain.com
+MAIL_PASSWORD=your_mail_password
 
 # Frontend URL (used after Google OAuth redirect)
 FRONTEND_URL=http://localhost:5173
@@ -582,7 +585,10 @@ JWT_SECRET=samuel_store_secret_key_2024
 GOOGLE_CLIENT_ID=955707634714-99jiohu664ovbioknt6t5nnda59iakhm.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=<your_google_client_secret>
 GOOGLE_CALLBACK_URL=https://samuel-store-server.onrender.com/api/auth/google/callback
-RESEND_API_KEY=<your_resend_api_key>
+MAIL_HOST=your-cpanel-domain.com
+MAIL_PORT=587
+MAIL_USER=no-reply@your-cpanel-domain.com
+MAIL_PASSWORD=<your_mail_password>
 FRONTEND_URL=https://samuel-store.vercel.app
 ```
 
@@ -682,7 +688,7 @@ AuthCallback.jsx reads token → localStorage → dashboard
 Step 1 — Enter email
   POST /auth/forgot-password
   → 6-digit OTP generated, stored in otp_codes (expires 10 min)
-  → Email sent via Resend with styled OTP card
+  → Email sent via Nodemailer (cPanel SMTP) with styled OTP card
 
 Step 2 — Enter OTP code
   POST /auth/verify-otp
@@ -711,7 +717,7 @@ In **Dashboard → Profile → Security tab**:
 | Service | Purpose | Free tier |
 |---------|---------|----------|
 | Google Cloud Console | OAuth 2.0 credentials | Free |
-| Resend (resend.com) | Transactional OTP emails | 3,000 emails/month |
+| cPanel SMTP (Nodemailer) | Transactional OTP emails | Included with hosting |
 
 ---
 
@@ -741,9 +747,9 @@ In **Dashboard → Profile → Security tab**:
 
 **OTP email not received**
 - Check spam/junk folder
-- Verify `RESEND_API_KEY` is set in Render environment variables
+- Verify `MAIL_HOST`, `MAIL_USER`, `MAIL_PASSWORD` are set in Render environment variables
 - OTP expires in 10 minutes — request a new one if expired
-- On Resend free tier, from address is `onboarding@resend.dev`
+- Confirm your cPanel SMTP credentials are correct and the mailbox exists
 
 **Backend returns `{"error":"Internal server error"}`**
 - Check Render logs for the actual error
