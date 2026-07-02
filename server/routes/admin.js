@@ -46,9 +46,9 @@ router.get('/products', async (req, res) => {
 });
 
 router.post('/products', async (req, res) => {
-  const { name, description, price, stock, image_url, category_id, featured } = req.body;
+  const { name, description, price, stock, image_url, category_id, featured, visible } = req.body;
   try {
-    const [r] = await db.query('INSERT INTO products (name,description,price,stock,image_url,category_id,featured) VALUES (?,?,?,?,?,?,?)', [name, description, price, stock, image_url || '', category_id, featured ? 1 : 0]);
+    const [r] = await db.query('INSERT INTO products (name,description,price,stock,image_url,category_id,featured,visible) VALUES (?,?,?,?,?,?,?,?)', [name, description, price, stock, image_url || '', category_id, featured ? 1 : 0, visible === false ? 0 : 1]);
     res.status(201).json({ id: r.insertId, message: 'Product created' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -66,16 +66,24 @@ router.post('/products/:id/duplicate', async (req, res) => {
   try {
     const [[p]] = await db.query('SELECT * FROM products WHERE id=?', [req.params.id]);
     if (!p) return res.status(404).json({ error: 'Not found' });
-    const [r] = await db.query('INSERT INTO products (name,description,price,stock,image_url,category_id,featured) VALUES (?,?,?,?,?,?,?)', [`${p.name} (Copy)`, p.description, p.price, p.stock, p.image_url, p.category_id, p.featured]);
+    const [r] = await db.query('INSERT INTO products (name,description,price,stock,image_url,category_id,featured,visible) VALUES (?,?,?,?,?,?,?,?)', [`${p.name} (Copy)`, p.description, p.price, p.stock, p.image_url, p.category_id, p.featured, p.visible]);
     res.status(201).json({ id: r.insertId, message: 'Product duplicated' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.put('/products/:id', async (req, res) => {
-  const { name, description, price, stock, image_url, category_id, featured } = req.body;
+  const { name, description, price, stock, image_url, category_id, featured, visible } = req.body;
   try {
-    await db.query('UPDATE products SET name=?,description=?,price=?,stock=?,image_url=?,category_id=?,featured=? WHERE id=?', [name, description, price, stock, image_url, category_id, featured ? 1 : 0, req.params.id]);
+    await db.query('UPDATE products SET name=?,description=?,price=?,stock=?,image_url=?,category_id=?,featured=?,visible=? WHERE id=?', [name, description, price, stock, image_url, category_id, featured ? 1 : 0, visible === false ? 0 : 1, req.params.id]);
     res.json({ message: 'Product updated' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/products/:id/visible', async (req, res) => {
+  const { visible } = req.body;
+  try {
+    await db.query('UPDATE products SET visible=? WHERE id=?', [visible ? 1 : 0, req.params.id]);
+    res.json({ message: 'Visibility updated' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

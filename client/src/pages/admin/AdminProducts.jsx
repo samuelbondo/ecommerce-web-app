@@ -93,6 +93,15 @@ export default function AdminProducts() {
     } catch { notify('Failed to update featured', 'error'); }
   };
 
+  const toggleVisible = async (p) => {
+    const next = p.visible === 0;
+    try {
+      await API.put(`/admin/products/${p.id}/visible`, { visible: next });
+      setProducts(prev => prev.map(x => x.id === p.id ? { ...x, visible: next ? 1 : 0 } : x));
+      notify(next ? 'Product is now visible' : 'Product hidden from store');
+    } catch { notify('Failed to update visibility', 'error'); }
+  };
+
   const duplicateProduct = async (id) => {
     try { await API.post(`/admin/products/${id}/duplicate`); notify('Product duplicated'); load(); }
     catch { notify('Duplicate failed', 'error'); }
@@ -170,6 +179,10 @@ export default function AdminProducts() {
                 <input type="checkbox" checked={!!form.featured} onChange={e => setForm({ ...form, featured: e.target.checked })} />
                 Mark as Featured
               </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.88rem', cursor: 'pointer' }}>
+                <input type="checkbox" checked={form.visible !== false} onChange={e => setForm({ ...form, visible: e.target.checked })} />
+                Visible in store
+              </label>
               <button type="submit" disabled={saving} style={s.btnPrimary}>{saving ? 'Saving...' : editing ? '💾 Update' : '➕ Create Product'}</button>
             </form>
           </div>
@@ -211,15 +224,16 @@ export default function AdminProducts() {
                 <th key={col} onClick={() => toggleSort(col)} style={{ ...s.th, cursor: 'pointer' }}>{label}{sortIcon(col)}</th>
               ))}
               <th style={s.th}>Featured</th>
+              <th style={s.th}>Visible</th>
               <th style={s.th}>Actions</th>
             </tr></thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} style={s.noData}>Loading...</td></tr>
+                <tr><td colSpan={9} style={s.noData}>Loading...</td></tr>
               ) : paginated.length === 0 ? (
-                <tr><td colSpan={8} style={s.noData}>No products found</td></tr>
+                <tr><td colSpan={9} style={s.noData}>No products found</td></tr>
               ) : paginated.map(p => (
-                <tr key={p.id} style={s.tr}>
+                <tr key={p.id} style={{ ...s.tr, opacity: p.visible === 0 ? 0.5 : 1 }}>
                   <td style={s.td}><input type="checkbox" checked={checked.includes(p.id)} onChange={() => toggleCheck(p.id)} /></td>
                   <td style={s.td}><img src={p.image_url} alt={p.name} style={s.thumb} onError={e => { e.target.src = 'https://placehold.co/40x40?text=?'; }} /></td>
                   <td style={s.td}><div style={s.prodName}>{p.name}</div><div style={s.prodId}>ID: {p.id}</div></td>
@@ -229,6 +243,12 @@ export default function AdminProducts() {
                   <td style={s.td}>
                     <button onClick={() => toggleFeatured(p)} title="Toggle featured" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>
                       {p.featured ? '⭐' : '☆'}
+                    </button>
+                  </td>
+                  <td style={s.td}>
+                    <button onClick={() => toggleVisible(p)} title={p.visible === 0 ? 'Hidden — click to show' : 'Visible — click to hide'}
+                      style={{ background: p.visible === 0 ? '#fef2f2' : '#f0fdf4', border: `1px solid ${p.visible === 0 ? '#fecaca' : '#bbf7d0'}`, borderRadius: '6px', padding: '3px 10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, color: p.visible === 0 ? '#ef4444' : '#16a34a' }}>
+                      {p.visible === 0 ? '🙈 Hidden' : '👁 Visible'}
                     </button>
                   </td>
                   <td style={s.td}>

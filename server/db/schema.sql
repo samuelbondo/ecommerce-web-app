@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS products (
   image_url VARCHAR(500),
   category_id INT,
   featured TINYINT(1) DEFAULT 0,
+  visible TINYINT(1) DEFAULT 1,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
 );
