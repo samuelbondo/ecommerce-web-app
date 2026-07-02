@@ -4,7 +4,7 @@ import Toast from '../../components/Toast';
 import ImageUpload from '../../components/ImageUpload';
 import API from '../../api';
 
-const EMPTY = { name: '', description: '', price: '', stock: '', image_url: '', category_id: '', featured: false };
+const EMPTY = { name: '', description: '', price: '', stock: '', image_url: '', category_id: '', featured: false, visible: true };
 
 export default function AdminProducts() {
   const { formatPrice } = useSettings();
@@ -65,7 +65,7 @@ export default function AdminProducts() {
   const paginated = sorted.slice((page - 1) * PER, page * PER);
 
   const openAdd = () => { setForm(EMPTY); setEditing(null); setShowModal(true); };
-  const openEdit = (p) => { setForm({ name: p.name, description: p.description || '', price: p.price, stock: p.stock, image_url: p.image_url || '', category_id: p.category_id, featured: !!p.featured }); setEditing(p.id); setShowModal(true); };
+  const openEdit = (p) => { setForm({ name: p.name, description: p.description || '', price: p.price, stock: p.stock, image_url: p.image_url || '', category_id: p.category_id, featured: !!p.featured, visible: p.visible !== 0 }); setEditing(p.id); setShowModal(true); };
 
   const handleSave = async (e) => {
     e.preventDefault();
