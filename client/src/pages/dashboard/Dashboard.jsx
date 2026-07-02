@@ -118,7 +118,11 @@ export default function Dashboard() {
         </div>
 
         <div style={s.sidebarUser}>
-          <div style={s.userAvatar}>{initials}</div>
+          <div style={s.userAvatar}>
+            {user?.avatar
+              ? <img src={user.avatar} alt={user.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+              : initials}
+          </div>
           <div>
             <div style={s.userName}>{user?.name}</div>
             <div style={s.userRole}>{user?.role || 'Customer'}</div>
@@ -164,7 +168,9 @@ export default function Dashboard() {
               🛒 {cart.length > 0 && <span style={s.cartBadge}>{cart.length}</span>}
             </NavLink>
             <div style={s.topAvatar} onClick={() => navigate('/dashboard/profile')} title="Profile">
-              {initials}
+              {user?.avatar
+                ? <img src={user.avatar} alt={user?.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                : initials}
             </div>
           </div>
         </header>
@@ -196,7 +202,7 @@ const s = {
   brandIcon: { fontSize: '1.4rem' },
   brandName: { color: '#e94560', fontWeight: '800', fontSize: '1.1rem', letterSpacing: '-0.3px' },
   sidebarUser: { display: 'flex', alignItems: 'center', gap: '12px', padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' },
-  userAvatar: { width: '38px', height: '38px', borderRadius: '50%', background: 'linear-gradient(135deg,#e94560,#8b5cf6)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '0.9rem', flexShrink: 0 },
+  userAvatar: { width: '38px', height: '38px', borderRadius: '50%', background: 'linear-gradient(135deg,#e94560,#8b5cf6)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '0.9rem', flexShrink: 0, overflow: 'hidden' },
   userName: { color: '#fff', fontWeight: '600', fontSize: '0.88rem' },
   userRole: { color: '#a0aec0', fontSize: '0.75rem', textTransform: 'capitalize' },
   nav: { flex: 1, padding: '12px 0', overflowY: 'auto' },
@@ -225,6 +231,6 @@ const s = {
   topRight: { display: 'flex', alignItems: 'center', gap: '8px' },
   topIconBtn: { background: 'none', border: 'none', fontSize: '1.15rem', cursor: 'pointer', color: '#555', padding: '6px 8px', borderRadius: '8px', textDecoration: 'none', position: 'relative', display: 'inline-flex', alignItems: 'center' },
   cartBadge: { position: 'absolute', top: '-2px', right: '0px', background: '#e94560', color: '#fff', borderRadius: '50%', fontSize: '0.6rem', fontWeight: '700', minWidth: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  topAvatar: { width: '34px', height: '34px', borderRadius: '50%', background: 'linear-gradient(135deg,#e94560,#8b5cf6)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' },
+  topAvatar: { width: '34px', height: '34px', borderRadius: '50%', background: 'linear-gradient(135deg,#e94560,#8b5cf6)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', overflow: 'hidden' },
   content: { flex: 1, overflowY: 'auto' },
 };
