@@ -6,7 +6,7 @@ import API from '../../api';
 
 const EMPTY = { name: '', description: '', price: '', stock: '', image_url: '', category_id: '', featured: false, visible: true };
 
-function GalleryManager({ productId, onClose }) {
+function GalleryManager({ productId, onClose, hideClose }) {
   const [images, setImages] = useState([]);
   const [uploading, setUploading] = useState(false);
 
@@ -32,7 +32,7 @@ function GalleryManager({ productId, onClose }) {
     <div style={{ padding: '20px 24px 24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h3 style={{ margin: 0, fontWeight: 700, fontSize: '1rem', color: '#1a1a2e' }}>Image Gallery</h3>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#888' }}>×</button>
+        {!hideClose && <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#888' }}>×</button>}
       </div>
       <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '14px', border: '2px dashed #e5e7eb', borderRadius: 10, cursor: 'pointer', marginBottom: 16, color: '#64748b', fontSize: '0.88rem' }}>
         {uploading ? '⏳ Uploading...' : '📷 Click to add image'}
@@ -54,7 +54,7 @@ function GalleryManager({ productId, onClose }) {
   );
 }
 
-function VariantsManager({ productId, basePrice, onClose }) {
+function VariantsManager({ productId, basePrice, onClose, hideClose }) {
   const [options, setOptions] = useState([]);
   const [variants, setVariants] = useState([]);
   const [newOpt, setNewOpt] = useState('');
@@ -107,10 +107,10 @@ function VariantsManager({ productId, basePrice, onClose }) {
     <div style={{ padding: '20px 24px 24px', maxHeight: '80vh', overflowY: 'auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h3 style={{ margin: 0, fontWeight: 700, fontSize: '1rem', color: '#1a1a2e' }}>Variants</h3>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#888' }}>×</button>
+        {!hideClose && <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#888' }}>×</button>}
       </div>
 
-      {/* Options */}
+      {/* Options */
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 8 }}>Option Types (e.g. Color, Size)</div>
         <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
@@ -197,9 +197,7 @@ export default function AdminProducts() {
   const [page, setPage] = useState(1);
   const [checked, setChecked] = useState([]);
   const [aiGenerating, setAiGenerating] = useState(false);
-  const [galleryProductId, setGalleryProductId] = useState(null);
-  const [variantsProductId, setVariantsProductId] = useState(null);
-  const [variantsBasePrice, setVariantsBasePrice] = useState('');
+  const [modalTab, setModalTab] = useState('details');
   const PER = 10;
 
   const notify = (msg, type = 'success') => setToast({ message: msg, type });
@@ -240,8 +238,8 @@ export default function AdminProducts() {
   const pages = Math.ceil(sorted.length / PER);
   const paginated = sorted.slice((page - 1) * PER, page * PER);
 
-  const openAdd = () => { setForm(EMPTY); setEditing(null); setShowModal(true); };
-  const openEdit = (p) => { setForm({ name: p.name, description: p.description || '', price: p.price, stock: p.stock, image_url: p.image_url || '', category_id: p.category_id, featured: !!p.featured, visible: p.visible !== 0 }); setEditing(p.id); setShowModal(true); };
+  const openAdd = () => { setForm(EMPTY); setEditing(null); setModalTab('details'); setShowModal(true); };
+  const openEdit = (p) => { setForm({ name: p.name, description: p.description || '', price: p.price, stock: p.stock, image_url: p.image_url || '', category_id: p.category_id, featured: !!p.featured, visible: p.visible !== 0 }); setEditing(p.id); setModalTab('details'); setShowModal(true); };
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -301,14 +299,6 @@ export default function AdminProducts() {
     <div style={s.wrap}>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      {galleryProductId && (
-        <div style={s.overlay}><div style={s.modal}><GalleryManager productId={galleryProductId} onClose={() => setGalleryProductId(null)} /></div></div>
-      )}
-
-      {variantsProductId && (
-        <div style={s.overlay}><div style={s.modal}><VariantsManager productId={variantsProductId} basePrice={variantsBasePrice} onClose={() => setVariantsProductId(null)} /></div></div>
-      )}
-
       {deleteId && (
         <div style={s.overlay}><div style={s.dialog}>
           <h3 style={s.dlgTitle}>Delete Product?</h3>
@@ -327,6 +317,14 @@ export default function AdminProducts() {
               <h3 style={s.modalTitle}>{editing ? 'Edit Product' : 'Add Product'}</h3>
               <button onClick={() => setShowModal(false)} style={s.modalClose}>×</button>
             </div>
+            {editing && (
+              <div style={{ display: 'flex', gap: 0, borderBottom: '2px solid #f1f5f9', padding: '0 24px' }}>
+                {[['details', '📋 Details'], ['gallery', '🖼️ Gallery'], ['variants', '🎯 Variants']].map(([tab, label]) => (
+                  <button key={tab} onClick={() => setModalTab(tab)} style={{ padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700, color: modalTab === tab ? '#e94560' : '#888', borderBottom: modalTab === tab ? '2px solid #e94560' : '2px solid transparent', marginBottom: '-2px' }}>{label}</button>
+                ))}
+              </div>
+            )}
+            {modalTab === 'details' && (
             <form onSubmit={handleSave} style={s.modalBody}>
               <div style={s.grid2}>
                 {[['name', 'Product Name', 'text'], ['price', 'Price', 'number'], ['stock', 'Stock', 'number']].map(([k, ph, t]) => (
@@ -369,6 +367,9 @@ export default function AdminProducts() {
               </label>
               <button type="submit" disabled={saving} style={s.btnPrimary}>{saving ? 'Saving...' : editing ? '💾 Update' : '➕ Create Product'}</button>
             </form>
+            )}
+            {modalTab === 'gallery' && editing && <GalleryManager productId={editing} onClose={() => setShowModal(false)} hideClose />}
+            {modalTab === 'variants' && editing && <VariantsManager productId={editing} basePrice={form.price} onClose={() => setShowModal(false)} hideClose />}
           </div>
         </div>
       )}
@@ -438,8 +439,6 @@ export default function AdminProducts() {
                   <td style={s.td}>
                     <div style={s.actions}>
                       <button onClick={() => openEdit(p)} style={s.btnEdit}>✏️ Edit</button>
-                      <button onClick={() => { setGalleryProductId(p.id); }} style={s.btnEdit} title="Images">🖼️</button>
-                      <button onClick={() => { setVariantsProductId(p.id); setVariantsBasePrice(p.price); }} style={s.btnEdit} title="Variants">🎯</button>
                       <button onClick={() => duplicateProduct(p.id)} style={s.btnEdit} title="Duplicate">⧉</button>
                       <button onClick={() => setDeleteId(p.id)} style={s.btnDel}>🗑 Delete</button>
                     </div>
