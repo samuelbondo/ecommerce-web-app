@@ -45,9 +45,6 @@ export default function ProductDetail() {
   const [activeImg, setActiveImg] = useState(null);
   const [selectedOptions, setSelectedOptions] = useState({});
   const [activeVariant, setActiveVariant] = useState(null);
-  const [activeImg, setActiveImg] = useState(null);
-  const [selectedOptions, setSelectedOptions] = useState({});
-  const [activeVariant, setActiveVariant] = useState(null);
 
   useEffect(() => {
     setProduct(null); setReviews([]); setRelated([]); setQty(1); setAdded(false); setTab('description');
