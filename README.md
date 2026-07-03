@@ -33,6 +33,7 @@ Developed as a final project for **EWA408510 – E-Commerce and Web Application*
 - Order history with tracking steps, view details, and HTML invoice download
 - User registration and login (JWT authentication)
 - Google OAuth 2.0 login — sign in / sign up with Google
+- Facebook OAuth 2.0 login — sign in / sign up with Facebook (passport-facebook)
 - OTP-based forgot password — 6-digit code sent via Nodemailer (Brevo SMTP)
 - Dual auth — users can link Google to an email account and use either method
 - Bcrypt password hashing
@@ -45,6 +46,8 @@ Developed as a final project for **EWA408510 – E-Commerce and Web Application*
   - Reviews — real reviews from DB, edit and delete
   - Notifications — real notifications from DB, mark read, delete
   - Settings — notification preferences saved to DB
+- Privacy Policy page (`/privacy`) — GDPR + Meta App Review compliant
+- Account data deletion endpoint — permanently removes all user data on request
 - Admin dashboard (products, categories, orders, customers, inventory, coupons, reports, settings)
 - Fully Dockerized — 3-container setup (MySQL, Express, Nginx)
 - CI/CD pipeline via GitHub Actions
@@ -59,7 +62,7 @@ Developed as a final project for **EWA408510 – E-Commerce and Web Application*
 | Frontend | React 19, Vite 8, React Router 7, Axios |
 | Backend | Node.js 24, Express.js 4 |
 | Database | MySQL 8.4 (Aiven cloud / XAMPP local) |
-| Auth | JWT (jsonwebtoken), bcryptjs, Passport.js, Google OAuth 2.0 |
+| Auth | JWT (jsonwebtoken), bcryptjs, Passport.js, Google OAuth 2.0, Facebook OAuth 2.0 |
 | Email | Nodemailer + Brevo SMTP (transactional OTP emails) |
 | DevOps | Docker, Docker Compose, GitHub Actions |
 | Frontend Hosting | Vercel |
@@ -98,6 +101,7 @@ samuel_store/
 │   │       ├── Register.jsx
 │   │       ├── ForgotPassword.jsx   # 3-step OTP password reset
 │   │       ├── AuthCallback.jsx     # Google OAuth redirect handler
+│   │       ├── PrivacyPolicy.jsx    # Privacy policy page (/privacy)
 │   │       ├── admin/          # Admin dashboard pages
 │   │       └── dashboard/      # Customer dashboard pages
 │   │           ├── Dashboard.jsx        # Sidebar + topbar layout
@@ -337,6 +341,7 @@ node migrate.js
 | POST | `/api/auth/verify-otp` | Verify OTP — returns reset token |
 | POST | `/api/auth/reset-password` | Set new password using reset token |
 | GET | `/api/settings` | Get store settings |
+| GET | `/privacy` | Privacy policy page (frontend route) |
 
 ### Protected (requires JWT)
 
@@ -364,6 +369,7 @@ node migrate.js
 | PUT | `/api/notifications/:id/read` | Mark one as read |
 | PUT | `/api/notifications/read-all` | Mark all as read |
 | DELETE | `/api/notifications/:id` | Delete notification |
+| DELETE | `/api/auth/delete-data` | Permanently delete account + all user data |
 
 ### Admin only (requires JWT + admin role)
 
@@ -431,6 +437,7 @@ MAIL_FROM=no-reply@yourdomain.com
 |--------|-----|
 | Email + Password | Standard registration, bcrypt hashed |
 | Google OAuth | One-click sign in/up via Google account |
+| Facebook OAuth | One-click sign in/up via Facebook account |
 | Both | User has linked both — can use either |
 
 ### OTP Forgot Password flow
@@ -460,6 +467,7 @@ Step 3 — Set new password
 | Password hashing | bcryptjs (salt rounds: 10) |
 | Authentication | JWT tokens (7-day expiry) |
 | Google OAuth | passport-google-oauth20 |
+| Facebook OAuth | passport-facebook (Meta App Review compliant) |
 | OTP codes | 6-digit, 10-min expiry, single-use |
 | Reset tokens | Short-lived JWT (5 min), purpose-scoped |
 | Authorization | `authenticate`, `requireAdmin` middleware |
@@ -467,6 +475,7 @@ Step 3 — Set new password
 | Input validation | `validate` middleware on all POST routes |
 | Secrets | Environment variables only — never committed |
 | Address limit | Max 5 addresses per user (enforced server + client) |
+| Data deletion | `DELETE /api/auth/delete-data` — full cascade wipe |
 
 ---
 
@@ -482,6 +491,12 @@ Step 3 — Set new password
 - Verify `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL` in Render
 - Callback URL must match exactly: `https://samuel-store-server.onrender.com/api/auth/google/callback`
 
+**Facebook login fails**
+- Verify `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`, `FACEBOOK_CALLBACK_URL` in Render
+- Callback URL must match exactly: `https://samuel-store-server.onrender.com/api/auth/facebook/callback`
+- App must be in Live mode for non-tester users
+- Privacy Policy URL must be set in Meta App Dashboard: `https://samuel-store.vercel.app/privacy`
+
 **Backend returns `{"error":"Internal server error"}`**
 - Check Render logs for the actual error
 - Verify all environment variables are set in Render dashboard
@@ -494,6 +509,26 @@ Step 3 — Set new password
 **Docker containers won't start**
 - Run `docker-compose down -v` then `docker-compose up --build`
 - Make sure ports 80, 5000, and 3307 are not in use
+
+---
+
+## Privacy & Data Deletion
+
+Samuel Store is compliant with Meta's App Review requirements and GDPR basics.
+
+| Resource | URL |
+|----------|-----|
+| Privacy Policy | https://samuel-store.vercel.app/privacy |
+| Data Deletion Endpoint | `DELETE https://samuel-store-server.onrender.com/api/auth/delete-data` |
+
+The deletion endpoint requires a valid JWT (`Authorization: Bearer <token>`) and permanently removes:
+- User account row
+- All orders and order items
+- Cart items
+- Saved addresses
+- Reviews
+- Notifications
+- OTP codes
 
 ---
 

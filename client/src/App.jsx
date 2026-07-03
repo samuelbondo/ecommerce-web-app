@@ -18,6 +18,7 @@ import Checkout from './pages/Checkout';
 import OrderConfirmation from './pages/OrderConfirmation';
 import Dashboard from './pages/dashboard/Dashboard';
 import AdminLayout from './pages/admin/AdminLayout';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 import AIChat from './components/AIChat';
 
 function ProtectedRoute({ children }) {
@@ -50,6 +51,7 @@ function Layout() {
       '/register': `Register — ${siteName}`,
       '/orders': `My Orders — ${siteName}`,
       '/order-confirmation': `Order Confirmed — ${siteName}`,
+      '/privacy': `Privacy Policy — ${siteName}`,
     };
     const path = location.pathname;
     if (path.startsWith('/products/')) {
@@ -100,6 +102,7 @@ function Layout() {
         <Route path="/orders" element={<Orders />} />
         <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
         <Route path="/order-confirmation" element={<ProtectedRoute><OrderConfirmation /></ProtectedRoute>} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
       </Routes>
       {!noFooter && <Footer />}
       {!noShell && <AIChat />}

@@ -205,4 +205,20 @@ router.post('/reset-password', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── Delete account + all user data ───────────────────
+router.delete('/delete-data', authenticate, async (req, res) => {
+  const userId = req.user.id;
+  try {
+    await db.query('DELETE FROM cart WHERE user_id=?', [userId]);
+    await db.query('DELETE FROM addresses WHERE user_id=?', [userId]);
+    await db.query('DELETE FROM reviews WHERE user_id=?', [userId]);
+    await db.query('DELETE FROM notifications WHERE user_id=?', [userId]);
+    await db.query('DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE user_id=?)', [userId]);
+    await db.query('DELETE FROM orders WHERE user_id=?', [userId]);
+    await db.query('DELETE FROM otp_codes WHERE email=(SELECT email FROM users WHERE id=?)', [userId]);
+    await db.query('DELETE FROM users WHERE id=?', [userId]);
+    res.json({ message: 'Your account and all associated data have been permanently deleted.' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 module.exports = router;
