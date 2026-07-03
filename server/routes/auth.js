@@ -106,7 +106,7 @@ router.get('/facebook/callback',
         console.error('Facebook callback error:', err?.message || err);
         // Expired/used codes are Render double-request noise — send empty 200
         if (err.message && (err.message.includes('expired') || err.message.includes('been used'))) {
-          return res.status(200).send('<script>window.close();</script>');
+          return res.redirect(`${process.env.FRONTEND_URL}/login`);
         }
         return res.redirect(`${process.env.FRONTEND_URL}/login?error=facebook_failed`);
       }
