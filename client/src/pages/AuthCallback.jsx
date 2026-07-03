@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import API from '../api';
 
 export default function AuthCallback() {
   const { login } = useAuth();
@@ -11,7 +12,7 @@ export default function AuthCallback() {
     if (handled.current) return;
     handled.current = true;
 
-    // Already logged in from a previous callback hit
+    // Already logged in
     const existingToken = localStorage.getItem('token');
     const existingUser = localStorage.getItem('user');
     if (existingToken && existingUser) {
@@ -22,22 +23,25 @@ export default function AuthCallback() {
 
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
-    const userRaw = params.get('user');
     const error = params.get('error');
 
-    if (error || !token || !userRaw) {
+    if (error || !token) {
       navigate('/login?error=oauth_failed');
       return;
     }
 
-    try {
-      const user = JSON.parse(decodeURIComponent(userRaw));
-      login(user, token);
-      const dest = user.role === 'admin' ? '/admin' : '/dashboard';
-      window.location.replace(window.location.origin + dest);
-    } catch {
-      navigate('/login?error=oauth_failed');
-    }
+    // Store token first, then fetch user
+    localStorage.setItem('token', token);
+    API.get('/auth/me', { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => {
+        const user = res.data;
+        login(user, token);
+        window.location.replace(window.location.origin + (user.role === 'admin' ? '/admin' : '/dashboard'));
+      })
+      .catch(() => {
+        localStorage.removeItem('token');
+        navigate('/login?error=oauth_failed');
+      });
   }, []);
 
   return (
