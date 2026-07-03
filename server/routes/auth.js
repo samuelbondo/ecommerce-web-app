@@ -104,9 +104,9 @@ router.get('/facebook/callback',
     passport.authenticate('facebook', { session: false }, (err, user) => {
       if (err) {
         console.error('Facebook callback error:', err?.message || err);
-        // Expired/used codes are Render double-request noise — send empty 200
         if (err.message && (err.message.includes('expired') || err.message.includes('been used'))) {
-          return res.status(200).send('OK');
+          // Duplicate request — ignore silently, the real request already redirected
+          return res.status(200).send('<html><body></body></html>');
         }
         return res.redirect(`${process.env.FRONTEND_URL}/login?error=facebook_failed`);
       }
@@ -117,9 +117,7 @@ router.get('/facebook/callback',
           id: user.id, name: user.name, email: user.email,
           role: user.role, avatar: user.avatar, auth_provider: user.auth_provider
         }));
-        const redirectUrl = `${process.env.FRONTEND_URL}/auth/callback?token=${token}&user=${userData}`;
-        // Small delay ensures this response arrives after any duplicate error responses
-        setTimeout(() => res.redirect(redirectUrl), 500);
+        res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}&user=${userData}`);
       } catch (e) {
         console.error('Facebook JWT error:', e.message);
         res.redirect(`${process.env.FRONTEND_URL}/login?error=facebook_failed`);

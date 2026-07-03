@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import API from '../api';
 import { useAuth } from '../context/AuthContext';
@@ -9,10 +9,15 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const { settings } = useSettings();
   const navigate = useNavigate();
   const accent = settings.accent_color || '#e94560';
+
+  // Already logged in — go straight to dashboard
+  useEffect(() => {
+    if (user) navigate(user.role === 'admin' ? '/admin' : '/dashboard', { replace: true });
+  }, [user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
