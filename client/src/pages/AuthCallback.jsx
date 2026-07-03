@@ -20,7 +20,9 @@ export default function AuthCallback() {
     try {
       const user = JSON.parse(decodeURIComponent(userRaw));
       login(user, token);
-      navigate(user.role === 'admin' ? '/admin' : '/dashboard', { replace: true });
+      setTimeout(() => {
+        navigate(user.role === 'admin' ? '/admin' : '/dashboard', { replace: true });
+      }, 100);
     } catch {
       navigate('/login?error=oauth_failed');
     }

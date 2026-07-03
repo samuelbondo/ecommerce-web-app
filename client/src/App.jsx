@@ -23,13 +23,17 @@ import AIChat from './components/AIChat';
 
 function ProtectedRoute({ children }) {
   const { user } = useAuth();
-  return user ? children : <Navigate to="/login" replace />;
+  const token = localStorage.getItem('token');
+  return (user || token) ? children : <Navigate to="/login" replace />;
 }
 
 function AdminRoute({ children }) {
   const { user } = useAuth();
-  if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== 'admin') return <Navigate to="/dashboard" replace />;
+  const token = localStorage.getItem('token');
+  const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
+  const resolvedUser = user || storedUser;
+  if (!token || !resolvedUser) return <Navigate to="/login" replace />;
+  if (resolvedUser.role !== 'admin') return <Navigate to="/dashboard" replace />;
   return children;
 }
 
