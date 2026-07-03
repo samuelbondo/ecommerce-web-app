@@ -1,12 +1,16 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function AuthCallback() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const handled = useRef(false);
 
   useEffect(() => {
+    if (handled.current) return;
+    handled.current = true;
+
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
     const userRaw = params.get('user');
@@ -20,7 +24,8 @@ export default function AuthCallback() {
     try {
       const user = JSON.parse(decodeURIComponent(userRaw));
       login(user, token);
-      window.location.href = user.role === 'admin' ? '/admin' : '/dashboard';
+      const dest = user.role === 'admin' ? '/admin' : '/dashboard';
+      window.location.replace(window.location.origin + dest);
     } catch {
       navigate('/login?error=oauth_failed');
     }
