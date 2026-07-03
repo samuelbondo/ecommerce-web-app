@@ -100,19 +100,24 @@ router.get('/google/callback',
 router.get('/facebook', passport.authenticate('facebook', { scope: ['email'], session: false }));
 
 router.get('/facebook/callback',
-  passport.authenticate('facebook', { session: false, failureRedirect: `${process.env.FRONTEND_URL}/login?error=facebook_failed` }),
-  (req, res) => {
-    try {
-      const user = req.user;
-      const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
-      const userData = encodeURIComponent(JSON.stringify({
-        id: user.id, name: user.name, email: user.email,
-        role: user.role, avatar: user.avatar, auth_provider: user.auth_provider
-      }));
-      res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}&user=${userData}`);
-    } catch (err) {
-      res.redirect(`${process.env.FRONTEND_URL}/login?error=facebook_failed`);
-    }
+  (req, res, next) => {
+    passport.authenticate('facebook', { session: false }, (err, user) => {
+      if (err || !user) {
+        console.error('Facebook callback error:', err?.message || 'no user');
+        return res.redirect(`${process.env.FRONTEND_URL}/login?error=facebook_failed`);
+      }
+      try {
+        const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
+        const userData = encodeURIComponent(JSON.stringify({
+          id: user.id, name: user.name, email: user.email,
+          role: user.role, avatar: user.avatar, auth_provider: user.auth_provider
+        }));
+        res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}&user=${userData}`);
+      } catch (e) {
+        console.error('Facebook JWT error:', e.message);
+        res.redirect(`${process.env.FRONTEND_URL}/login?error=facebook_failed`);
+      }
+    })(req, res, next);
   }
 );
 
