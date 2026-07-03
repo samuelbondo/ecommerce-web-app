@@ -43,8 +43,8 @@
  *                    customer_address, total_amount
  *  order_items     — variant_id, variant_name
  *  users           — status, phone, address, city, country, avatar,
- *                    admin_notes, google_id, auth_provider, last_login,
- *                    password (nullable for Google-only users)
+ *                    admin_notes, google_id, facebook_id, auth_provider,
+ *                    last_login, password (nullable for OAuth-only users)
  *  cart            — session_id, created_at, variant_id
  *  categories      — description
  *  settings        — updated_at
@@ -148,6 +148,12 @@ async function migrate() {
       desc: 'users.google_id',
       check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='google_id'`,
       sql: `ALTER TABLE users ADD COLUMN google_id VARCHAR(255) DEFAULT NULL`,
+    },
+    // users — facebook_id
+    {
+      desc: 'users.facebook_id',
+      check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='facebook_id'`,
+      sql: `ALTER TABLE users ADD COLUMN facebook_id VARCHAR(255) DEFAULT NULL`,
     },
     // users — auth_provider
     {

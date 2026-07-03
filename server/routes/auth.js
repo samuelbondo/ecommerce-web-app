@@ -96,6 +96,26 @@ router.get('/google/callback',
   }
 );
 
+// ── Facebook OAuth ─────────────────────────────────
+router.get('/facebook', passport.authenticate('facebook', { scope: ['email'], session: false }));
+
+router.get('/facebook/callback',
+  passport.authenticate('facebook', { session: false, failureRedirect: `${process.env.FRONTEND_URL}/login?error=facebook_failed` }),
+  (req, res) => {
+    try {
+      const user = req.user;
+      const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
+      const userData = encodeURIComponent(JSON.stringify({
+        id: user.id, name: user.name, email: user.email,
+        role: user.role, avatar: user.avatar, auth_provider: user.auth_provider
+      }));
+      res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}&user=${userData}`);
+    } catch (err) {
+      res.redirect(`${process.env.FRONTEND_URL}/login?error=facebook_failed`);
+    }
+  }
+);
+
 // ── Set password (Google user adds a password) ─────────
 router.post('/set-password', authenticate, async (req, res) => {
   const { password } = req.body;

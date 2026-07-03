@@ -316,7 +316,7 @@ node migrate.js
 | `products` | `featured`, `visible` |
 | `orders` | `payment_method`, `payment_status`, `payment_id`, `customer_name`, `customer_email`, `customer_phone`, `customer_address`, `total_amount` |
 | `order_items` | `variant_id`, `variant_name` |
-| `users` | `status`, `phone`, `address`, `city`, `country`, `avatar`, `admin_notes`, `google_id`, `auth_provider`, `last_login`, `password` (nullable), `notif_email_orders`, `notif_email_promos`, `notif_newsletter`, `notif_sms` |
+| `users` | `status`, `phone`, `address`, `city`, `country`, `avatar`, `admin_notes`, `google_id`, `facebook_id`, `auth_provider`, `last_login`, `password` (nullable), `notif_email_orders`, `notif_email_promos`, `notif_newsletter`, `notif_sms` |
 | `cart` | `session_id`, `created_at`, `variant_id` |
 | `categories` | `description` |
 | `settings` | `updated_at` |
