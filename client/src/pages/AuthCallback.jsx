@@ -11,6 +11,15 @@ export default function AuthCallback() {
     if (handled.current) return;
     handled.current = true;
 
+    // Already logged in from a previous callback hit
+    const existingToken = localStorage.getItem('token');
+    const existingUser = localStorage.getItem('user');
+    if (existingToken && existingUser) {
+      const u = JSON.parse(existingUser);
+      window.location.replace(window.location.origin + (u.role === 'admin' ? '/admin' : '/dashboard'));
+      return;
+    }
+
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
     const userRaw = params.get('user');
