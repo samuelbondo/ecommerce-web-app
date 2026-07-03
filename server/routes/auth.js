@@ -102,10 +102,15 @@ router.get('/facebook', passport.authenticate('facebook', { scope: ['email'], se
 router.get('/facebook/callback',
   (req, res, next) => {
     passport.authenticate('facebook', { session: false }, (err, user) => {
-      if (err || !user) {
-        console.error('Facebook callback error:', err?.message || 'no user');
+      if (err) {
+        console.error('Facebook callback error:', err?.message || err);
+        // Expired/used codes are Render double-request noise — send empty 200
+        if (err.message && (err.message.includes('expired') || err.message.includes('been used'))) {
+          return res.status(200).send('<script>window.close();</script>');
+        }
         return res.redirect(`${process.env.FRONTEND_URL}/login?error=facebook_failed`);
       }
+      if (!user) return res.redirect(`${process.env.FRONTEND_URL}/login?error=facebook_failed`);
       try {
         const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
         const userData = encodeURIComponent(JSON.stringify({
