@@ -101,21 +101,15 @@ router.get('/facebook/callback',
       if (err) {
         console.error('Facebook callback error:', err?.message || err);
         if (err.message && (err.message.includes('expired') || err.message.includes('been used'))) {
-          // Duplicate request — ignore silently, the real request already redirected
           return res.status(200).send('<html><body></body></html>');
         }
         return res.redirect(`${process.env.FRONTEND_URL}/login?error=facebook_failed`);
       }
       if (!user) return res.redirect(`${process.env.FRONTEND_URL}/login?error=facebook_failed`);
       try {
-        const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
-        const userData = encodeURIComponent(JSON.stringify({
-          id: user.id, name: user.name, email: user.email,
-          role: user.role, avatar: user.avatar, auth_provider: user.auth_provider
-        }));
         console.log('Facebook login success, user id:', user.id);
         const fbToken = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
-        res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${fbToken}&provider=facebook`);
+        res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${fbToken}`);
       } catch (e) {
         console.error('Facebook JWT error:', e.message);
         res.redirect(`${process.env.FRONTEND_URL}/login?error=facebook_failed`);
