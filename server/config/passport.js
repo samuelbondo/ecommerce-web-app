@@ -70,9 +70,10 @@ passport.use(new FacebookStrategy({
     }
 
     // New user — create with Facebook
+    const safeName = name || 'Facebook User';
     const [result] = await db.query(
       'INSERT INTO users (name, email, facebook_id, auth_provider, avatar) VALUES (?,?,?,?,?)',
-      [name, email, facebookId, 'facebook', avatar]
+      [safeName, email || null, facebookId, 'facebook', avatar]
     );
     const [[newUser]] = await db.query('SELECT * FROM users WHERE id=?', [result.insertId]);
     return done(null, newUser);

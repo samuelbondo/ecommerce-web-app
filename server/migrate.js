@@ -149,6 +149,13 @@ async function migrate() {
       check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='google_id'`,
       sql: `ALTER TABLE users ADD COLUMN google_id VARCHAR(255) DEFAULT NULL`,
     },
+    // users — email nullable (Facebook users may not share email)
+    {
+      desc: 'users.email → nullable',
+      check: `SELECT IS_NULLABLE AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='email'`,
+      sql: `ALTER TABLE users MODIFY COLUMN email VARCHAR(150) NULL`,
+      checkFn: (row) => row.c === 'YES',
+    },
     // users — facebook_id
     {
       desc: 'users.facebook_id',
