@@ -33,11 +33,7 @@ export default function Login() {
 
   const openFacebookPopup = (e) => {
     e.preventDefault();
-    const url = `${import.meta.env.VITE_API_URL}/auth/facebook`;
-    const w = 500, h = 600;
-    const left = window.screenX + (window.outerWidth - w) / 2;
-    const top = window.screenY + (window.outerHeight - h) / 2;
-    window.open(url, 'facebook_login', `width=${w},height=${h},left=${left},top=${top}`);
+    window.location.href = `${import.meta.env.VITE_API_URL}/auth/facebook`;
   };
 
   const handleSubmit = async (e) => {

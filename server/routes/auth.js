@@ -136,11 +136,7 @@ router.get('/facebook/callback',
       try {
         console.log('Facebook login success, user id:', user.id);
         const fbToken = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
-        const origin = process.env.FRONTEND_URL;
-        const safeUser = JSON.stringify({ id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar, auth_provider: user.auth_provider });
-        const token64 = Buffer.from(JSON.stringify({ token: fbToken, user: JSON.parse(safeUser) })).toString('base64');
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.end(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Signing in...</title></head><body><p>Signing you in...</p><script src="/api/auth/popup-callback.js?d=${encodeURIComponent(token64)}&o=${encodeURIComponent(origin)}"><\/script></body></html>`);
+        return res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${fbToken}`);
       } catch (e) {
         console.error('Facebook JWT error:', e.message);
         res.redirect(`${process.env.FRONTEND_URL}/login?error=facebook_failed`);
