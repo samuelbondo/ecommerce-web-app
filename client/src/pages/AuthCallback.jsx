@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import API from '../api';
 
 export default function AuthCallback() {
   const { login } = useAuth();
@@ -12,48 +11,31 @@ export default function AuthCallback() {
     if (handled.current) return;
     handled.current = true;
 
-    // Already logged in
-    const existingToken = localStorage.getItem('token');
-    const existingUser = localStorage.getItem('user');
-    if (existingToken && existingUser) {
-      const u = JSON.parse(existingUser);
-      window.location.replace(window.location.origin + (u.role === 'admin' ? '/admin' : '/dashboard'));
-      return;
-    }
-
     const params = new URLSearchParams(window.location.search);
     const token = decodeURIComponent(params.get('token') || '');
     const error = params.get('error');
 
-    // Duplicate callback hit — already logged in from first hit
-    if (token === 'already') {
+    if (error || !token || token === 'already') {
       const existingToken = localStorage.getItem('token');
       const existingUser = localStorage.getItem('user');
       if (existingToken && existingUser) {
         const u = JSON.parse(existingUser);
         window.location.replace(window.location.origin + (u.role === 'admin' ? '/admin' : '/dashboard'));
       } else {
-        navigate('/login');
+        navigate('/login?error=oauth_failed');
       }
       return;
     }
 
-    if (error || !token) {
+    // Decode JWT payload without verifying (verification happens server-side on every API call)
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const user = { id: payload.id, role: payload.role };
+      login(user, token);
+      window.location.replace(window.location.origin + (user.role === 'admin' ? '/admin' : '/dashboard'));
+    } catch {
       navigate('/login?error=oauth_failed');
-      return;
     }
-
-    // Store token first, then fetch user
-    API.get('/auth/me', { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => {
-        console.log('User fetched:', res.data);
-        login(res.data, token);
-        window.location.replace(window.location.origin + (res.data.role === 'admin' ? '/admin' : '/dashboard'));
-      })
-      .catch((err) => {
-        console.error('AUTH ERROR:', err?.response?.status, err?.response?.data, err?.message);
-        navigate('/login?error=oauth_failed');
-      });
   }, []);
 
   return (
