@@ -22,7 +22,7 @@ export default function AuthCallback() {
     }
 
     const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
+    const token = decodeURIComponent(params.get('token') || '');
     const error = params.get('error');
 
     if (error || !token) {
