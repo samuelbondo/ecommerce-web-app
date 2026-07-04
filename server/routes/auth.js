@@ -129,7 +129,8 @@ router.get('/facebook/callback',
       if (err) {
         console.error('Facebook callback error:', err?.message || err, 'at', new Date().toISOString());
         if (err.message && (err.message.includes('expired') || err.message.includes('been used'))) {
-          return res.redirect(`${process.env.FRONTEND_URL}/login?error=facebook_expired`);
+          // Code already used by a previous callback hit — success already handled it, just close gracefully
+          return res.status(200).send('<html><head><meta http-equiv="refresh" content="0;url=' + process.env.FRONTEND_URL + '/dashboard"></head><body></body></html>');
         }
         return res.redirect(`${process.env.FRONTEND_URL}/login?error=facebook_failed`);
       }
