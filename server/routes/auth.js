@@ -115,19 +115,21 @@ router.get('/facebook/callback',
         const fbToken = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
         const origin = process.env.FRONTEND_URL;
         const safeUser = JSON.stringify({ id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar, auth_provider: user.auth_provider });
-        res.setHeader('Content-Type', 'text/html');
-        res.end(`<!DOCTYPE html><html><body><script>
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Content-Security-Policy', "script-src 'unsafe-inline'");
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.end(`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><script type="text/javascript">
 (function(){
   var token = ${JSON.stringify(fbToken)};
   var user = ${safeUser};
-  if(window.opener){
+  if(window.opener && window.opener.postMessage){
     window.opener.postMessage({type:'oauth_success',token:token,user:user},'${origin}');
-    window.close();
+    setTimeout(function(){ window.close(); }, 500);
   } else {
     window.location.replace('${origin}/auth/callback?token='+encodeURIComponent(token));
   }
 })();
-</script></body></html>`);
+<\/script></body></html>`);
       } catch (e) {
         console.error('Facebook JWT error:', e.message);
         res.redirect(`${process.env.FRONTEND_URL}/login?error=facebook_failed`);
