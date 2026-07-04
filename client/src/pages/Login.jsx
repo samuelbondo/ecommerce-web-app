@@ -43,8 +43,28 @@ export default function Login() {
   const handleFacebookLogin = async (e) => {
     e.preventDefault();
     try { await fetch(`${import.meta.env.VITE_API_URL}/settings`); } catch {}
-    window.location.href = `${import.meta.env.VITE_API_URL}/auth/facebook`;
+    window.open(
+      `${import.meta.env.VITE_API_URL}/auth/facebook`,
+      'facebook-login',
+      'width=500,height=600,scrollbars=yes,resizable=yes'
+    );
   };
+
+  useEffect(() => {
+    const handleMessage = (e) => {
+      if (e.origin !== window.location.origin) return;
+      if (e.data?.type === 'oauth_success' && e.data?.token) {
+        const token = decodeURIComponent(e.data.token);
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          login({ id: payload.id, role: payload.role }, token);
+          navigate(payload.role === 'admin' ? '/admin' : '/dashboard', { replace: true });
+        } catch {}
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
