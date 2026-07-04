@@ -97,6 +97,10 @@ router.get('/facebook', passport.authenticate('facebook', { scope: ['email'], se
 
 router.get('/facebook/callback',
   (req, res, next) => {
+    // Strip legacy Facebook #_=_ fragment via state param
+    if (req.query.error) {
+      return res.redirect(`${process.env.FRONTEND_URL}/login?error=facebook_failed`);
+    }
     passport.authenticate('facebook', { session: false }, (err, user) => {
       if (err) {
         console.error('Facebook callback error:', err?.message || err);
@@ -109,7 +113,8 @@ router.get('/facebook/callback',
       try {
         console.log('Facebook login success, user id:', user.id);
         const fbToken = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
-        return res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${encodeURIComponent(fbToken)}`);
+        const dest = `${process.env.FRONTEND_URL}/auth/callback?token=${encodeURIComponent(fbToken)}`;
+        res.status(301).redirect(dest);
       } catch (e) {
         console.error('Facebook JWT error:', e.message);
         res.redirect(`${process.env.FRONTEND_URL}/login?error=facebook_failed`);
