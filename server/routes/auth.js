@@ -111,7 +111,21 @@ router.get('/facebook/callback',
         const fbToken = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
         const dest = `${process.env.FRONTEND_URL}/auth/callback?token=${fbToken}`;
         res.setHeader('Content-Type', 'text/html');
-        res.end(`<!DOCTYPE html><html><head><title>Redirecting...</title></head><body><p>Redirecting...</p><script type="text/javascript">window.location.replace("${dest}");</script></body></html>`);
+        res.setHeader('Cache-Control', 'no-store, no-cache');
+        res.end(`<!DOCTYPE html>
+<html>
+<head><title>Signing in...</title></head>
+<body>
+<p>Signing you in, please wait...</p>
+<script>
+try {
+  window.location.replace("${dest}");
+} catch(e) {
+  window.location.href = "${dest}";
+}
+</script>
+</body>
+</html>`);
       } catch (e) {
         console.error('Facebook JWT error:', e.message);
         res.redirect(`${process.env.FRONTEND_URL}/login?error=facebook_failed`);
