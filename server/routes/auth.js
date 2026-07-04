@@ -124,9 +124,10 @@ router.get('/facebook/callback',
     if (req.query.error) {
       return res.redirect(`${process.env.FRONTEND_URL}/login?error=facebook_failed`);
     }
+    console.log('Facebook callback hit at', new Date().toISOString(), 'code:', req.query.code?.substring(0,10));
     passport.authenticate('facebook', { session: false }, (err, user) => {
       if (err) {
-        console.error('Facebook callback error:', err?.message || err);
+        console.error('Facebook callback error:', err?.message || err, 'at', new Date().toISOString());
         if (err.message && (err.message.includes('expired') || err.message.includes('been used'))) {
           return res.redirect(`${process.env.FRONTEND_URL}/login?error=facebook_expired`);
         }
