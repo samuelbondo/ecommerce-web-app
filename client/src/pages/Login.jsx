@@ -42,8 +42,7 @@ export default function Login() {
 
   const handleFacebookLogin = async (e) => {
     e.preventDefault();
-    // Wake Render before redirecting so the OAuth code doesn't expire during cold start
-    try { await fetch(`${import.meta.env.VITE_API_URL.replace('/api', '')}`); } catch {}
+    try { await fetch(`${import.meta.env.VITE_API_URL}/settings`); } catch {}
     window.location.href = `${import.meta.env.VITE_API_URL}/auth/facebook`;
   };
 
