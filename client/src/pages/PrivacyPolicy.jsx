@@ -47,7 +47,7 @@ export default function PrivacyPolicy() {
         <p>We do not sell, rent, or share your personal data with third parties, except as required to operate the service (e.g. email delivery via Brevo SMTP) or as required by law.</p>
       </section>
 
-      <section style={{ marginBottom: 32 }}>
+      <section id="data-deletion" style={{ marginBottom: 32 }}>
         <h2>6. Your Rights &amp; Data Deletion</h2>
         <p>You may request deletion of all your personal data at any time. To delete your account and all associated data, send a <code>DELETE</code> request to:</p>
         <pre style={{ background: '#f4f4f8', padding: '12px 16px', borderRadius: 8, overflowX: 'auto' }}>

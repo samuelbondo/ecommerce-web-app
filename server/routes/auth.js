@@ -128,7 +128,7 @@ router.get('/facebook/callback',
       if (err) {
         console.error('Facebook callback error:', err?.message || err);
         if (err.message && (err.message.includes('expired') || err.message.includes('been used'))) {
-          return res.status(200).send('<html><body></body></html>');
+          return res.redirect(`${process.env.FRONTEND_URL}/login?error=facebook_expired`);
         }
         return res.redirect(`${process.env.FRONTEND_URL}/login?error=facebook_failed`);
       }
