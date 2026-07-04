@@ -32,13 +32,16 @@ export default function AuthCallback() {
 
     // Store token first, then fetch user
     localStorage.setItem('token', token);
+    console.log('OAuth token received, calling /auth/me');
     API.get('/auth/me', { headers: { Authorization: `Bearer ${token}` } })
       .then(res => {
+        console.log('User fetched:', res.data);
         const user = res.data;
         login(user, token);
         window.location.replace(window.location.origin + (user.role === 'admin' ? '/admin' : '/dashboard'));
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error('AUTH ERROR:', err?.response?.status, err?.response?.data, err?.message);
         localStorage.removeItem('token');
         navigate('/login?error=oauth_failed');
       });
