@@ -25,6 +25,19 @@ export default function AuthCallback() {
     const token = decodeURIComponent(params.get('token') || '');
     const error = params.get('error');
 
+    // Duplicate callback hit — already logged in from first hit
+    if (token === 'already') {
+      const existingToken = localStorage.getItem('token');
+      const existingUser = localStorage.getItem('user');
+      if (existingToken && existingUser) {
+        const u = JSON.parse(existingUser);
+        window.location.replace(window.location.origin + (u.role === 'admin' ? '/admin' : '/dashboard'));
+      } else {
+        navigate('/login');
+      }
+      return;
+    }
+
     if (error || !token) {
       navigate('/login?error=oauth_failed');
       return;
