@@ -27,10 +27,17 @@ export default function AuthCallback() {
       return;
     }
 
-    // Decode JWT payload without verifying (verification happens server-side on every API call)
+    // Decode JWT payload
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       const user = { id: payload.id, role: payload.role };
+      // If opened as popup, notify opener and close
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage({ type: 'oauth_success', token }, window.location.origin);
+        window.close();
+        return;
+      }
+      // Normal full-page flow
       login(user, token);
       window.location.replace(window.location.origin + (user.role === 'admin' ? '/admin' : '/dashboard'));
     } catch {
