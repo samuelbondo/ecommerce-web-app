@@ -43,11 +43,7 @@ export default function Login() {
   const handleFacebookLogin = async (e) => {
     e.preventDefault();
     try { await fetch(`${import.meta.env.VITE_API_URL}/settings`); } catch {}
-    window.open(
-      `${import.meta.env.VITE_API_URL}/auth/facebook`,
-      'facebook-login',
-      'width=500,height=600,scrollbars=yes,resizable=yes'
-    );
+    window.location.href = `${import.meta.env.VITE_API_URL}/auth/facebook`;
   };
 
   useEffect(() => {
