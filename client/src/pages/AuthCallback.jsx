@@ -44,16 +44,15 @@ export default function AuthCallback() {
     }
 
     // Store token first, then fetch user
-    API.get('/auth/me', { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => {
-        console.log('User fetched:', res.data);
-        const user = res.data;
+    fetch(`${import.meta.env.VITE_API_URL}/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : Promise.reject(r))
+      .then(user => {
+        console.log('User fetched:', user);
         login(user, token);
         window.location.replace(window.location.origin + (user.role === 'admin' ? '/admin' : '/dashboard'));
       })
       .catch((err) => {
-        console.error('AUTH ERROR:', err?.response?.status, err?.response?.data, err?.message);
-        localStorage.removeItem('token');
+        console.error('AUTH ERROR:', err?.status, err?.message);
         navigate('/login?error=oauth_failed');
       });
   }, []);
