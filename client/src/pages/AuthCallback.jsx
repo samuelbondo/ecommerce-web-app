@@ -31,8 +31,6 @@ export default function AuthCallback() {
     }
 
     // Store token first, then fetch user
-    localStorage.setItem('token', token);
-    console.log('OAuth token received, calling /auth/me');
     API.get('/auth/me', { headers: { Authorization: `Bearer ${token}` } })
       .then(res => {
         console.log('User fetched:', res.data);
