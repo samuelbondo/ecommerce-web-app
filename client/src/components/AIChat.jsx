@@ -480,10 +480,10 @@ export default function AIChat() {
                           ? { ...msg, suggested: msg.suggested.filter(s => s.id !== p.id) }
                           : msg
                         ));
-                        setMessages(prev => [...prev, { role: 'assistant', content: `\u2705 **${p.name}** added to your cart!`, suggested: [] }]);
+                        setMessages(prev => [...prev, { role: 'assistant', content: `✅ **${p.name}** added to your cart!`, suggested: [] }]);
                       }}>
                         {p.image_url && <img src={p.image_url} alt={p.name} />}
-                        <span>🛒 Add "{p.name}" — ${p.price}</span>
+                        <span>🛒 {p.name} ${p.price}</span>
                       </button>
                     ))}
                   </div>
