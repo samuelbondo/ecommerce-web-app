@@ -16,7 +16,7 @@ export function DashReviews() {
     setLoading(true);
     API.get('/reviews/my')
       .then(r => setReviews(r.data))
-      .catch(() => notify('Failed to load reviews', 'error'))
+      .catch(err => { if (err?.response?.status !== 401) notify('Failed to load reviews — please refresh', 'error'); })
       .finally(() => setLoading(false));
   };
 
