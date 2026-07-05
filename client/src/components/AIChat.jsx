@@ -483,7 +483,7 @@ export default function AIChat() {
                         setMessages(prev => [...prev, { role: 'assistant', content: `\u2705 **${p.name}** added to your cart!`, suggested: [] }]);
                       }}>
                         {p.image_url && <img src={p.image_url} alt={p.name} />}
-                        <span>\uD83D\uDED2 Add "{p.name}" — ${p.price}</span>
+                        <span>🛒 Add "{p.name}" — ${p.price}</span>
                       </button>
                     ))}
                   </div>
