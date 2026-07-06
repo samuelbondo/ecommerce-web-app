@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSettings } from '../context/SettingsContext';
+import { fmtOrderId } from '../utils/formatOrderId';
 
 export default function OrderConfirmation() {
   const { state } = useLocation();
@@ -20,7 +21,7 @@ export default function OrderConfirmation() {
         <h2 style={styles.title}>Order Confirmed!</h2>
         <p style={styles.sub}>Thank you, <strong>{form.fullName}</strong>. Your order has been placed successfully.</p>
         <div style={styles.details}>
-          <Row label="Order ID" value={`#${orderId}`} />
+          <Row label="Order ID" value={fmtOrderId(orderId, new Date())} />
           <Row label="Email" value={form.email} />
           <Row label="Phone" value={form.phone} />
           <Row label="Delivery Address" value={`${form.address}, ${form.city}`} />

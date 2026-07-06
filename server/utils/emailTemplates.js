@@ -19,7 +19,10 @@
  * @param {string} order.extraNote    — (optional) extra message shown at top of email
  * @returns {string} HTML string
  */
+const { fmtOrderId } = require('./formatOrderId');
+
 function buildReceiptHTML(order) {
+  const oid = fmtOrderId(order.id, order.created_at);
   const paymentLabel = {
     cod: '💵 Cash on Delivery',
     paypal: '💳 PayPal',
@@ -55,7 +58,7 @@ function buildReceiptHTML(order) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>Order Receipt #${order.id} — Samuel Store</title>
+  <title>Order Receipt ${oid} — Samuel Store</title>
 </head>
 <body style="margin:0;padding:0;background:#f4f6fb;font-family:'Segoe UI',Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6fb;padding:32px 0;">
@@ -98,7 +101,7 @@ function buildReceiptHTML(order) {
               <tr>
                 <td style="width:50%;padding-bottom:16px;">
                   <div style="font-size:0.72rem;color:#aaa;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Order ID</div>
-                  <div style="font-size:1rem;font-weight:800;color:#e94560;">#${order.id}</div>
+                  <div style="font-size:1rem;font-weight:800;color:#e94560;font-family:monospace;letter-spacing:1px;">${oid}</div>
                 </td>
                 <td style="width:50%;padding-bottom:16px;text-align:right;">
                   <div style="font-size:0.72rem;color:#aaa;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Date</div>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
 import API from '../../api';
+import { fmtOrderId } from '../../utils/formatOrderId';
 
 const STATUS_COLOR = { pending: '#f59e0b', processing: '#3b82f6', shipped: '#8b5cf6', delivered: '#10b981', cancelled: '#ef4444' };
 const STEPS = ['pending', 'processing', 'shipped', 'delivered'];
@@ -27,75 +28,55 @@ export default function DashOrders() {
 
   const handleDownload = (order) => {
     const storeName = settings.site_name || 'Samuel Store';
+    const oid = fmtOrderId(order.id, order.created_at);
     const html = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8"/>
-  <title>Invoice — Order #${order.id}</title>
+  <title>Invoice — ${oid}</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 600px; margin: 40px auto; color: #1a1a2e; }
-    .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e94560; padding-bottom: 16px; margin-bottom: 24px; }
-    .brand { font-size: 1.4rem; font-weight: 800; color: #e94560; }
-    .meta { text-align: right; font-size: 0.85rem; color: #555; }
-    .meta strong { color: #1a1a2e; }
-    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: capitalize; background: #d1fae5; color: #065f46; }
-    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-    th { background: #f8f9fb; padding: 10px 12px; text-align: left; font-size: 0.82rem; color: #888; text-transform: uppercase; }
-    td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; font-size: 0.9rem; }
-    .total-row td { font-weight: 700; font-size: 1rem; border-top: 2px solid #e94560; border-bottom: none; }
-    .footer { margin-top: 32px; font-size: 0.78rem; color: #aaa; text-align: center; }
-    .section-title { font-size: 0.82rem; font-weight: 700; color: #888; text-transform: uppercase; margin: 20px 0 6px; }
-    .info-box { background: #f8f9fb; border-radius: 8px; padding: 12px 16px; font-size: 0.88rem; color: #555; line-height: 1.7; }
+    body{font-family:'Segoe UI',Arial,sans-serif;margin:0;padding:40px;color:#1a1a2e;background:#fff}
+    .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #e94560;padding-bottom:20px;margin-bottom:28px}
+    .brand{font-size:1.6rem;font-weight:800;color:#e94560;letter-spacing:1px}
+    .brand-sub{font-size:0.78rem;color:#888;margin-top:4px;text-transform:uppercase;letter-spacing:2px}
+    .meta{text-align:right;font-size:0.85rem;color:#555;line-height:1.8}
+    .meta strong{color:#1a1a2e;font-size:1rem}
+    .badge{display:inline-block;padding:3px 12px;border-radius:20px;font-size:0.72rem;font-weight:700;text-transform:capitalize;background:#d1fae5;color:#065f46}
+    .section-title{font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
+    .info-box{background:#f8f9fb;border-radius:8px;padding:12px 16px;font-size:0.88rem;color:#555;line-height:1.8}
+    table{width:100%;border-collapse:collapse;margin-top:8px}
+    thead tr{background:#1a1a2e;color:#fff}
+    th{padding:11px 14px;text-align:left;font-size:0.75rem;text-transform:uppercase;letter-spacing:1px;font-weight:600}
+    td{padding:11px 14px;border-bottom:1px solid #f0f0f0;font-size:0.88rem}
+    tfoot td{font-weight:700;font-size:0.95rem;border-top:2px solid #e94560;border-bottom:none}
+    .grand{color:#e94560;font-size:1.05rem}
+    .footer{margin-top:40px;text-align:center;font-size:0.75rem;color:#bbb;border-top:1px solid #f0f0f0;padding-top:16px}
+    @media print{body{padding:20px}}
   </style>
 </head>
 <body>
   <div class="header">
-    <div>
-      <div class="brand">${storeName}</div>
-      <div style="font-size:0.82rem;color:#888;margin-top:4px;">Invoice</div>
+    <div><div class="brand">${storeName}</div><div class="brand-sub">Official Invoice</div></div>
+    <div class="meta"><strong>${oid}</strong><br/>${new Date(order.created_at).toLocaleDateString('en-US',{day:'numeric',month:'long',year:'numeric'})}<br/><span class="badge">${order.status}</span></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+    <div><div class="section-title">Bill To</div>
+      <div class="info-box"><strong>${order.customer_name || user?.name || '—'}</strong><br/>${order.customer_email || user?.email || ''}<br/>${order.customer_phone ? order.customer_phone + '<br/>' : ''}${order.customer_address ? order.customer_address : ''}</div>
     </div>
-    <div class="meta">
-      <div><strong>Order #${order.id}</strong></div>
-      <div>${new Date(order.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
-      <div style="margin-top:6px"><span class="badge">${order.status}</span></div>
+    <div><div class="section-title">Payment</div>
+      <div class="info-box">Method: <strong>${order.payment_method === 'cod' ? 'Cash on Delivery' : 'PayPal'}</strong><br/>Status: <strong>${order.payment_status || 'pending'}</strong>${order.payment_id ? '<br/>Ref: ' + order.payment_id : ''}</div>
     </div>
   </div>
-
-  <div class="section-title">Bill To</div>
-  <div class="info-box">
-    <strong>${order.customer_name || user?.name || '—'}</strong><br/>
-    ${order.customer_email || user?.email || ''}<br/>
-    ${order.customer_phone ? order.customer_phone + '<br/>' : ''}
-    ${order.customer_address ? order.customer_address + '<br/>' : ''}
-  </div>
-
-  <div class="section-title">Payment</div>
-  <div class="info-box">
-    Method: <strong>${order.payment_method === 'cod' ? 'Cash on Delivery' : 'PayPal'}</strong><br/>
-    Status: <strong>${order.payment_status || 'pending'}</strong>
-    ${order.payment_id ? '<br/>Transaction ID: ' + order.payment_id : ''}
-  </div>
-
+  <div class="section-title">Order Items</div>
   <table>
-    <thead>
-      <tr><th>Item</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr>
-    </thead>
-    <tbody>
-      ${order.items.map(i => `
-      <tr>
-        <td>${i.name}${i.variant_name ? ' <span style="color:#888;font-size:0.8rem;">('+i.variant_name+')</span>' : ''}</td>
-        <td>${i.quantity}</td>
-        <td>${formatPrice(i.price)}</td>
-        <td>${formatPrice(i.price * i.quantity)}</td>
-      </tr>`).join('')}
-    </tbody>
+    <thead><tr><th>Product</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
+    <tbody>${order.items.map(i => `<tr><td>${i.name}${i.variant_name ? ` <span style="color:#e94560;font-size:0.78rem">(${i.variant_name})</span>` : ''}</td><td>${i.quantity}</td><td>${formatPrice(i.price)}</td><td>${formatPrice(i.price * i.quantity)}</td></tr>`).join('')}</tbody>
     <tfoot>
       <tr><td colspan="3">Shipping</td><td style="color:#16a34a">Free</td></tr>
-      <tr class="total-row"><td colspan="3">Total</td><td style="color:#e94560">${formatPrice(order.total)}</td></tr>
+      <tr><td colspan="3">Grand Total</td><td class="grand">${formatPrice(order.total)}</td></tr>
     </tfoot>
   </table>
-
-  <div class="footer">Thank you for shopping at ${storeName}!<br/>This is a computer-generated invoice.</div>
+  <div class="footer">Thank you for shopping at ${storeName} · This is a computer-generated invoice · © ${new Date().getFullYear()} ${storeName}</div>
 </body>
 </html>`;
 
@@ -103,7 +84,7 @@ export default function DashOrders() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `invoice_order_${order.id}.html`;
+    a.download = `invoice_${oid}.html`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -129,7 +110,7 @@ export default function DashOrders() {
         <div key={order.id} style={s.card}>
           <div style={s.cardHeader}>
             <div>
-              <span style={s.orderId}>Order #{order.id}</span>
+              <span style={s.orderId}>{fmtOrderId(order.id, order.created_at)}</span>
               <span style={s.date}>{new Date(order.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
             </div>
             <div style={s.headerRight}>
@@ -235,7 +216,7 @@ const s = {
   empty: { textAlign: 'center', padding: '48px', color: '#888', background: '#fff', borderRadius: '16px' },
   card: { background: '#fff', borderRadius: '16px', padding: '16px', marginBottom: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' },
   cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' },
-  orderId: { fontWeight: '700', fontSize: '1rem', marginRight: '12px', color: '#1a1a2e' },
+  orderId: { fontWeight: '700', fontSize: '0.88rem', marginRight: '12px', color: '#1a1a2e', fontFamily: 'monospace', letterSpacing: '0.5px' },
   date: { color: '#888', fontSize: '0.85rem' },
   headerRight: { display: 'flex', alignItems: 'center', gap: '12px' },
   badge: { padding: '3px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '600', textTransform: 'capitalize' },

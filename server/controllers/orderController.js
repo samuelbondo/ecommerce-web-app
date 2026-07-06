@@ -2,6 +2,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const Order = require('../models/orderModel');
 const Cart = require('../models/cartModel');
 const { buildReceiptHTML } = require('../utils/emailTemplates');
+const { fmtOrderId } = require('../utils/formatOrderId');
 const { Resend } = require('resend');
 const db = require('../config/db');
 
@@ -59,7 +60,7 @@ const placeOrder = asyncHandler(async (req, res) => {
     resend.emails.send({
       from: `Samuel Store <${process.env.MAIL_FROM || 'no-reply@samuelstore.com'}>`,
       to: emailTo,
-      subject: `✅ Order Confirmed — #${orderId} | Samuel Store`,
+      subject: `✅ Order Confirmed — ${fmtOrderId(orderId, new Date())} | Samuel Store`,
       html,
     }).catch(err => console.error('Receipt email failed:', err.message));
   }
@@ -112,7 +113,7 @@ const resendReceipt = asyncHandler(async (req, res) => {
   await resend.emails.send({
     from: `Samuel Store <${process.env.MAIL_FROM || 'no-reply@samuelstore.com'}>`,
     to: emailTo,
-    subject: `🧾 Your Receipt — Order #${order.id} | Samuel Store`,
+    subject: `🧾 Your Receipt — ${fmtOrderId(order.id, order.created_at)} | Samuel Store`,
     html,
   });
 

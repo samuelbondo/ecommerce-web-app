@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSettings } from '../../context/SettingsContext';
 import Toast from '../../components/Toast';
 import API from '../../api';
+import { fmtOrderId } from '../../utils/formatOrderId';
 
 const STATUS_COLOR = { pending: '#f59e0b', processing: '#3b82f6', shipped: '#8b5cf6', delivered: '#10b981', cancelled: '#ef4444' };
 const STATUSES = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
@@ -87,18 +88,54 @@ export default function AdminOrders() {
   const toggleAll = () => setChecked(checked.length === paginated.length ? [] : paginated.map(o => o.id));
 
   const printInvoice = (o) => {
+    const oid = fmtOrderId(o.id, o.created_at);
     const win = window.open('', '_blank');
-    win.document.write(`<html><head><title>Invoice #${o.id}</title>
-      <style>body{font-family:sans-serif;padding:32px;color:#222}h1{color:#e94560}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{padding:10px;border:1px solid #ddd;text-align:left}th{background:#f5f5f5}tfoot td{font-weight:bold}</style>
-      </head><body>
-      <h1>Samuel Store</h1><h2>Invoice #${o.id}</h2>
-      <p>Customer: ${o.customer_name} (${o.customer_email})</p>
-      <p>Date: ${new Date(o.created_at).toLocaleDateString()}</p>
-      <p>Status: ${o.status}</p>
-      <table><thead><tr><th>Product</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
-      <tbody>${o.items?.map(i => `<tr><td>${i.name}${i.variant_name ? ` <em>(${i.variant_name})</em>` : ''}</td><td>${i.quantity}</td><td>${formatPrice(i.price)}</td><td>${formatPrice(i.price * i.quantity)}</td></tr>`).join('')}</tbody>
-      <tfoot><tr><td colspan="3">Grand Total</td><td>${formatPrice(o.total)}</td></tr></tfoot>
-      </table></body></html>`);
+    win.document.write(`<!DOCTYPE html><html><head><title>Invoice ${oid}</title>
+<style>
+  body{font-family:'Segoe UI',Arial,sans-serif;margin:0;padding:40px;color:#1a1a2e;background:#fff}
+  .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #e94560;padding-bottom:20px;margin-bottom:28px}
+  .brand{font-size:1.6rem;font-weight:800;color:#e94560;letter-spacing:1px}
+  .brand-sub{font-size:0.78rem;color:#888;margin-top:4px;text-transform:uppercase;letter-spacing:2px}
+  .meta{text-align:right;font-size:0.85rem;color:#555;line-height:1.8}
+  .meta strong{color:#1a1a2e;font-size:1rem}
+  .badge{display:inline-block;padding:3px 12px;border-radius:20px;font-size:0.72rem;font-weight:700;text-transform:capitalize;background:#d1fae5;color:#065f46}
+  .section{margin-bottom:20px}
+  .section-title{font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
+  .info-box{background:#f8f9fb;border-radius:8px;padding:12px 16px;font-size:0.88rem;color:#555;line-height:1.8}
+  table{width:100%;border-collapse:collapse;margin-top:8px}
+  thead tr{background:#1a1a2e;color:#fff}
+  th{padding:11px 14px;text-align:left;font-size:0.75rem;text-transform:uppercase;letter-spacing:1px;font-weight:600}
+  td{padding:11px 14px;border-bottom:1px solid #f0f0f0;font-size:0.88rem}
+  tfoot td{font-weight:700;font-size:0.95rem;border-top:2px solid #e94560;border-bottom:none}
+  .grand{color:#e94560;font-size:1.05rem}
+  .footer{margin-top:40px;text-align:center;font-size:0.75rem;color:#bbb;border-top:1px solid #f0f0f0;padding-top:16px}
+  @media print{body{padding:20px}}
+</style>
+</head><body>
+<div class="header">
+  <div><div class="brand">Samuel Store</div><div class="brand-sub">Official Invoice</div></div>
+  <div class="meta">
+    <strong>${oid}</strong><br/>
+    ${new Date(o.created_at).toLocaleDateString('en-US',{day:'numeric',month:'long',year:'numeric'})}<br/>
+    <span class="badge">${o.status}</span>
+  </div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+  <div class="section"><div class="section-title">Bill To</div>
+    <div class="info-box"><strong>${o.customer_name}</strong><br/>${o.customer_email}<br/>${o.customer_phone || ''}${o.customer_phone ? '<br/>' : ''}${o.customer_address || ''}</div>
+  </div>
+  <div class="section"><div class="section-title">Payment</div>
+    <div class="info-box">Method: <strong>${o.payment_method === 'cod' ? 'Cash on Delivery' : 'PayPal'}</strong><br/>Status: <strong>${o.payment_status || 'pending'}</strong></div>
+  </div>
+</div>
+<div class="section-title">Order Items</div>
+<table>
+  <thead><tr><th>Product</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
+  <tbody>${o.items?.map(i => `<tr><td>${i.name}${i.variant_name ? ` <span style="color:#e94560;font-size:0.78rem">(${i.variant_name})</span>` : ''}</td><td>${i.quantity}</td><td>${formatPrice(i.price)}</td><td>${formatPrice(i.price * i.quantity)}</td></tr>`).join('')}</tbody>
+  <tfoot><tr><td colspan="3">Shipping</td><td style="color:#16a34a">Free</td></tr><tr><td colspan="3">Grand Total</td><td class="grand">${formatPrice(o.total)}</td></tr></tfoot>
+</table>
+<div class="footer">Thank you for shopping at Samuel Store · This is a computer-generated invoice · © ${new Date().getFullYear()} Samuel Store</div>
+</body></html>`);
     win.document.close(); win.print();
   };
 
@@ -123,7 +160,7 @@ export default function AdminOrders() {
         <div style={s.overlay}>
           <div style={s.modal}>
             <div style={s.modalHeader}>
-              <h3 style={s.modalTitle}>Order #{selected.id} — {selected.customer_name}</h3>
+              <h3 style={s.modalTitle}>{fmtOrderId(selected.id, selected.created_at)} — {selected.customer_name}</h3>
               <button onClick={() => setSelected(null)} style={s.closeBtn}>×</button>
             </div>
             <div style={s.modalBody}>
@@ -219,7 +256,7 @@ export default function AdminOrders() {
                 : paginated.map(o => (
                   <tr key={o.id} style={s.tr}>
                     <td style={s.td}><input type="checkbox" checked={checked.includes(o.id)} onChange={() => toggleCheck(o.id)} /></td>
-                    <td style={s.td}><b style={{ color: '#1a1a2e' }}>#{o.id}</b></td>
+                    <td style={s.td}><b style={{ color: '#1a1a2e', fontFamily: 'monospace', fontSize: '0.82rem' }}>{fmtOrderId(o.id, o.created_at)}</b></td>
                     <td style={s.td}><div style={s.custName}>{o.customer_name}</div><div style={s.custEmail}>{o.customer_email}</div></td>
                     <td style={s.td}>{o.items?.length || 0}</td>
                     <td style={s.td}>

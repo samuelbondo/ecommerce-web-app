@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 const { Resend } = require('resend');
 const { buildReceiptHTML } = require('../utils/emailTemplates');
+const { fmtOrderId } = require('../utils/formatOrderId');
 const Order = require('../models/orderModel');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -290,7 +291,7 @@ router.put('/orders/:id/status', async (req, res) => {
     await db.query('UPDATE orders SET status=? WHERE id=?', [status, req.params.id]);
     // Email customer on cancelled
     if (status === 'cancelled') {
-      sendOrderEmail(req.params.id, `❌ Order #${req.params.id} Cancelled | Samuel Store`, 'Your order has been cancelled. Contact us if you have questions.');
+      sendOrderEmail(req.params.id, `❌ ${fmtOrderId(req.params.id)} Cancelled | Samuel Store`, 'Your order has been cancelled. Contact us if you have questions.');
     }
     res.json({ message: 'Order status updated' });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -305,7 +306,7 @@ router.put('/orders/:id/payment-status', async (req, res) => {
     await db.query('UPDATE orders SET payment_status=? WHERE id=?', [payment_status, req.params.id]);
     // Email customer when marked as paid
     if (payment_status === 'paid') {
-      sendOrderEmail(req.params.id, `✅ Payment Confirmed — Order #${req.params.id} | Samuel Store`);
+      sendOrderEmail(req.params.id, `✅ Payment Confirmed — ${fmtOrderId(req.params.id)} | Samuel Store`);
     }
     res.json({ message: `Payment status updated to ${payment_status}` });
   } catch (err) { res.status(500).json({ error: err.message }); }
