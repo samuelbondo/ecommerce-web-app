@@ -25,7 +25,8 @@
 
 const https = require('https');
 
-const MODEL = 'gemini-2.5-flash-preview-05-20';
+const MODEL_CHAT = 'gemini-2.5-flash-lite-preview-06-17'; // chat — separate quota
+const MODEL_ADMIN = 'gemini-2.5-flash-preview-05-20';      // admin features
 const API_KEY = process.env.GEMINI_API_KEY;
 const BASE = 'generativelanguage.googleapis.com';
 
@@ -35,7 +36,7 @@ const BASE = 'generativelanguage.googleapis.com';
  * @param {number} maxTokens
  * @returns {Promise<{ok:boolean, text?:string, error?:string}>}
  */
-function callGemini(prompt, maxTokens = 512) {
+function callGemini(prompt, maxTokens = 512, model = MODEL_ADMIN) {
   return new Promise((resolve) => {
     if (!API_KEY) return resolve({ ok: false, error: 'GEMINI_API_KEY not set' });
 
@@ -46,7 +47,7 @@ function callGemini(prompt, maxTokens = 512) {
 
     const options = {
       hostname: BASE,
-      path: `/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`,
+      path: `/v1beta/models/${model}:generateContent?key=${API_KEY}`,
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
     };
@@ -197,7 +198,7 @@ Rules:
 
 Reply now:`;
 
-  return callGemini(prompt, 400);
+  return callGemini(prompt, 400, MODEL_CHAT);
 }
 
 /**
