@@ -760,5 +760,4 @@ The deletion endpoint requires a valid JWT (`Authorization: Bearer <token>`) and
 
 **Samuel Bondo**
 UNILAK — Faculty of Computing and Information Sciences
-Course: EWA408510 – E-Commerce and Web Application, 2025–2026
-Instructor: Eric Maniraguha
+-- Software Engineer
