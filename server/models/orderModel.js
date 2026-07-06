@@ -6,8 +6,15 @@ const create = (user_id, total, payment_method = 'cod', payment_status = 'pendin
     [user_id, total, payment_method, payment_status, payment_id]
   );
 
-const addItems = (orderItems) =>
-  db.query('INSERT INTO order_items (order_id, product_id, variant_id, variant_name, quantity, price) VALUES ?', [orderItems]);
+const addItems = (orderItems) => {
+  const promises = orderItems.map(item =>
+    db.query(
+      'INSERT INTO order_items (order_id, product_id, variant_id, variant_name, quantity, price) VALUES (?, ?, ?, ?, ?, ?)',
+      item
+    )
+  );
+  return Promise.all(promises);
+};
 
 const findByUser = (user_id) =>
   db.query('SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC', [user_id]);
