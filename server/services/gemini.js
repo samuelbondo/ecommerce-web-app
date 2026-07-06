@@ -25,7 +25,7 @@
 
 const https = require('https');
 
-const MODEL_CHAT  = 'gemini-2.0-flash-lite'; // 1500 RPD free tier — stable model
+const MODEL_CHAT  = 'gemini-2.5-flash-lite'; // separate quota from admin model
 const MODEL_ADMIN = 'gemini-2.5-flash-preview-05-20'; // admin features
 const API_KEY = process.env.GEMINI_API_KEY;
 const BASE = 'generativelanguage.googleapis.com';
