@@ -161,8 +161,9 @@ export default function DashMessages() {
       if (res.data.reply) {
         setMessages(m => [...m, { role: 'assistant', content: res.data.reply, suggested: res.data.suggested || [] }]);
       }
-    } catch {
-      setMessages(m => [...m, { role: 'assistant', content: "Sorry, I'm having a connection issue. Please try again.", suggested: [] }]);
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Connection issue. Please try again.';
+      setMessages(m => [...m, { role: 'assistant', content: msg, suggested: [] }]);
     }
     setLoading(false);
   }, [messages, input, loading, user, isClosed]);

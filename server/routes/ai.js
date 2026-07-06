@@ -143,7 +143,10 @@ router.post('/chat', async (req, res) => {
     }
 
     const result = await ai.chatAssistant(messages, products, orders);
-    if (!result.ok) return res.status(503).json({ error: result.error });
+    if (!result.ok) {
+      console.error('Gemini chatAssistant error:', result.error);
+      return res.status(503).json({ error: result.error });
+    }
 
     const idMatch = result.text.match(/RECOMMENDED_IDS:\[([\d,\s]*)\]/);
     const recommendedIds = idMatch ? idMatch[1].split(',').map(n => parseInt(n.trim())).filter(Boolean) : [];
