@@ -22,6 +22,8 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const accent = settings.accent_color || '#e94560';
+  const redirectTo = new URLSearchParams(location.search).get('redirect') || null;
+  const fromCheckout = redirectTo === '/checkout';
 
   useEffect(() => {
     const p = new URLSearchParams(location.search);
@@ -32,7 +34,7 @@ export default function Login() {
   }, []);
 
   useEffect(() => {
-    if (user) navigate(user.role === 'admin' ? '/admin' : '/dashboard', { replace: true });
+    if (user) navigate(redirectTo || (user.role === 'admin' ? '/admin' : '/dashboard'), { replace: true });
   }, [user]);
 
   // Listen for OAuth popup message
@@ -41,7 +43,7 @@ export default function Login() {
       if (e.origin !== window.location.origin) return;
       if (e.data?.type === 'oauth_success') {
         login(e.data.user, e.data.token);
-        navigate(e.data.user.role === 'admin' ? '/admin' : '/dashboard', { replace: true });
+        navigate(redirectTo || (e.data.user.role === 'admin' ? '/admin' : '/dashboard'), { replace: true });
       }
     };
     window.addEventListener('message', handler);
@@ -77,7 +79,7 @@ export default function Login() {
     try {
       const res = await API.post('/auth/login', form);
       login(res.data.user, res.data.token);
-      navigate(res.data.user.role === 'admin' ? '/admin' : '/dashboard');
+      navigate(redirectTo || (res.data.user.role === 'admin' ? '/admin' : '/dashboard'));
     } catch (err) {
       setError(err.response?.data?.error || 'Invalid email or password');
     } finally {
@@ -154,7 +156,17 @@ export default function Login() {
             <span className="ss-auth-logo-name">{settings.site_name || 'Samuel Store'}</span>
           </Link>
           <h1>Sign in</h1>
-          <p className="ss-sub">Enter your credentials to continue</p>
+          <p className="ss-sub">{fromCheckout ? 'Sign in to complete your purchase' : 'Enter your credentials to continue'}</p>
+
+          {fromCheckout && (
+            <div style={{ background: '#fff7ed', border: '1.5px solid #fed7aa', borderRadius: 10, padding: '12px 16px', marginBottom: 20, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <span style={{ fontSize: '1.3rem', lineHeight: 1 }}>🛒</span>
+              <div>
+                <div style={{ fontWeight: 700, color: '#92400e', fontSize: '0.9rem', marginBottom: 2 }}>Your cart is saved!</div>
+                <div style={{ color: '#b45309', fontSize: '0.82rem', lineHeight: 1.5 }}>Sign in or create a free account to complete your order. It only takes a moment.</div>
+              </div>
+            </div>
+          )}
 
           {error && <div className="ss-auth-error">⚠️ {error}</div>}
 

@@ -21,10 +21,12 @@ import AdminLayout from './pages/admin/AdminLayout';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import AIChat from './components/AIChat';
 
-function ProtectedRoute({ children }) {
+function ProtectedRoute({ children, redirectTo }) {
   const { user } = useAuth();
   const token = localStorage.getItem('token');
-  return (user || token) ? children : <Navigate to="/login" replace />;
+  if (user || token) return children;
+  const to = redirectTo ? `/login?redirect=${encodeURIComponent(redirectTo)}` : '/login';
+  return <Navigate to={to} replace />;
 }
 
 function AdminRoute({ children }) {
@@ -113,8 +115,8 @@ function Layout() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/orders" element={<Orders />} />
-        <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
-        <Route path="/order-confirmation" element={<ProtectedRoute><OrderConfirmation /></ProtectedRoute>} />
+        <Route path="/checkout" element={<ProtectedRoute redirectTo="/checkout"><Checkout /></ProtectedRoute>} />
+        <Route path="/order-confirmation" element={<ProtectedRoute redirectTo="/checkout"><OrderConfirmation /></ProtectedRoute>} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
       </Routes>
       {!noFooter && <Footer />}
