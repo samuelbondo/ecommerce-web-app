@@ -44,6 +44,15 @@ function Layout() {
   const noShell = location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/admin');
   const noFooter = location.pathname.startsWith('/login') || location.pathname.startsWith('/register') || location.pathname.startsWith('/forgot-password') || location.pathname.startsWith('/auth/callback') || noShell;
 
+  // Dynamic favicon
+  useEffect(() => {
+    const favicon = settings.site_favicon;
+    if (!favicon) return;
+    let link = document.querySelector('link[rel~="icon"]');
+    if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
+    link.href = favicon;
+  }, [settings.site_favicon]);
+
   // Dynamic page title
   useEffect(() => {
     const titles = {
