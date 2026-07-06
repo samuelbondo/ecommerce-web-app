@@ -113,7 +113,6 @@ export default function AdminLayout() {
         @media (max-width: 900px) {
           .adm-row2 { grid-template-columns: 1fr; }
         }
-
         /* Settings layout */
         .adm-settings-layout {
           display: flex;

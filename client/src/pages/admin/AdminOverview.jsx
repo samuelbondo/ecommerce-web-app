@@ -71,16 +71,18 @@ export default function AdminOverview() {
         <div style={s.chartCard}>
           <h3 style={s.cardTitle}>Revenue — Last 6 Months</h3>
           {monthly.length === 0 ? <p style={s.noData}>No data yet</p> : (
-            <div style={s.barChart}>
-              {monthly.map(m => (
-                <div key={m.m} style={s.barCol}>
-                  <div style={s.barVal}>{formatPrice(m.revenue)}</div>
-                  <div style={s.barWrap}>
-                    <div style={{ ...s.bar, height: `${(m.revenue / maxRevenue) * 140}px`, background: '#3b82f6' }} />
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <div style={{ ...s.barChart, minWidth: `${monthly.length * 80}px` }}>
+                {monthly.map(m => (
+                  <div key={m.m} style={s.barCol}>
+                    <div style={s.barVal}>{formatPrice(m.revenue)}</div>
+                    <div style={s.barWrap}>
+                      <div style={{ ...s.bar, height: `${(m.revenue / maxRevenue) * 140}px`, background: '#3b82f6' }} />
+                    </div>
+                    <div style={s.barLabel}>{m.month}</div>
                   </div>
-                  <div style={s.barLabel}>{m.month}</div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -123,12 +125,12 @@ export default function AdminOverview() {
 
       {/* Recent Orders */}
       <div style={s.tableCard}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
           <h3 style={{ ...s.cardTitle, margin: 0 }}>Recent Orders</h3>
           {stats.pending > 0 && <span style={{ padding: '4px 12px', background: '#fef3c7', color: '#d97706', borderRadius: 20, fontSize: '0.78rem', fontWeight: 700 }}>⏳ {stats.pending} pending</span>}
         </div>
-        <div style={s.tableWrap}>
-          <table style={s.table}>
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <table style={{ ...s.table, minWidth: 520 }}>
             <thead>
               <tr style={s.thead}>
                 {['Order', 'Customer', 'Items', 'Total', 'Status', 'Date'].map(h => <th key={h} style={s.th}>{h}</th>)}
@@ -158,10 +160,10 @@ const s = {
   wrap: { padding: '24px' },
   loading: { padding: '60px', textAlign: 'center', color: '#888' },
   statsGrid: { marginBottom: '24px' },
-  statCard: { background: '#fff', borderRadius: '12px', padding: '18px', display: 'flex', alignItems: 'center', gap: '14px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' },
-  statIcon: { width: '44px', height: '44px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 },
-  statVal: { fontSize: '1.15rem', fontWeight: '800', color: '#1a1a2e' },
-  statLabel: { fontSize: '0.75rem', color: '#888', marginTop: '2px' },
+  statCard: { background: '#fff', borderRadius: '12px', padding: '14px', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', minWidth: 0 },
+  statIcon: { width: '40px', height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 },
+  statVal: { fontSize: '1rem', fontWeight: '800', color: '#1a1a2e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  statLabel: { fontSize: '0.7rem', color: '#888', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   row2: { marginBottom: '24px' },
   chartCard: { background: '#fff', borderRadius: '14px', padding: '22px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' },
   topCard: { background: '#fff', borderRadius: '14px', padding: '22px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' },
