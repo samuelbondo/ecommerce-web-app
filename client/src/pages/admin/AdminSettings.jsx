@@ -133,18 +133,24 @@ export default function AdminSettings() {
               </div>
 
               <div style={s.field}>
-                <label style={s.label}>Favicon URL <span style={{ color: '#94a3b8', fontWeight: 400 }}>(shown in browser tab — use a square PNG or ICO, 32×32px)</span></label>
+                <label style={s.label}>Favicon <span style={{ color: '#94a3b8', fontWeight: 400 }}>(browser tab icon — square PNG/ICO, 32×32px)</span></label>
+                <ImageUpload
+                  label="Upload Favicon"
+                  currentUrl={form.site_favicon || ''}
+                  onUpload={url => set('site_favicon', url)}
+                  size="sm"
+                />
                 <input
                   value={form.site_favicon || ''}
                   onChange={e => set('site_favicon', e.target.value)}
-                  style={s.input}
-                  placeholder="https://your-cdn.com/favicon.png"
+                  style={{ ...s.input, marginTop: 6 }}
+                  placeholder="Or paste favicon URL directly"
                 />
                 {form.site_favicon && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
                     <img src={form.site_favicon} style={{ width: 20, height: 20, borderRadius: 4, border: '1px solid #e5e7eb' }} alt="favicon preview"
                       onError={e => { e.target.style.display = 'none'; }} />
-                    <span style={{ fontSize: '0.78rem', color: '#10b981' }}>✅ Favicon preview</span>
+                    <span style={{ fontSize: '0.78rem', color: '#10b981' }}>✅ Favicon set</span>
                   </div>
                 )}
               </div>
