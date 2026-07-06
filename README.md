@@ -3,8 +3,8 @@
 A full-stack e-commerce platform built with React (Vite), Node.js (Express), and MySQL.
 Developed as a final project for **EWA408510 – E-Commerce and Web Application** at UNILAK.
 
-**Student:** Samuel Bondo
-**Institution:** UNILAK — Faculty of Computing and Information Sciences
+**Student:** Samuel Bondo ---
+**Institution:** UNILAK — Faculty of Computing and Information Sciences ---
 **Course:** EWA408510 – E-Commerce and Web Application, 2025–2026
 
 ---
