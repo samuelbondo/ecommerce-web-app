@@ -190,14 +190,13 @@ export default function Navbar() {
       <nav className="ss-nav">
         <div className="ss-top">
           <Link to="/" className="ss-brand" onClick={close}>
-            {settings.site_logo
-              ? <img src={settings.site_logo} alt="logo" className="ss-logo"
-                  onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-                />
-              : null}
-            <div className="ss-logo-box" style={{ display: settings.site_logo ? 'none' : 'flex' }}>
-              {(settings.site_name || 'S')[0]}
-            </div>
+            {settings.site_logo ? (
+              <img src={settings.site_logo} alt="logo" className="ss-logo"
+                onError={e => { e.target.style.display = 'none'; }}
+              />
+            ) : (
+              <div className="ss-logo-box">{(settings.site_name || 'S')[0]}</div>
+            )}
             <span className="ss-site-name">{settings.site_name || 'Samuel Store'}</span>
           </Link>
 

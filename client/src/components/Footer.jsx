@@ -39,15 +39,14 @@ export default function Footer() {
         {/* Brand */}
         <div>
           <Link to="/" className="ss-footer-brand">
-            {settings.site_logo
-              ? <img src={settings.site_logo} alt="logo"
-                  style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', flexShrink: 0, display: 'block' }}
-                  onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-                />
-              : null}
-            <div className="ss-footer-logo-box" style={{ display: settings.site_logo ? 'none' : 'flex' }}>
-              {(settings.site_name || 'S')[0]}
-            </div>
+            {settings.site_logo ? (
+              <img src={settings.site_logo} alt="logo"
+                style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', flexShrink: 0, display: 'block' }}
+                onError={e => { e.target.style.display = 'none'; }}
+              />
+            ) : (
+              <div className="ss-footer-logo-box">{(settings.site_name || 'S')[0]}</div>
+            )}
             <span className="ss-footer-site-name">{settings.site_name || 'Samuel Store'}</span>
           </Link>
           <p className="ss-footer-about">
