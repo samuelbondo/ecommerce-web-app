@@ -51,6 +51,8 @@
  *  NEW TABLES      — otp_codes, reviews, banners, settings,
  *                    product_images, product_options, product_variants,
  *                    payments, cart_items
+ *  orders          — customer_name, customer_email, customer_phone,
+ *                    customer_address now saved at order time (was NULL before)
  * ─────────────────────────────────────────────────────────────────────────────
  */
 

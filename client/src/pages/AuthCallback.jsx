@@ -11,9 +11,11 @@ export default function AuthCallback() {
     if (handled.current) return;
     handled.current = true;
 
-    const params = new URLSearchParams(window.location.search);
-    const token = decodeURIComponent(params.get('token') || '');
-    const error = params.get('error');
+    // Extract token from raw URL to avoid URLSearchParams mangling + signs
+    const rawSearch = window.location.search;
+    const tokenMatch = rawSearch.match(/[?&]token=([^&]*)/);
+    const token = tokenMatch ? decodeURIComponent(tokenMatch[1]) : '';
+    const error = new URLSearchParams(rawSearch).get('error');
 
     if (error || !token || token === 'already') {
       const existingToken = localStorage.getItem('token');

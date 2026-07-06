@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head><title>Form</title></head>
+<body style="background-color: skyblue;">
+<form action="submit.php" method="post">
+  <label for="name">Name:</label><br>
+  <input type="text" id="name" name="name" placeholder="Your name" required><br>
+
+  <label for="email">Email:</label><br>
+  <input type="email" id="email" name="email"><br><br>
+
+  <label for="password">Password:</label><br>
+  <input type="password" id="password" name="password" placeholder="Your password" required><br><br>
+
+  <label>Courses:</label><br>
+  <input type="checkbox" id="course1" name="courses" value="course1">
+  <label for="course1">Data Mining</label><br>
+  <input type="checkbox" id="course2" name="courses" value="course2">
+  <label for="course2">Advanced Programming</label><br>
+  <input type="checkbox" id="course3" name="courses" value="course3">
+  <label for="course3">Web Technology</label><br><br>
+  <label for="gender">Gender:</label><br>
+  <input type="radio" id="male" name="gender" value="male">
+  <label for="male">Male</label><br>
+  <input type="radio" id="female" name="gender" value="female">
+  <label for="female">Female</label><br><br>
+  <label for="country">Country:</label><br>
+  <select id="country" name="country">
+    <option value="usa">USA</option>
+    <option value="canada">Canada</option>
+    <option value="RW">Rwanda</option>
+    <option value="australia">Australia</option>
+    <option value="LBR">Liberia</option>
+  </select><br><br>
+  <label for="address">Address:</label><br>
+  <input type="text" id="address" name="address" placeholder="Your address"><br><br>    
+  <label for="message">Comment:</label><br>
+  <textarea id="message" name="message" rows="4" cols="30"></textarea><br><br>
+  <label for="file">Upload a file:</label><br> 
+  <input type="file" id="file" name="file"><br><br>
+
+    <input type="submit" value="Submit">
+    <input type="reset" value="Reset">
+</form>
+</body>
+</html>

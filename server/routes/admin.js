@@ -256,6 +256,24 @@ router.put('/orders/:id/status', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Update payment status (e.g. mark COD order as paid)
+router.put('/orders/:id/payment-status', async (req, res) => {
+  const { payment_status } = req.body;
+  if (!['pending', 'paid', 'failed'].includes(payment_status))
+    return res.status(400).json({ error: 'Invalid payment_status' });
+  try {
+    await db.query('UPDATE orders SET payment_status=? WHERE id=?', [payment_status, req.params.id]);
+    res.json({ message: `Payment status updated to ${payment_status}` });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Resend receipt email to customer
+router.post('/orders/:id/resend-receipt', async (req, res) => {
+  const { resendReceipt } = require('../controllers/orderController');
+  req.params.id = req.params.id;
+  return resendReceipt(req, res);
+});
+
 router.put('/orders/bulk-status', async (req, res) => {
   const { ids, status } = req.body;
   if (!ids?.length || !status) return res.status(400).json({ error: 'ids and status required' });

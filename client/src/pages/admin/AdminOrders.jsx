@@ -42,6 +42,22 @@ export default function AdminOrders() {
     } catch { notify('Update failed', 'error'); }
   };
 
+  const markAsPaid = async (id) => {
+    try {
+      await API.put(`/admin/orders/${id}/payment-status`, { payment_status: 'paid' });
+      notify(`Order #${id} marked as paid`);
+      setSelected(p => p ? { ...p, payment_status: 'paid' } : p);
+      load();
+    } catch { notify('Failed to update payment status', 'error'); }
+  };
+
+  const resendReceipt = async (id, email) => {
+    try {
+      await API.post(`/admin/orders/${id}/resend-receipt`);
+      notify(`Receipt resent to ${email}`);
+    } catch { notify('Failed to resend receipt', 'error'); }
+  };
+
   const deleteOrder = async (id) => {
     try {
       await API.delete(`/admin/orders/${id}`);
@@ -147,8 +163,12 @@ export default function AdminOrders() {
                   ))}
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <button onClick={() => printInvoice(selected)} style={s.btnPrint}>🖨️ Print Invoice</button>
+                {selected.payment_status !== 'paid' && (
+                  <button onClick={() => markAsPaid(selected.id)} style={s.btnPaid}>💵 Mark as Paid</button>
+                )}
+                <button onClick={() => resendReceipt(selected.id, selected.customer_email)} style={s.btnResend}>📧 Resend Receipt</button>
                 <button onClick={() => setConfirmDeleteId(selected.id)} style={s.btnDanger}>🗑 Delete Order</button>
               </div>
             </div>
@@ -200,7 +220,14 @@ export default function AdminOrders() {
                     <td style={s.td}><b style={{ color: '#1a1a2e' }}>#{o.id}</b></td>
                     <td style={s.td}><div style={s.custName}>{o.customer_name}</div><div style={s.custEmail}>{o.customer_email}</div></td>
                     <td style={s.td}>{o.items?.length || 0}</td>
-                    <td style={s.td}><b>{formatPrice(o.total)}</b></td>
+                    <td style={s.td}>
+                      <b>{formatPrice(o.total)}</b>
+                      {o.payment_status === 'paid'
+                        ? <span style={{ display:'block', fontSize:'0.7rem', color:'#10b981', fontWeight:600 }}>✅ Paid</span>
+                        : o.payment_method === 'cod'
+                          ? <span style={{ display:'block', fontSize:'0.7rem', color:'#f59e0b', fontWeight:600 }}>⏳ COD Pending</span>
+                          : null}
+                    </td>
                     <td style={s.td}><span style={{ ...s.badge, background: STATUS_COLOR[o.status] + '20', color: STATUS_COLOR[o.status] }}>{o.status}</span></td>
                     <td style={s.td}>{new Date(o.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                     <td style={s.td}>
@@ -250,6 +277,8 @@ const s = {
   label: { fontSize: '0.8rem', fontWeight: '600', color: '#555' },
   btnPrint: { padding: '10px', background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem' },
   btnDanger: { padding: '8px 18px', borderRadius: '8px', border: 'none', background: '#ef4444', color: '#fff', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem' },
+  btnPaid: { padding: '8px 18px', borderRadius: '8px', border: 'none', background: '#10b981', color: '#fff', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem' },
+  btnResend: { padding: '8px 18px', borderRadius: '8px', border: 'none', background: '#3b82f6', color: '#fff', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem' },
   btnCancel: { padding: '8px 18px', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontSize: '0.88rem' },
   dialog: { background: '#fff', borderRadius: '14px', padding: '28px', maxWidth: '340px', width: '90%' },
   dlgTitle: { margin: '0 0 8px', fontWeight: '700', color: '#1a1a2e' },

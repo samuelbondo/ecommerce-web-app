@@ -389,10 +389,34 @@ node migrate.js
 | PUT | `/api/admin/reviews/:id/status` | Approve/reject review |
 | PUT | `/api/admin/reviews/:id/reply` | Admin reply to review |
 | DELETE | `/api/admin/reviews/:id` | Delete review |
+| PUT | `/api/admin/orders/:id/payment-status` | Update payment status (e.g. mark COD as paid) |
+| POST | `/api/admin/orders/:id/resend-receipt` | Resend branded receipt email to customer |
 
 ---
 
-## Email — Brevo SMTP
+## Order Receipt Emails
+
+Every order placement automatically sends a branded HTML receipt email to the customer via Resend.
+
+### What the email contains
+- Order ID, date, customer name, email, phone, delivery address
+- Payment method and payment status badge (✅ Paid / ⏳ Pending)
+- Itemized order table with quantities, unit prices, and line totals
+- Grand total
+- COD note (if applicable) — reminds customer to have cash ready at delivery
+
+### Admin controls (AdminOrders → View order modal)
+| Button | What it does |
+|---|---|
+| 💵 Mark as Paid | Updates `payment_status = paid` in DB (COD orders only, hidden once paid) |
+| 📧 Resend Receipt | Resends the branded receipt email to the customer's email address |
+
+### Email template
+`server/utils/emailTemplates.js` — `buildReceiptHTML(order)` — pure HTML, no external dependencies.
+
+---
+
+## Email — Resend
 
 Render free tier **blocks all outbound SMTP** (cPanel, Gmail, etc.) due to port restrictions.  
 Samuel Store uses **Brevo** (formerly Sendinblue) — free tier, 300 emails/day, HTTP-based SMTP relay that works on Render.
