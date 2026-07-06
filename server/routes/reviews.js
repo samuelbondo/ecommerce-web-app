@@ -24,15 +24,15 @@ router.post('/', authenticate, async (req, res) => {
   const { product_id, rating, comment } = req.body;
   if (!product_id || !rating) return res.status(400).json({ error: 'product_id and rating required' });
   try {
-    // Verify purchase
+    // Verify purchase — allow review once order is placed (any non-cancelled status)
     const [[bought]] = await db.query(
       `SELECT oi.id FROM order_items oi
        JOIN orders o ON oi.order_id = o.id
-       WHERE o.user_id = ? AND oi.product_id = ? AND o.status = 'delivered'
+       WHERE o.user_id = ? AND oi.product_id = ? AND o.status != 'cancelled'
        LIMIT 1`,
       [req.user.id, product_id]
     );
-    if (!bought) return res.status(403).json({ error: 'You can only review products you have purchased and received' });
+    if (!bought) return res.status(403).json({ error: 'You can only review products you have ordered' });
     // One review per product per user
     const [[existing]] = await db.query(
       'SELECT id FROM reviews WHERE user_id = ? AND product_id = ?',

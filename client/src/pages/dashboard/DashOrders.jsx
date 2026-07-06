@@ -181,7 +181,7 @@ export default function DashOrders() {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
                   <span style={s.itemPrice}>{formatPrice(item.price * item.quantity)}</span>
-                  {order.status === 'delivered' && (
+                  {order.status !== 'cancelled' && (
                     reviewedIds.has(item.product_id || item.id)
                       ? <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 700 }}>✓ Reviewed</span>
                       : <button onClick={() => openReview(item)} style={s.reviewBtn}>⭐ Review</button>
