@@ -4,6 +4,7 @@ import { useSettings } from '../../context/SettingsContext';
 import { useCart } from '../../context/CartContext';
 import { Link } from 'react-router-dom';
 import API from '../../api';
+import { fmtOrderId } from '../../utils/formatOrderId';
 
 const StatCard = ({ icon, label, value, color }) => (
   <div style={{ ...s.card, borderTop: `4px solid ${color}` }}>
@@ -93,7 +94,7 @@ export default function Overview() {
             </div>
             {orders.slice(0, 5).map(o => (
               <div key={o.id} className="dash-order-row">
-                <span style={s.orderId}>#{o.id}</span>
+                <span style={s.orderId}>{fmtOrderId(o.id, o.created_at)}</span>
                 <span style={s.muted}>{new Date(o.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                 <span style={s.amount}>{formatPrice(o.total)}</span>
                 <span style={{ ...s.badge, background: STATUS_COLOR[o.status] + '20', color: STATUS_COLOR[o.status] }}>{o.status}</span>

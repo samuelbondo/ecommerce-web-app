@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import Toast from '../../components/Toast';
 import API from '../../api';
+import { fmtOrderId } from '../../utils/formatOrderId';
 
 const COUNTRIES = ['Rwanda','Uganda','Kenya','Tanzania','Burundi','Ethiopia','Nigeria','Ghana','South Africa','United Kingdom','United States','Canada','Germany','France','Australia','India','China','Japan','Other'];
 
@@ -289,7 +290,7 @@ export default function DashProfile() {
             : activity.map(o => (
               <div key={o.id} style={s.actRow}>
                 <div style={s.actLeft}>
-                  <div style={s.actId}>Order #{o.id}</div>
+                  <div style={s.actId}>{fmtOrderId(o.id, o.created_at)}</div>
                   <div style={s.actDate}>{new Date(o.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
