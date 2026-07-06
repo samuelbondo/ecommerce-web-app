@@ -276,7 +276,7 @@ router.delete('/categories/:id', async (req, res) => {
 // ── Orders ─────────────────────────────────────────────
 router.get('/orders', async (req, res) => {
   try {
-    const [orders] = await db.query('SELECT o.*, u.name AS customer_name, u.email AS customer_email, u.address AS shipping_address, u.city AS shipping_city, u.country AS shipping_country FROM orders o LEFT JOIN users u ON o.user_id=u.id ORDER BY o.created_at DESC');
+    const [orders] = await db.query(`SELECT o.*, COALESCE(o.customer_name, u.name) AS customer_name, COALESCE(o.customer_email, u.email) AS customer_email, u.address AS shipping_address, u.city AS shipping_city, u.country AS shipping_country FROM orders o LEFT JOIN users u ON o.user_id=u.id ORDER BY o.created_at DESC`);
     for (const o of orders) {
       const [items] = await Order.findItemsByOrder(o.id);
       o.items = items;

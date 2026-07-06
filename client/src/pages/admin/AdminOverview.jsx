@@ -36,10 +36,11 @@ export default function AdminOverview() {
     ]).then(([s, m, t, o, inv]) => {
       setStats(s.data);
       setMonthly(m.data);
-      setTopProducts(t.data);
+      setTopProducts(t.data.filter(p => p.sold > 0));
       setRecentOrders(o.data.slice(0, 7));
       setLowStockItems(inv.data.filter(p => p.stock <= 5).slice(0, 8));
-    }).finally(() => setLoading(false));
+    }).catch(err => console.error('Overview load error:', err))
+      .finally(() => setLoading(false));
   }, []);
 
   const maxRevenue = Math.max(...monthly.map(m => m.revenue), 1);
