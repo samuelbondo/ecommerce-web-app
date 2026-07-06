@@ -167,16 +167,19 @@ async function chatAssistant(messages, products, orders = []) {
   ).join('\n');
 
   const orderContext = orders.length
-    ? `\n\nThis customer's order history:\n` + orders.map(o =>
-        `Order #${o.id} | Date: ${new Date(o.created_at).toLocaleDateString('en-US',{day:'numeric',month:'short',year:'numeric'})} | Status: ${o.status} | Payment: ${o.payment_status} | Method: ${o.payment_method === 'cod' ? 'Cash on Delivery' : 'PayPal'} | Total: $${o.total} | Items: ${o.items}`
-      ).join('\n')
+    ? `\n\nThis customer's orders (their account only — do not discuss any other customer's orders):\n` + orders.map(o => {
+        const year = new Date(o.created_at).getFullYear();
+        const paddedId = String(o.id).padStart(4, '0');
+        const brandedId = `SS-${year}-${paddedId}`;
+        return `Order ${brandedId} (internal ID: ${o.id}) | Date: ${new Date(o.created_at).toLocaleDateString('en-US',{day:'numeric',month:'short',year:'numeric'})} | Status: ${o.status} | Payment: ${o.payment_status} | Method: ${o.payment_method === 'cod' ? 'Cash on Delivery' : 'PayPal'} | Total: $${o.total} | Items: ${o.items}`;
+      }).join('\n')
     : '';
 
   const history = messages.map(m => `${m.role === 'user' ? 'Customer' : 'Assistant'}: ${m.content}`).join('\n');
 
   const prompt = `You are a helpful, friendly shopping assistant for Samuel Store, an international e-commerce platform.
 You help customers find products, answer questions about the store, and guide them through their purchase.
-${orders.length ? 'You also have access to this customer\'s order history and can answer questions about their orders, status, dates, and payment.' : ''}
+${orders.length ? 'You have access to THIS customer\'s order history only. Never reveal or discuss orders belonging to other customers.' : 'This customer has no order history or is not logged in. Do not make up any order information.'}
 
 Available products:
 ${catalog}${orderContext}
@@ -189,8 +192,9 @@ Rules:
 - When recommending products, mention the product name and price.
 - If a product is out of stock, say so and suggest alternatives.
 - If asked about shipping, say "We offer free shipping on all orders".
-- If asked about an order, use the order history above to give accurate status, date, and payment info.
-- If the customer asks about "my order" or "my orders" and you have their history, answer from it directly.
+- ONLY answer order questions using the order history provided above. Never invent, guess, or reference orders not listed.
+- If the customer asks about an order ID not in their history, say you cannot find that order on their account.
+- Never reveal order details of other customers under any circumstances.
 - If asked something you cannot answer, politely say so.
 - Never make up products or orders not in the data above.
 - Respond in the same language the customer is using.
