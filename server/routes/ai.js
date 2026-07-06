@@ -130,9 +130,10 @@ router.post('/chat', async (req, res) => {
     if (userId) {
       const [rows] = await db.query(
         `SELECT o.id, o.status, o.payment_status, o.payment_method, o.total, o.created_at,
-          GROUP_CONCAT(CONCAT(oi.quantity,'x ',oi.name) SEPARATOR ', ') AS items
+          GROUP_CONCAT(CONCAT(oi.quantity,'x ',p.name) SEPARATOR ', ') AS items
          FROM orders o
          LEFT JOIN order_items oi ON oi.order_id = o.id
+         LEFT JOIN products p ON oi.product_id = p.id
          WHERE o.user_id = ?
          GROUP BY o.id
          ORDER BY o.created_at DESC
