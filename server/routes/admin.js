@@ -277,7 +277,7 @@ router.get('/orders', async (req, res) => {
   try {
     const [orders] = await db.query('SELECT o.*, u.name AS customer_name, u.email AS customer_email, u.address AS shipping_address, u.city AS shipping_city, u.country AS shipping_country FROM orders o LEFT JOIN users u ON o.user_id=u.id ORDER BY o.created_at DESC');
     for (const o of orders) {
-      const [items] = await db.query('SELECT oi.*, p.name, p.image_url FROM order_items oi JOIN products p ON oi.product_id=p.id WHERE oi.order_id=?', [o.id]);
+      const [items] = await Order.findItemsByOrder(o.id);
       o.items = items;
     }
     res.json(orders);

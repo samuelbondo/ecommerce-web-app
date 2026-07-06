@@ -133,10 +133,12 @@ export default function AdminOrders() {
                 <div><span style={s.detailLabel}>Date</span><span style={s.detailVal}>{new Date(selected.created_at).toLocaleDateString()}</span></div>
                 <div><span style={s.detailLabel}>Total</span><span style={{ ...s.detailVal, color: '#e94560', fontWeight: '700' }}>{formatPrice(selected.total)}</span></div>
               </div>
-              {(selected.shipping_address || selected.shipping_city) && (
+              {(selected.customer_address || selected.shipping_address || selected.shipping_city) && (
                 <div style={{ background: '#f8f9fb', borderRadius: 8, padding: '10px 14px', fontSize: '0.85rem' }}>
                   <span style={s.detailLabel}>Shipping Address</span>
-                  <span style={s.detailVal}>{[selected.shipping_address, selected.shipping_city, selected.shipping_country].filter(Boolean).join(', ')}</span>
+                  <span style={s.detailVal}>
+                    {selected.customer_address || [selected.shipping_address, selected.shipping_city, selected.shipping_country].filter(Boolean).join(', ')}
+                  </span>
                 </div>
               )}
               <div style={s.detailItems}>
