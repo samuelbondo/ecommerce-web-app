@@ -22,8 +22,8 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const accent = settings.accent_color || '#e94560';
-  const redirectTo = new URLSearchParams(location.search).get('redirect') || null;
-  const fromCheckout = redirectTo === '/checkout';
+  const getRedirect = () => new URLSearchParams(window.location.search).get('redirect');
+  const fromCheckout = new URLSearchParams(location.search).get('redirect') === '/checkout';
 
   useEffect(() => {
     const p = new URLSearchParams(location.search);
@@ -34,7 +34,10 @@ export default function Login() {
   }, []);
 
   useEffect(() => {
-    if (user) navigate(fromCheckout ? '/cart' : (redirectTo || (user.role === 'admin' ? '/admin' : '/dashboard')), { replace: true });
+    if (user) {
+      const r = getRedirect();
+      navigate(r === '/checkout' ? '/cart' : (r || (user.role === 'admin' ? '/admin' : '/dashboard')), { replace: true });
+    }
   }, [user]);
 
   const handleFacebookLogin = async (e) => {
@@ -68,7 +71,8 @@ export default function Login() {
     try {
       const res = await API.post('/auth/login', form);
       login(res.data.user, res.data.token);
-      navigate(fromCheckout ? '/cart' : (redirectTo || (res.data.user.role === 'admin' ? '/admin' : '/dashboard')));
+      const r = getRedirect();
+      navigate(r === '/checkout' ? '/cart' : (r || (res.data.user.role === 'admin' ? '/admin' : '/dashboard')));
     } catch (err) {
       setError(err.response?.data?.error || 'Invalid email or password');
     } finally {
