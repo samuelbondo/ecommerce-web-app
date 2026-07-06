@@ -9,6 +9,7 @@ export default function Home() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [testimonials, setTestimonials] = useState([]);
   const { settings, formatPrice } = useSettings();
   const { addToCart } = useCart();
   const accent = settings.accent_color || '#e94560';
@@ -17,9 +18,11 @@ export default function Home() {
     Promise.all([
       API.get('/products'),
       API.get('/categories'),
-    ]).then(([pRes, cRes]) => {
+      API.get('/ai/chat/ratings/public'),
+    ]).then(([pRes, cRes, tRes]) => {
       setProducts(pRes.data.slice(0, 8));
       setCategories(cRes.data);
+      setTestimonials(tRes.data || []);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -82,6 +85,14 @@ export default function Home() {
         .ss-promo p { opacity:0.88; font-size:0.95rem; line-height:1.6; }
         .ss-promo-btn { background:#fff; color:${accent}; padding:13px 28px; border-radius:8px; text-decoration:none; font-weight:700; font-size:0.95rem; transition:all 0.2s; white-space:nowrap; box-shadow:0 4px 16px rgba(0,0,0,0.15); }
         .ss-promo-btn:hover { transform:translateY(-2px); box-shadow:0 6px 24px rgba(0,0,0,0.2); }
+
+        /* Testimonials */
+        .ss-testimonials { background: #fff; }
+        .ss-testi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
+        .ss-testi-card { background: #f8f9fb; border: 1px solid #e5e7eb; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .ss-testi-stars { color: #f59e0b; font-size: 1rem; letter-spacing: 2px; }
+        .ss-testi-comment { font-size: 0.88rem; color: #374151; line-height: 1.6; font-style: italic; flex: 1; }
+        .ss-testi-author { font-size: 0.78rem; color: #94a3b8; font-weight: 600; }
 
         @media (max-width:640px) {
           .ss-section { padding:32px 16px; }
@@ -186,6 +197,26 @@ export default function Home() {
           </div>
         )}
       </section>
+
+      {/* ── Testimonials ── */}
+      {testimonials.length > 0 && (
+        <div className="ss-testimonials">
+          <section className="ss-section">
+            <div className="ss-section-hd">
+              <h2 className="ss-section-title">What Customers <span>Say</span></h2>
+            </div>
+            <div className="ss-testi-grid">
+              {testimonials.map((t, i) => (
+                <div key={i} className="ss-testi-card">
+                  <div className="ss-testi-stars">{'★'.repeat(t.rating)}{'☆'.repeat(5 - t.rating)}</div>
+                  <div className="ss-testi-comment">"{t.comment}"</div>
+                  <div className="ss-testi-author">— {t.display_name}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
 
       {/* ── Promo Banner ── */}
       <div className="ss-promo">

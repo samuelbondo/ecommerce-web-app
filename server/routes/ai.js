@@ -297,4 +297,20 @@ router.get('/chat/rate', authenticate, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── 12. Public ratings (no auth) ───────────────────────────────────────────────
+router.get('/chat/ratings/public', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT cr.rating, cr.comment, cr.created_at,
+        CONCAT(LEFT(u.name,1), REPEAT('*', GREATEST(LENGTH(SUBSTRING_INDEX(u.name,' ',1))-1,1)), ' ', LEFT(SUBSTRING_INDEX(u.name,' ',-1),1), '.') AS display_name
+       FROM conversation_ratings cr
+       JOIN users u ON cr.user_id = u.id
+       WHERE cr.is_public = 1 AND cr.comment IS NOT NULL AND cr.comment != ''
+       ORDER BY cr.created_at DESC
+       LIMIT 20`
+    );
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 module.exports = router;

@@ -14,6 +14,8 @@ export default function AdminLiveChat() {
   const [editMsgText, setEditMsgText] = useState('');
   const [ratingsStats, setRatingsStats] = useState({ avg_rating: null, total: 0 });
   const [convRating, setConvRating] = useState(null);
+  const [showRatings, setShowRatings] = useState(false);
+  const [allRatings, setAllRatings] = useState([]);
   const bottomRef = useRef(null);
   const pollRef = useRef(null);
 
@@ -42,9 +44,17 @@ export default function AdminLiveChat() {
 
   const openConversation = async (conv) => {
     setSelected(conv);
-    setConvRating(conv.customer_rating || null);
+    setConvRating(conv.customer_rating ? { rating: conv.customer_rating, is_public: false } : null);
     const res = await API.get(`/admin/conversations/${conv.id}/messages`);
     setMessages(res.data);
+    // fetch full rating with is_public
+    if (conv.customer_rating) {
+      API.get('/admin/conversations/ratings/all')
+        .then(r => {
+          const found = r.data.find(x => x.conversation_id === conv.id);
+          if (found) setConvRating(found);
+        }).catch(() => {});
+    }
   };
 
   // Poll for new messages in selected conversation
@@ -111,6 +121,17 @@ export default function AdminLiveChat() {
     setEditingMsgId(null);
   };
 
+  const openRatings = () => {
+    API.get('/admin/conversations/ratings/all').then(r => { setAllRatings(r.data); setShowRatings(true); }).catch(() => {});
+  };
+
+  const togglePublic = async (r) => {
+    await API.patch(`/admin/conversations/ratings/${r.id}/public`, { is_public: !r.is_public });
+    setAllRatings(prev => prev.map(x => x.id === r.id ? { ...x, is_public: !x.is_public } : x));
+    // refresh conv rating if it's the selected one
+    if (selected && r.conversation_id === selected.id) setConvRating(prev => ({ ...prev, is_public: !r.is_public }));
+  };
+
   const sendReply = async () => {
     if (!reply.trim()) return;
     await API.post(`/admin/conversations/${selected.id}/reply`, { content: reply.trim() });
@@ -145,6 +166,7 @@ export default function AdminLiveChat() {
               <span style={{ fontSize: '1rem' }}>⭐</span>
               <span style={{ fontWeight: 800, fontSize: '1rem', color: '#92400e' }}>{ratingsStats.avg_rating}</span>
               <span style={{ fontSize: '0.75rem', color: '#92400e' }}>/ 5 &nbsp;&middot;&nbsp; {ratingsStats.total} rating{ratingsStats.total !== 1 ? 's' : ''}</span>
+              <button onClick={openRatings} style={{ marginLeft: 6, padding: '3px 10px', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700 }}>Manage</button>
             </div>
           )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -271,9 +293,14 @@ export default function AdminLiveChat() {
 
               {/* Customer rating display */}
               {convRating && (
-                <div style={{ padding: '10px 16px', background: '#fffbeb', borderTop: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                <div style={{ padding: '10px 16px', background: '#fffbeb', borderTop: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#92400e' }}>Customer rated:</span>
-                  <span style={{ color: '#f59e0b', fontSize: '1rem', letterSpacing: 2 }}>{stars(convRating)}</span>
+                  <span style={{ color: '#f59e0b', fontSize: '1rem', letterSpacing: 2 }}>{stars(convRating.rating || convRating)}</span>
+                  {convRating.comment && <span style={{ fontSize: '0.78rem', color: '#6b7280', fontStyle: 'italic' }}>"{convRating.comment}"</span>}
+                  <button
+                    onClick={() => togglePublic(convRating)}
+                    style={{ marginLeft: 'auto', padding: '3px 12px', background: convRating.is_public ? '#10b981' : '#e5e7eb', color: convRating.is_public ? '#fff' : '#555', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700 }}
+                  >{convRating.is_public ? '🌍 Public' : '🔒 Private'}</button>
                 </div>
               )}
 
@@ -295,6 +322,45 @@ export default function AdminLiveChat() {
           )}
         </div>
       </div>
+
+      {/* Ratings management modal */}
+      {showRatings && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 640, maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ padding: '18px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: '1rem', color: '#1a1a2e' }}>⭐ Support Ratings</div>
+                <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: 2 }}>{allRatings.length} total · {allRatings.filter(r => r.is_public).length} public</div>
+              </div>
+              <button onClick={() => setShowRatings(false)} style={{ background: 'none', border: 'none', fontSize: '1.3rem', cursor: 'pointer', color: '#94a3b8' }}>×</button>
+            </div>
+            <div style={{ overflowY: 'auto', flex: 1 }}>
+              {allRatings.length === 0 && <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>No ratings yet</div>}
+              {allRatings.map(r => (
+                <div key={r.id} style={{ padding: '14px 20px', borderBottom: '1px solid #f8f9fb', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#e94560,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                    {r.customer_avatar
+                      ? <img src={r.customer_avatar} alt={r.customer_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : <span style={{ color: '#fff', fontWeight: 700, fontSize: '0.8rem' }}>{r.customer_name?.[0]}</span>}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                      <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#1a1a2e' }}>{r.customer_name}</span>
+                      <span style={{ color: '#f59e0b', fontSize: '0.9rem' }}>{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
+                      <span style={{ fontSize: '0.7rem', color: '#cbd5e1', marginLeft: 'auto' }}>{new Date(r.created_at).toLocaleDateString()}</span>
+                    </div>
+                    {r.comment && <div style={{ fontSize: '0.82rem', color: '#555', fontStyle: 'italic', marginBottom: 4 }}>"{ r.comment}"</div>}
+                  </div>
+                  <button
+                    onClick={() => togglePublic(r)}
+                    style={{ padding: '4px 12px', background: r.is_public ? '#10b981' : '#e5e7eb', color: r.is_public ? '#fff' : '#555', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, flexShrink: 0 }}
+                  >{r.is_public ? '🌍 Public' : '🔒 Private'}</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

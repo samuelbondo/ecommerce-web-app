@@ -569,6 +569,28 @@ router.get('/conversations/ratings', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// List all ratings with customer info (admin)
+router.get('/conversations/ratings/all', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT cr.*, u.name AS customer_name, u.avatar AS customer_avatar
+       FROM conversation_ratings cr
+       JOIN users u ON cr.user_id = u.id
+       ORDER BY cr.created_at DESC`
+    );
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Toggle public/private for a rating (admin)
+router.patch('/conversations/ratings/:id/public', async (req, res) => {
+  const { is_public } = req.body;
+  try {
+    await db.query('UPDATE conversation_ratings SET is_public=? WHERE id=?', [is_public ? 1 : 0, req.params.id]);
+    res.json({ message: is_public ? 'Rating made public' : 'Rating set to private' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.post('/conversations/:id/reply', async (req, res) => {
   const { content } = req.body;
   if (!content?.trim()) return res.status(400).json({ error: 'content required' });

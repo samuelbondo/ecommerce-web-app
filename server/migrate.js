@@ -462,10 +462,16 @@ async function migrate() {
         user_id INT NOT NULL,
         rating TINYINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
         comment TEXT DEFAULT NULL,
+        is_public TINYINT(1) DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )`,
+    },
+    {
+      desc: 'conversation_ratings.is_public',
+      check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='conversation_ratings' AND COLUMN_NAME='is_public'`,
+      sql: `ALTER TABLE conversation_ratings ADD COLUMN is_public TINYINT(1) DEFAULT 0`,
     },
   ];
 
