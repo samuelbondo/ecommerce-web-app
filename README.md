@@ -59,7 +59,10 @@ Developed as a final project for **EWA408510 – E-Commerce and Web Application*
 - **Profile** — avatar upload (base64, max 1.5MB), personal info edit, password change, login activity, linked accounts (Google/Facebook)
 - **Addresses** — up to 5 saved addresses, set default address, used automatically at checkout
 - **Reviews** — view all submitted reviews, edit rating/comment, delete review
-- **Notifications** — real notifications from DB, mark one as read, mark all as read, delete
+- **Messages** — full chat with AI assistant or live support agent
+  - Edit own messages within 15-minute window; soft-delete own messages
+  - Closed conversation shows resolved banner + 1–5 star rating prompt with optional comment
+  - Rating submitted once per conversation; existing rating shown on reload
 - **Settings** — notification preferences (email orders, email promos, newsletter, SMS) saved to DB
 
 ---
@@ -80,7 +83,11 @@ Developed as a final project for **EWA408510 – E-Commerce and Web Application*
 - **Inventory** — view all products sorted by stock, update stock levels, low stock and out-of-stock indicators
 - **Reviews** — list all reviews, approve/reject, admin reply, delete
 - **Banners** — manage homepage hero banners (title, subtitle, image, link, active toggle, sort order)
-- **Live Chat** — view all customer conversations, take over from AI, reply as admin, release back to AI, delete conversation
+- **Live Chat** — view all customer conversations, take over from AI, reply as admin, release back to AI, close conversation (ticket closure), delete conversation
+  - Per-message edit and hard-delete (admin moderation)
+  - Support rating KPI bar (average score + total count)
+  - Ratings management modal — toggle each rating Public or Private
+  - Public ratings feed the homepage testimonials section
 - **Reports** — monthly revenue chart (last 6 months), top 5 selling products
 - **Settings** — store name, currency, logo, contact info, social links — saved to DB
 - **My Profile** — admin can update their own avatar, name, email, password
@@ -104,7 +111,22 @@ Developed as a final project for **EWA408510 – E-Commerce and Web Application*
 - AI responds automatically to customer questions about products, orders, and the store
 - Admin can take over any conversation and reply manually
 - Admin can release conversation back to AI
+- Admin can close a resolved conversation (ticket closure)
+- Messages can be edited (15-min window) and soft-deleted by sender; admin can edit or hard-delete any message
 - All messages stored in DB (`conversations`, `conversation_messages` tables)
+
+### ⭐ Support Ratings _(distinct from product reviews)_
+- After admin closes a conversation, the customer receives a notification to rate their support experience
+- Customer submits a 1–5 star rating + optional comment from the Messages page
+- One rating per conversation, only allowed on closed conversations (enforced server-side)
+- Admin sees aggregate KPI (average score + total count) at the top of the Live Chat panel
+- Admin can manage all ratings — toggle each one **Public** or **Private**
+- Public ratings (with comments) appear as a **"What Customers Say"** testimonials section on the homepage
+- Customer names are masked server-side for privacy (e.g. `S*** B.`) — raw names never exposed publicly
+
+> **Product Reviews vs Support Ratings — not the same thing:**
+> - **Product Reviews** — a customer rates a *product* (stars + comment on the product page, admin can approve/reject/reply)
+> - **Support Ratings** — a customer rates a *support conversation* after it is resolved (how was the service?)
 
 ### 🔒 Privacy & Compliance
 - Privacy Policy page (`/privacy`) — GDPR + Meta App Review compliant
@@ -391,8 +413,9 @@ VITE_PAYPAL_CLIENT_ID=your_paypal_client_id
 | `banners` | Homepage hero banners |
 | `payments` | Payment records linked to orders |
 | `cart_items` | Cart items (alternative cart structure) |
-| `conversations` | Live chat conversations (AI + admin takeover) |
-| `conversation_messages` | Individual messages per conversation |
+| `conversations` | Live chat conversations (AI + admin takeover + close) |
+| `conversation_messages` | Individual messages — includes `edited_at`, `deleted_at` |
+| `conversation_ratings` | Post-resolution support ratings — includes `is_public` flag |
 
 ### Migration script
 
@@ -466,6 +489,13 @@ node migrate.js
 | PUT | `/api/notifications/read-all` | Mark all as read |
 | DELETE | `/api/notifications/:id` | Delete notification |
 | POST | `/api/ai/chat` | Send message to Gemini AI live chat |
+| GET | `/api/ai/chat/poll` | Poll for new admin messages (4s interval) |
+| GET | `/api/ai/chat/history` | Load conversation history |
+| PATCH | `/api/ai/chat/messages/:id` | Edit own message (15-min window) |
+| DELETE | `/api/ai/chat/messages/:id` | Soft-delete own message |
+| POST | `/api/ai/chat/rate` | Submit support rating (closed conversations only) |
+| GET | `/api/ai/chat/rate` | Get own rating for a conversation |
+| GET | `/api/ai/chat/ratings/public` | Public support ratings for homepage testimonials |
 | DELETE | `/api/auth/delete-data` | Permanently delete account + all user data |
 
 ---
@@ -524,8 +554,14 @@ node migrate.js
 | GET | `/api/admin/conversations/:id/messages` | Get messages for a conversation |
 | POST | `/api/admin/conversations/:id/takeover` | Admin takes over from AI |
 | POST | `/api/admin/conversations/:id/release` | Release back to AI |
+| POST | `/api/admin/conversations/:id/close` | Close conversation + notify customer to rate |
 | POST | `/api/admin/conversations/:id/reply` | Admin sends a reply |
+| PATCH | `/api/admin/conversations/:convId/messages/:id` | Admin edits any message |
+| DELETE | `/api/admin/conversations/:convId/messages/:id` | Admin hard-deletes any message |
 | DELETE | `/api/admin/conversations/:id` | Delete conversation |
+| GET | `/api/admin/conversations/ratings` | Support rating KPI (avg + total) |
+| GET | `/api/admin/conversations/ratings/all` | List all ratings with customer info |
+| PATCH | `/api/admin/conversations/ratings/:id/public` | Toggle rating public / private |
 
 ---
 
@@ -585,7 +621,10 @@ Step 3 — Set new password
 | SQL injection | Parameterized queries via mysql2 |
 | Input validation | `validate` middleware on all POST routes |
 | Secrets | Environment variables only — never committed |
-| Address limit | Max 5 addresses per user (enforced server + client) |
+| Chat message edit | 15-minute window, sender only, enforced server-side |
+| Chat message delete | Soft-delete (audit trail preserved); admin hard-delete for moderation |
+| Support ratings | One per conversation, only on closed conversations, JWT required |
+| Rating privacy | `is_public` defaults to `0` — admin must explicitly publish; names masked server-side |
 | Data deletion | `DELETE /api/auth/delete-data` — full cascade wipe |
 
 ---
