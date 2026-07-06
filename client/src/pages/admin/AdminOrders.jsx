@@ -164,12 +164,12 @@ export default function AdminOrders() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <button onClick={() => printInvoice(selected)} style={s.btnPrint}>🖨️ Print Invoice</button>
+                <button onClick={() => printInvoice(selected)} style={s.btnPrint}>🖨️ Print</button>
                 {selected.payment_status !== 'paid' && (
-                  <button onClick={() => markAsPaid(selected.id)} style={s.btnPaid}>💵 Mark as Paid</button>
+                  <button onClick={() => markAsPaid(selected.id)} style={s.btnPaid}>💵 Mark Paid</button>
                 )}
-                <button onClick={() => resendReceipt(selected.id, selected.customer_email)} style={s.btnResend}>📧 Resend Receipt</button>
-                <button onClick={() => setConfirmDeleteId(selected.id)} style={s.btnDanger}>🗑 Delete Order</button>
+                <button onClick={() => resendReceipt(selected.id, selected.customer_email)} style={s.btnResend}>📧 Resend</button>
+                <button onClick={() => setConfirmDeleteId(selected.id)} style={s.btnDanger}>🗑 Delete</button>
               </div>
             </div>
           </div>
@@ -275,10 +275,10 @@ const s = {
   statusBtns: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
   statusBtn: { padding: '6px 14px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontSize: '0.78rem', fontWeight: '600', textTransform: 'capitalize' },
   label: { fontSize: '0.8rem', fontWeight: '600', color: '#555' },
-  btnPrint: { padding: '10px', background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem' },
-  btnDanger: { padding: '8px 18px', borderRadius: '8px', border: 'none', background: '#ef4444', color: '#fff', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem' },
-  btnPaid: { padding: '8px 18px', borderRadius: '8px', border: 'none', background: '#10b981', color: '#fff', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem' },
-  btnResend: { padding: '8px 18px', borderRadius: '8px', border: 'none', background: '#3b82f6', color: '#fff', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem' },
+  btnPrint: { flex: '1 1 auto', padding: '10px', background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem' },
+  btnDanger: { flex: '1 1 auto', padding: '8px 12px', borderRadius: '8px', border: 'none', background: '#ef4444', color: '#fff', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem' },
+  btnPaid: { flex: '1 1 auto', padding: '8px 12px', borderRadius: '8px', border: 'none', background: '#10b981', color: '#fff', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem' },
+  btnResend: { flex: '1 1 auto', padding: '8px 12px', borderRadius: '8px', border: 'none', background: '#3b82f6', color: '#fff', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem' },
   btnCancel: { padding: '8px 18px', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontSize: '0.88rem' },
   dialog: { background: '#fff', borderRadius: '14px', padding: '28px', maxWidth: '340px', width: '90%' },
   dlgTitle: { margin: '0 0 8px', fontWeight: '700', color: '#1a1a2e' },
