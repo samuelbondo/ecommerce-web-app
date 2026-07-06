@@ -92,6 +92,7 @@ export default function ProductDetail() {
 
   const handleBuyNow = () => {
     for (let i = 0; i < qty; i++) addToCart(product, activeVariant);
+    if (!user) { navigate('/login?redirect=/checkout'); return; }
     navigate('/checkout');
   };
 
