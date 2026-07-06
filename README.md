@@ -126,7 +126,7 @@ Developed as a final project for **EWA408510 – E-Commerce and Web Application*
 #### AI Model Split
 | Feature | Model | Free Tier Limits |
 |---------|-------|------------------|
-| Live chat (customer messages) | `gemini-2.0-flash-lite` | 1500 RPD · 30 RPM · 1M TPM |
+| Live chat (customer messages) | `gemini-3.1-flash-lite-preview` | 500 RPD · 15 RPM · 250K TPM |
 | Admin features (product descriptions, semantic search, review summaries) | `gemini-2.5-flash-preview-05-20` | 20 RPD · 5 RPM · 250K TPM |
 
 > **RPD** = Requests Per Day · **RPM** = Requests Per Minute · **TPM** = Tokens Per Minute
@@ -173,7 +173,7 @@ Developed as a final project for **EWA408510 – E-Commerce and Web Application*
 | Auth | JWT (jsonwebtoken), bcryptjs, Passport.js, Google OAuth 2.0, Facebook OAuth 2.0 |
 | Payments | PayPal SDK (client-side), Cash on Delivery |
 | Email | Resend (order receipts, OTP, cancellations) |
-| AI | Google Gemini 2.0 Flash Lite (chat) + Gemini 2.5 Flash (admin features) |
+| AI | Google Gemini 3.1 Flash Lite (chat) + Gemini 2.5 Flash (admin features) |
 | File Upload | Cloudinary (product images, avatars) |
 | DevOps | Docker, Docker Compose, GitHub Actions |
 | Frontend Hosting | Vercel |
@@ -710,7 +710,7 @@ Step 3 — Set new password
 - Privacy Policy URL must be set in Meta App Dashboard: `https://samuel-store.vercel.app/privacy`
 
 **AI chat returns an error message**
-- The free tier has daily request limits (RPD). `gemini-2.0-flash-lite` allows 1500 requests/day for chat; `gemini-2.5-flash-preview-05-20` allows 20/day for admin features
+- The free tier has daily request limits (RPD). `gemini-3.1-flash-lite-preview` allows 500 requests/day for chat; `gemini-2.5-flash-preview-05-20` allows 20/day for admin features
 - If the limit is hit, the actual error appears in the chat bubble (not a generic message)
 - Check Render logs for `Gemini chatAssistant error:` to see the exact cause
 - To remove all RPD limits: add billing at https://aistudio.google.com
