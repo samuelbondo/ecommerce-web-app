@@ -4,6 +4,14 @@ import API from '../api';
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
 
+function LogoImg({ src, name, accent }) {
+  const [err, setErr] = useState(false);
+  if (src && !err)
+    return <img src={src} alt="logo" onError={() => setErr(true)}
+      style={{ width: 38, height: 38, borderRadius: 10, objectFit: 'cover', flexShrink: 0, display: 'block' }} />;
+  return <div className="ss-auth-logo-box">{(name || 'S')[0]}</div>;
+}
+
 export default function Register() {
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
   const [error, setError] = useState('');
@@ -131,7 +139,7 @@ export default function Register() {
       <div className="ss-auth-right">
         <div className="ss-auth-form-box">
           <Link to="/" className="ss-auth-logo">
-            <div className="ss-auth-logo-box">{(settings.site_name || 'S')[0]}</div>
+            <LogoImg src={settings.site_logo} name={settings.site_name} accent={accent} />
             <span className="ss-auth-logo-name">{settings.site_name || 'Samuel Store'}</span>
           </Link>
           <h1>Create account</h1>

@@ -5,6 +5,13 @@ import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
 import API from '../api';
 
+function LogoImg({ src, name, accent }) {
+  const [err, setErr] = useState(false);
+  if (src && !err)
+    return <img src={src} alt="logo" className="ss-logo" onError={() => setErr(true)} />;
+  return <div className="ss-logo-box">{(name || 'S')[0]}</div>;
+}
+
 // ── Defined OUTSIDE Navbar so it never gets recreated on parent re-render ──
 function SearchBar({ refProp, query, onChange, onSubmit, onSuggestionClick, suggestions, showDrop, formatPrice, accent }) {
   return (
@@ -190,13 +197,7 @@ export default function Navbar() {
       <nav className="ss-nav">
         <div className="ss-top">
           <Link to="/" className="ss-brand" onClick={close}>
-            {settings.site_logo ? (
-              <img src={settings.site_logo} alt="logo" className="ss-logo"
-                onError={e => { e.target.style.display = 'none'; }}
-              />
-            ) : (
-              <div className="ss-logo-box">{(settings.site_name || 'S')[0]}</div>
-            )}
+            <LogoImg src={settings.site_logo} name={settings.site_name} accent={accent} />
             <span className="ss-site-name">{settings.site_name || 'Samuel Store'}</span>
           </Link>
 

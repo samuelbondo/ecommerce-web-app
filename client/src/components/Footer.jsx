@@ -1,5 +1,14 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSettings } from '../context/SettingsContext';
+
+function LogoImg({ src, name, accent }) {
+  const [err, setErr] = useState(false);
+  if (src && !err)
+    return <img src={src} alt="logo" onError={() => setErr(true)}
+      style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', flexShrink: 0, display: 'block' }} />;
+  return <div className="ss-footer-logo-box">{(name || 'S')[0]}</div>;
+}
 
 export default function Footer() {
   const { settings } = useSettings();
@@ -39,14 +48,7 @@ export default function Footer() {
         {/* Brand */}
         <div>
           <Link to="/" className="ss-footer-brand">
-            {settings.site_logo ? (
-              <img src={settings.site_logo} alt="logo"
-                style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', flexShrink: 0, display: 'block' }}
-                onError={e => { e.target.style.display = 'none'; }}
-              />
-            ) : (
-              <div className="ss-footer-logo-box">{(settings.site_name || 'S')[0]}</div>
-            )}
+            <LogoImg src={settings.site_logo} name={settings.site_name} accent={accent} />
             <span className="ss-footer-site-name">{settings.site_name || 'Samuel Store'}</span>
           </Link>
           <p className="ss-footer-about">
