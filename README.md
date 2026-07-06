@@ -760,4 +760,3 @@ The deletion endpoint requires a valid JWT (`Authorization: Bearer <token>`) and
 
 **Samuel Bondo**
 UNILAK — Faculty of Computing and Information Sciences
--- Software Engineer
