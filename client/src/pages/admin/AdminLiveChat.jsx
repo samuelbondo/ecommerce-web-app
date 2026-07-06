@@ -10,6 +10,8 @@ export default function AdminLiveChat() {
   const [aiEnabled, setAiEnabled] = useState(true);
   const [toast, setToast] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [editingMsgId, setEditingMsgId] = useState(null);
+  const [editMsgText, setEditMsgText] = useState('');
   const bottomRef = useRef(null);
   const pollRef = useRef(null);
 
@@ -77,6 +79,23 @@ export default function AdminLiveChat() {
     setSelected(s => ({ ...s, status: 'open' }));
     setConversations(prev => prev.map(c => c.id === selected.id ? { ...c, status: 'open' } : c));
     notify('Conversation released back to AI');
+  };
+
+  const deleteMsg = async (msgId) => {
+    if (!window.confirm('Delete this message?')) return;
+    await API.delete(`/admin/conversations/${selected.id}/messages/${msgId}`);
+    setMessages(prev => prev.filter(m => m.id !== msgId));
+  };
+
+  const startEditMsg = (msg) => { setEditingMsgId(msg.id); setEditMsgText(msg.content); };
+
+  const submitEditMsg = async (msg) => {
+    if (!editMsgText.trim() || editMsgText.trim() === msg.content) { setEditingMsgId(null); return; }
+    try {
+      await API.patch(`/admin/conversations/${selected.id}/messages/${msg.id}`, { content: editMsgText.trim() });
+      setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, content: editMsgText.trim(), edited_at: new Date().toISOString() } : m));
+    } catch (err) { notify(err.response?.data?.error || 'Edit failed', 'error'); }
+    setEditingMsgId(null);
   };
 
   const sendReply = async () => {
@@ -171,21 +190,53 @@ export default function AdminLiveChat() {
               {/* Messages */}
               <div style={s.messages}>
                 {messages.map((m, i) => (
-                  <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: m.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: 10 }}>
+                  <div key={i}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: m.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: 10 }}
+                    onMouseEnter={e => { const a = e.currentTarget.querySelector('.alc-actions'); if (a) a.style.opacity = '1'; }}
+                    onMouseLeave={e => { const a = e.currentTarget.querySelector('.alc-actions'); if (a) a.style.opacity = '0'; }}
+                  >
                     <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginBottom: 3, paddingLeft: 4, paddingRight: 4 }}>
                       {m.role === 'user' ? 'Customer' : m.role === 'admin' ? '👤 You' : '🤖 AI'}
                     </div>
-                    <div style={{
-                      maxWidth: '75%', padding: '10px 14px', borderRadius: 14, fontSize: '0.88rem', lineHeight: 1.5,
-                      background: m.role === 'user' ? '#f1f5f9' : m.role === 'admin' ? '#1a1a2e' : '#eff6ff',
-                      color: m.role === 'admin' ? '#fff' : '#1a1a2e',
-                      borderBottomRightRadius: m.role === 'user' ? 4 : 14,
-                      borderBottomLeftRadius: m.role !== 'user' ? 4 : 14,
-                    }}>
-                      {m.content}
-                    </div>
+                    {editingMsgId === m.id ? (
+                      <div style={{ display: 'flex', gap: 6, maxWidth: '75%' }}>
+                        <textarea
+                          autoFocus
+                          value={editMsgText}
+                          onChange={e => setEditMsgText(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitEditMsg(m); } if (e.key === 'Escape') setEditingMsgId(null); }}
+                          style={s.replyInput}
+                          rows={2}
+                        />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <button onClick={() => submitEditMsg(m)} style={{ padding: '4px 10px', background: '#10b981', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>Save</button>
+                          <button onClick={() => setEditingMsgId(null)} style={{ padding: '4px 10px', background: '#e5e7eb', color: '#555', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.75rem' }}>Cancel</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, flexDirection: m.role === 'user' ? 'row-reverse' : 'row' }}>
+                        <div style={{
+                          maxWidth: '75%', padding: '10px 14px', borderRadius: 14, fontSize: '0.88rem', lineHeight: 1.5,
+                          background: m.role === 'user' ? '#f1f5f9' : m.role === 'admin' ? '#1a1a2e' : '#eff6ff',
+                          color: m.role === 'admin' ? '#fff' : '#1a1a2e',
+                          borderBottomRightRadius: m.role === 'user' ? 4 : 14,
+                          borderBottomLeftRadius: m.role !== 'user' ? 4 : 14,
+                          fontStyle: m.deleted_at ? 'italic' : 'normal',
+                          opacity: m.deleted_at ? 0.5 : 1,
+                        }}>
+                          {m.deleted_at ? '🚫 Deleted by admin' : m.content}
+                        </div>
+                        {!m.deleted_at && (
+                          <div className="alc-actions" style={{ display: 'flex', flexDirection: 'column', gap: 3, opacity: 0, transition: 'opacity 0.15s' }}>
+                            <button onClick={() => startEditMsg(m)} title="Edit" style={s.msgActionBtn}>✏️</button>
+                            <button onClick={() => deleteMsg(m.id)} title="Delete" style={{ ...s.msgActionBtn, color: '#ef4444' }}>🗑</button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <div style={{ fontSize: '0.65rem', color: '#cbd5e1', marginTop: 2, paddingLeft: 4, paddingRight: 4 }}>
                       {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {m.edited_at && !m.deleted_at && <span style={{ marginLeft: 4 }}>(edited)</span>}
                     </div>
                   </div>
                 ))}
@@ -236,4 +287,5 @@ const s = {
   btnTakeover: { padding: '6px 14px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700 },
   btnRelease: { padding: '6px 14px', background: '#10b981', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700 },
   btnDel: { padding: '6px 10px', background: '#fff', color: '#ef4444', border: '1px solid #fecaca', borderRadius: 8, cursor: 'pointer', fontSize: '0.82rem' },
+  msgActionBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', padding: '2px 4px', borderRadius: 4, lineHeight: 1 },
 };

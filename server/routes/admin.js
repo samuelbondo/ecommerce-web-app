@@ -518,7 +518,7 @@ router.get('/conversations', async (req, res) => {
 router.get('/conversations/:id/messages', async (req, res) => {
   try {
     const [rows] = await db.query(
-      'SELECT * FROM conversation_messages WHERE conversation_id=? ORDER BY created_at ASC',
+      'SELECT id, role, content, edited_at, deleted_at, created_at FROM conversation_messages WHERE conversation_id=? ORDER BY created_at ASC',
       [req.params.id]
     );
     res.json(rows);
@@ -553,6 +553,33 @@ router.delete('/conversations/:id', async (req, res) => {
   try {
     await db.query('DELETE FROM conversations WHERE id=?', [req.params.id]);
     res.json({ message: 'Conversation deleted' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Admin edits any message
+router.patch('/conversations/:convId/messages/:id', async (req, res) => {
+  const { content } = req.body;
+  if (!content?.trim()) return res.status(400).json({ error: 'content required' });
+  if (content.trim().length > 2000) return res.status(400).json({ error: 'Message too long' });
+  try {
+    const [[msg]] = await db.query(
+      'SELECT id FROM conversation_messages WHERE id=? AND conversation_id=? AND deleted_at IS NULL',
+      [req.params.id, req.params.convId]
+    );
+    if (!msg) return res.status(404).json({ error: 'Message not found' });
+    await db.query('UPDATE conversation_messages SET content=?, edited_at=NOW() WHERE id=?', [content.trim(), req.params.id]);
+    res.json({ message: 'Message updated' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Admin hard-deletes any message (moderation)
+router.delete('/conversations/:convId/messages/:id', async (req, res) => {
+  try {
+    await db.query(
+      'DELETE FROM conversation_messages WHERE id=? AND conversation_id=?',
+      [req.params.id, req.params.convId]
+    );
+    res.json({ message: 'Message deleted' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

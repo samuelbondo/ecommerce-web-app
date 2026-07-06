@@ -436,9 +436,22 @@ async function migrate() {
         conversation_id VARCHAR(64) NOT NULL,
         role ENUM('user','assistant','admin') NOT NULL,
         content TEXT NOT NULL,
+        edited_at TIMESTAMP NULL DEFAULT NULL,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
       )`,
+    },
+    // conversation_messages — edit/delete support
+    {
+      desc: 'conversation_messages.edited_at',
+      check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='conversation_messages' AND COLUMN_NAME='edited_at'`,
+      sql: `ALTER TABLE conversation_messages ADD COLUMN edited_at TIMESTAMP NULL DEFAULT NULL`,
+    },
+    {
+      desc: 'conversation_messages.deleted_at',
+      check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='conversation_messages' AND COLUMN_NAME='deleted_at'`,
+      sql: `ALTER TABLE conversation_messages ADD COLUMN deleted_at TIMESTAMP NULL DEFAULT NULL`,
     },
   ];
 

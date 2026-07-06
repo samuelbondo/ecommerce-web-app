@@ -22,6 +22,8 @@ export default function DashMessages() {
   const [takenOver, setTakenOver] = useState(false);
   const [adminInfo, setAdminInfo] = useState({ name: null, avatar: null });
   const [initialized, setInitialized] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editText, setEditText] = useState('');
   const bottomRef = useRef(null);
   const pollRef = useRef(null);
   const lastMsgIdRef = useRef(0);
@@ -38,6 +40,9 @@ export default function DashMessages() {
             content: m.content,
             suggested: [],
             _id: m.id,
+            edited_at: m.edited_at,
+            deleted_at: m.deleted_at,
+            created_at: m.created_at,
           })));
           lastMsgIdRef.current = r.data.messages[r.data.messages.length - 1]?.id || 0;
           if (r.data.taken_over) setTakenOver(true);
@@ -71,7 +76,7 @@ export default function DashMessages() {
             setMessages(prev => {
               if (prev.some(p => p._id === m.id)) return prev;
               lastMsgIdRef.current = m.id;
-              return [...prev, { role: 'admin', content: m.content, suggested: [], _id: m.id }];
+              return [...prev, { role: 'admin', content: m.content, suggested: [], _id: m.id, created_at: m.created_at }];
             });
           });
         }
@@ -86,6 +91,26 @@ export default function DashMessages() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const deleteMsg = async (msg) => {
+    await API.delete(`/ai/chat/messages/${msg._id}?session_id=${sessionId.current}`);
+    setMessages(prev => prev.map(m => m._id === msg._id ? { ...m, deleted_at: new Date().toISOString() } : m));
+  };
+
+  const startEdit = (msg) => { setEditingId(msg._id); setEditText(msg.content); };
+
+  const submitEdit = async (msg) => {
+    if (!editText.trim() || editText.trim() === msg.content) { setEditingId(null); return; }
+    try {
+      await API.patch(`/ai/chat/messages/${msg._id}`, { content: editText.trim(), session_id: sessionId.current });
+      setMessages(prev => prev.map(m => m._id === msg._id ? { ...m, content: editText.trim(), edited_at: new Date().toISOString() } : m));
+    } catch (err) {
+      alert(err.response?.data?.error || 'Edit failed');
+    }
+    setEditingId(null);
+  };
+
+  const canEdit = (msg) => msg.role === 'user' && !msg.deleted_at && (Date.now() - new Date(msg.created_at).getTime() < 15 * 60 * 1000);
 
   const send = useCallback(async (text) => {
     const msg = (text || input).trim();
@@ -167,16 +192,51 @@ export default function DashMessages() {
           <div style={s.takeoverBanner}>👤 A support agent has joined the conversation</div>
         )}
         {messages.map((m, i) => (
-          <div key={i} style={s.msgWrap}>
-            <div
-              className={`dm-msg ${m.role === 'user' ? 'dm-msg-user' : m.role === 'admin' ? 'dm-msg-admin' : 'dm-msg-bot'}`}
-              style={s.msg}
-              dangerouslySetInnerHTML={m.role !== 'user' ? renderContent(m.content) : undefined}
-            >
-              {m.role === 'user' ? m.content : undefined}
-            </div>
+          <div key={i} style={s.msgWrap}
+            onMouseEnter={e => e.currentTarget.querySelector('.dm-actions')?.style && (e.currentTarget.querySelector('.dm-actions').style.opacity = '1')}
+            onMouseLeave={e => e.currentTarget.querySelector('.dm-actions')?.style && (e.currentTarget.querySelector('.dm-actions').style.opacity = '0')}
+          >
+            {m.deleted_at ? (
+              <div style={{ ...s.msg, background: '#f1f5f9', color: '#94a3b8', fontStyle: 'italic', alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                🚫 This message was deleted
+              </div>
+            ) : editingId === m._id ? (
+              <div style={{ display: 'flex', gap: 6, alignSelf: 'flex-end', maxWidth: '72%' }}>
+                <textarea
+                  autoFocus
+                  value={editText}
+                  onChange={e => setEditText(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitEdit(m); } if (e.key === 'Escape') setEditingId(null); }}
+                  style={{ ...s.input, minWidth: 200 }}
+                  rows={2}
+                />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <button onClick={() => submitEdit(m)} style={{ padding: '4px 10px', background: '#10b981', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>Save</button>
+                  <button onClick={() => setEditingId(null)} style={{ padding: '4px 10px', background: '#e5e7eb', color: '#555', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.75rem' }}>Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', flexDirection: m.role === 'user' ? 'row-reverse' : 'row' }}>
+                <div
+                  className={`dm-msg ${m.role === 'user' ? 'dm-msg-user' : m.role === 'admin' ? 'dm-msg-admin' : 'dm-msg-bot'}`}
+                  style={s.msg}
+                  dangerouslySetInnerHTML={m.role !== 'user' ? renderContent(m.content) : undefined}
+                >
+                  {m.role === 'user' ? m.content : undefined}
+                </div>
+                {m.role === 'user' && (
+                  <div className="dm-actions" style={{ display: 'flex', flexDirection: 'column', gap: 3, opacity: 0, transition: 'opacity 0.15s' }}>
+                    {canEdit(m) && (
+                      <button onClick={() => startEdit(m)} title="Edit" style={s.actionBtn}>✏️</button>
+                    )}
+                    <button onClick={() => deleteMsg(m)} title="Delete" style={{ ...s.actionBtn, color: '#ef4444' }}>🗑</button>
+                  </div>
+                )}
+              </div>
+            )}
             <div style={{ ...s.time, alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
-              {m.role === 'admin' ? '👤 Support' : m.role === 'assistant' ? '🤖 AI' : 'You'} · {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {m.role === 'admin' ? '👤 Support' : m.role === 'assistant' ? '🤖 AI' : 'You'} · {new Date(m.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {m.edited_at && !m.deleted_at && <span style={{ marginLeft: 4, color: '#cbd5e1' }}>(edited)</span>}
             </div>
           </div>
         ))}
@@ -244,4 +304,5 @@ const s = {
   input: { flex: 1, padding: '11px 14px', border: '1.5px solid #e5e7eb', borderRadius: 12, fontSize: '0.9rem', outline: 'none', resize: 'none', fontFamily: 'inherit', maxHeight: 100, lineHeight: 1.4, transition: 'border-color 0.15s' },
   send: { width: 42, height: 42, borderRadius: 12, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' },
   powered: { textAlign: 'center', fontSize: '0.68rem', color: '#cbd5e1', padding: '6px 0 10px', background: '#fff', flexShrink: 0 },
+  actionBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', padding: '2px 4px', borderRadius: 4, lineHeight: 1 },
 };

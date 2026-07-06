@@ -167,7 +167,7 @@ router.post('/translate', async (req, res) => {
   res.json({ translated: result.text });
 });
 
-// ── 6. Poll for new admin messages (public) ───────────────────────────────────────
+// ── 6. Poll for new admin messages (public) ─────────────────────────────────
 router.get('/chat/poll', async (req, res) => {
   const { session_id, last_id = 0 } = req.query;
   if (!session_id) return res.status(400).json({ error: 'session_id required' });
@@ -201,10 +201,64 @@ router.get('/chat/history', async (req, res) => {
     const [[conv]] = await db.query('SELECT status FROM conversations WHERE id=?', [session_id]);
     if (!conv) return res.json({ messages: [], taken_over: false });
     const [msgs] = await db.query(
-      'SELECT id, role, content, created_at FROM conversation_messages WHERE conversation_id=? ORDER BY created_at ASC',
+      'SELECT id, role, content, edited_at, deleted_at, created_at FROM conversation_messages WHERE conversation_id=? ORDER BY created_at ASC',
       [session_id]
     );
     res.json({ messages: msgs, taken_over: conv.status === 'taken_over' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// helper: resolve userId from optional JWT
+function resolveUser(req) {
+  try {
+    const jwt = require('jsonwebtoken');
+    const token = req.headers.authorization?.split(' ')[1];
+    if (token) return jwt.verify(token, process.env.JWT_SECRET).id;
+  } catch {}
+  return null;
+}
+
+// ── 8. Customer edits own message (15-min window) ─────────────────────────────
+router.patch('/chat/messages/:id', async (req, res) => {
+  const { content, session_id } = req.body;
+  if (!content?.trim()) return res.status(400).json({ error: 'content required' });
+  if (content.trim().length > 2000) return res.status(400).json({ error: 'Message too long' });
+  const userId = resolveUser(req);
+  try {
+    const [[msg]] = await db.query(
+      'SELECT * FROM conversation_messages WHERE id=? AND deleted_at IS NULL',
+      [req.params.id]
+    );
+    if (!msg) return res.status(404).json({ error: 'Message not found' });
+    if (msg.role !== 'user') return res.status(403).json({ error: 'Can only edit your own messages' });
+    const [[conv]] = await db.query('SELECT user_id FROM conversations WHERE id=?', [msg.conversation_id]);
+    if (!conv) return res.status(404).json({ error: 'Conversation not found' });
+    const isOwner = (userId && conv.user_id === userId) || (session_id && msg.conversation_id === session_id);
+    if (!isOwner) return res.status(403).json({ error: 'Forbidden' });
+    if (Date.now() - new Date(msg.created_at).getTime() > 15 * 60 * 1000)
+      return res.status(403).json({ error: 'Edit window expired (15 minutes)' });
+    await db.query('UPDATE conversation_messages SET content=?, edited_at=NOW() WHERE id=?', [content.trim(), req.params.id]);
+    res.json({ message: 'Message updated' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── 9. Customer soft-deletes own message ──────────────────────────────────────
+router.delete('/chat/messages/:id', async (req, res) => {
+  const { session_id } = req.query;
+  const userId = resolveUser(req);
+  try {
+    const [[msg]] = await db.query(
+      'SELECT * FROM conversation_messages WHERE id=? AND deleted_at IS NULL',
+      [req.params.id]
+    );
+    if (!msg) return res.status(404).json({ error: 'Message not found' });
+    if (msg.role !== 'user') return res.status(403).json({ error: 'Can only delete your own messages' });
+    const [[conv]] = await db.query('SELECT user_id FROM conversations WHERE id=?', [msg.conversation_id]);
+    if (!conv) return res.status(404).json({ error: 'Conversation not found' });
+    const isOwner = (userId && conv.user_id === userId) || (session_id && msg.conversation_id === session_id);
+    if (!isOwner) return res.status(403).json({ error: 'Forbidden' });
+    await db.query('UPDATE conversation_messages SET deleted_at=NOW() WHERE id=?', [req.params.id]);
+    res.json({ message: 'Message deleted' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
