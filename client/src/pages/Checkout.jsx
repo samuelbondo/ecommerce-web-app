@@ -31,6 +31,7 @@ export default function Checkout() {
   const [form, setForm] = useState({ fullName: user?.name || '', email: user?.email || '', phone: '', address: '', city: '' });
   const [errors, setErrors] = useState({});
   const [payMethod, setPayMethod] = useState('paypal');
+  const [ordered, setOrdered] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -135,6 +136,7 @@ export default function Checkout() {
             payment_status: 'paid',
             payment_id: details.id,
           });
+          setOrdered(true);
           clearCart();
           navigate('/order-confirmation', {
             state: { orderId: res.data.orderId, form, total, paymentMethod: 'paypal', paymentId: details.id },
@@ -151,6 +153,7 @@ export default function Checkout() {
   const handleCOD = async () => {
     const errs = validate();
     if (Object.keys(errs).length) return setErrors(errs);
+    setErrors({});
     try {
       const items = cart.map(i => ({ product_id: i.product_id || i.id, variant_id: i.variant_id || null, quantity: i.quantity, price: i.price }));
       const res = await API.post('/orders', {
@@ -159,14 +162,20 @@ export default function Checkout() {
         payment_method: 'cod',
         payment_status: 'pending',
       });
+      setOrdered(true);
       clearCart();
       navigate('/order-confirmation', { state: { orderId: res.data.orderId, form, total, paymentMethod: 'cod' } });
-    } catch {
-      setErrors({ submit: 'Order failed. Please try again.' });
+    } catch (err) {
+      const msg = err?.response?.data?.error || err?.message || '';
+      if (!err?.response || err?.code === 'ECONNABORTED' || msg.includes('timeout') || msg.includes('network')) {
+        setErrors({ submit: 'Server is waking up. Please wait 30 seconds and try again.' });
+      } else {
+        setErrors({ submit: `Order failed: ${msg || 'Please try again.'}` });
+      }
     }
   };
 
-  if (!cart.length) { navigate('/cart'); return null; }
+  if (!cart.length && !ordered) { navigate('/cart'); return null; }
 
   const showConversion = paypalCurrency !== currency;
 
