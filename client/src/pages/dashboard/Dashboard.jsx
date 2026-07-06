@@ -6,11 +6,13 @@ import Overview from './Overview';
 import DashOrders from './DashOrders';
 import DashProfile from './DashProfile';
 import DashAddresses from './DashAddresses';
+import DashMessages from './DashMessages';
 import { DashReviews, DashNotifications, DashSettings } from './DashExtras';
 
 const NAV = [
   { to: '', icon: '🏠', label: 'Overview' },
   { to: 'orders', icon: '📦', label: 'My Orders' },
+  { to: 'messages', icon: '💬', label: 'Messages' },
   { to: 'profile', icon: '👤', label: 'Profile' },
   { to: 'addresses', icon: '📍', label: 'Addresses' },
   { to: 'reviews', icon: '⭐', label: 'Reviews' },
@@ -21,6 +23,7 @@ const NAV = [
 const BREADCRUMB_MAP = {
   '/dashboard': 'Overview',
   '/dashboard/orders': 'My Orders',
+  '/dashboard/messages': 'Messages',
   '/dashboard/profile': 'Profile',
   '/dashboard/addresses': 'Addresses',
   '/dashboard/reviews': 'Reviews',
@@ -179,6 +182,7 @@ export default function Dashboard() {
           <Routes>
             <Route index element={<Overview />} />
             <Route path="orders" element={<DashOrders />} />
+            <Route path="messages" element={<DashMessages />} />
             <Route path="profile" element={<DashProfile />} />
             <Route path="addresses" element={<DashAddresses />} />
             <Route path="reviews" element={<DashReviews />} />

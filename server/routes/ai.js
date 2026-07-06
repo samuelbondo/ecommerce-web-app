@@ -182,4 +182,19 @@ router.get('/chat/poll', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── 7. Load conversation history for dashboard ───────────────────────────────
+router.get('/chat/history', async (req, res) => {
+  const { session_id } = req.query;
+  if (!session_id) return res.status(400).json({ error: 'session_id required' });
+  try {
+    const [[conv]] = await db.query('SELECT status FROM conversations WHERE id=?', [session_id]);
+    if (!conv) return res.json({ messages: [], taken_over: false });
+    const [msgs] = await db.query(
+      'SELECT id, role, content, created_at FROM conversation_messages WHERE conversation_id=? ORDER BY created_at ASC',
+      [session_id]
+    );
+    res.json({ messages: msgs, taken_over: conv.status === 'taken_over' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 module.exports = router;

@@ -75,6 +75,7 @@ function Layout() {
       const dashTitles = {
         '/dashboard': `Dashboard — ${siteName}`,
         '/dashboard/orders': `My Orders — ${siteName}`,
+        '/dashboard/messages': `Messages — ${siteName}`,
         '/dashboard/profile': `Profile — ${siteName}`,
         '/dashboard/addresses': `Addresses — ${siteName}`,
         '/dashboard/reviews': `My Reviews — ${siteName}`,

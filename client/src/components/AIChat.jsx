@@ -58,6 +58,9 @@ export default function AIChat() {
   const accent = settings.accent_color || '#e94560';
   const siteName = settings.site_name || 'Samuel Store';
 
+  // Logged-in users use dashboard Messages instead
+  if (user) return null;
+
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
