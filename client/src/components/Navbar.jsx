@@ -127,9 +127,9 @@ export default function Navbar() {
         .ss-nav { position: sticky; top: 0; z-index: 1000; background: #1a1a2e; box-shadow: 0 2px 12px rgba(0,0,0,0.18); }
         .ss-top { max-width: 1200px; margin: 0 auto; padding: 0 20px; height: 64px; display: flex; align-items: center; gap: 16px; }
         .ss-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
-        .ss-logo { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; }
+        .ss-logo { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; flex-shrink: 0; display: block; }
         .ss-logo-box { width: 36px; height: 36px; border-radius: 8px; background: ${accent}; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 1.1rem; flex-shrink: 0; }
-        .ss-site-name { color: ${accent}; font-weight: 800; font-size: 1.2rem; letter-spacing: -0.3px; white-space: nowrap; }
+        .ss-site-name { color: ${accent}; font-weight: 800; font-size: 1.2rem; letter-spacing: -0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
         .ss-search-desktop { flex: 1; max-width: 500px; }
         .ss-search-form { display: flex; align-items: center; background: rgba(255,255,255,0.08); border: 1.5px solid rgba(255,255,255,0.15); border-radius: 10px; transition: all 0.2s; }
         .ss-search-form:focus-within { background: #fff !important; border-color: #fff !important; box-shadow: 0 0 0 3px rgba(233,69,96,0.2); }
@@ -191,9 +191,13 @@ export default function Navbar() {
         <div className="ss-top">
           <Link to="/" className="ss-brand" onClick={close}>
             {settings.site_logo
-              ? <img src={settings.site_logo} alt="logo" className="ss-logo" />
-              : <div className="ss-logo-box">{(settings.site_name || 'S')[0]}</div>
-            }
+              ? <img src={settings.site_logo} alt="logo" className="ss-logo"
+                  onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                />
+              : null}
+            <div className="ss-logo-box" style={{ display: settings.site_logo ? 'none' : 'flex' }}>
+              {(settings.site_name || 'S')[0]}
+            </div>
             <span className="ss-site-name">{settings.site_name || 'Samuel Store'}</span>
           </Link>
 
