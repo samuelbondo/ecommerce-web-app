@@ -34,7 +34,7 @@ export default function Login() {
   }, []);
 
   useEffect(() => {
-    if (user) navigate(redirectTo || (user.role === 'admin' ? '/admin' : '/dashboard'), { replace: true });
+    if (user) navigate(fromCheckout ? '/cart' : (redirectTo || (user.role === 'admin' ? '/admin' : '/dashboard')), { replace: true });
   }, [user]);
 
   // Listen for OAuth popup message
@@ -43,7 +43,7 @@ export default function Login() {
       if (e.origin !== window.location.origin) return;
       if (e.data?.type === 'oauth_success') {
         login(e.data.user, e.data.token);
-        navigate(redirectTo || (e.data.user.role === 'admin' ? '/admin' : '/dashboard'), { replace: true });
+        navigate(fromCheckout ? '/cart' : (redirectTo || (e.data.user.role === 'admin' ? '/admin' : '/dashboard')), { replace: true });
       }
     };
     window.addEventListener('message', handler);
@@ -79,7 +79,7 @@ export default function Login() {
     try {
       const res = await API.post('/auth/login', form);
       login(res.data.user, res.data.token);
-      navigate(redirectTo || (res.data.user.role === 'admin' ? '/admin' : '/dashboard'));
+      navigate(fromCheckout ? '/cart' : (redirectTo || (res.data.user.role === 'admin' ? '/admin' : '/dashboard')));
     } catch (err) {
       setError(err.response?.data?.error || 'Invalid email or password');
     } finally {
