@@ -4,9 +4,45 @@ const db = require('../config/db');
 const bcrypt = require('bcryptjs');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 const { Resend } = require('resend');
+const { buildReceiptHTML } = require('../utils/emailTemplates');
+const Order = require('../models/orderModel');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 router.use(authenticate, requireAdmin);
+
+async function sendOrderEmail(orderId, subject, extraNote = '') {
+  try {
+    const [[order]] = await db.query(
+      `SELECT o.*, u.name AS u_name, u.email AS u_email FROM orders o LEFT JOIN users u ON o.user_id=u.id WHERE o.id=?`,
+      [orderId]
+    );
+    if (!order) return;
+    const emailTo = order.customer_email || order.u_email;
+    if (!emailTo) return;
+    const [items] = await Order.findItemsByOrder(orderId);
+    const html = buildReceiptHTML({
+      id: order.id,
+      customer_name: order.customer_name || order.u_name || 'Customer',
+      customer_email: emailTo,
+      customer_phone: order.customer_phone || '',
+      customer_address: order.customer_address || '',
+      payment_method: order.payment_method || 'cod',
+      payment_status: order.payment_status || 'pending',
+      total: order.total,
+      items,
+      created_at: order.created_at,
+      extraNote,
+    });
+    await resend.emails.send({
+      from: `Samuel Store <${process.env.MAIL_FROM || 'no-reply@samuelstore.com'}>`,
+      to: emailTo,
+      subject,
+      html,
+    });
+  } catch (err) {
+    console.error('sendOrderEmail failed:', err.message);
+  }
+}
 
 // ── Stats ──────────────────────────────────────────────
 router.get('/stats', async (req, res) => {
@@ -252,6 +288,10 @@ router.put('/orders/:id/status', async (req, res) => {
   const { status } = req.body;
   try {
     await db.query('UPDATE orders SET status=? WHERE id=?', [status, req.params.id]);
+    // Email customer on cancelled
+    if (status === 'cancelled') {
+      sendOrderEmail(req.params.id, `❌ Order #${req.params.id} Cancelled | Samuel Store`, 'Your order has been cancelled. Contact us if you have questions.');
+    }
     res.json({ message: 'Order status updated' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -263,6 +303,10 @@ router.put('/orders/:id/payment-status', async (req, res) => {
     return res.status(400).json({ error: 'Invalid payment_status' });
   try {
     await db.query('UPDATE orders SET payment_status=? WHERE id=?', [payment_status, req.params.id]);
+    // Email customer when marked as paid
+    if (payment_status === 'paid') {
+      sendOrderEmail(req.params.id, `✅ Payment Confirmed — Order #${req.params.id} | Samuel Store`);
+    }
     res.json({ message: `Payment status updated to ${payment_status}` });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

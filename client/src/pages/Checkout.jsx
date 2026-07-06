@@ -135,6 +135,10 @@ export default function Checkout() {
             payment_method: 'paypal',
             payment_status: 'paid',
             payment_id: details.id,
+            customer_name: form.fullName,
+            customer_email: form.email,
+            customer_phone: form.phone,
+            customer_address: `${form.address}, ${form.city}`,
           });
           setOrdered(true);
           clearCart();
@@ -161,6 +165,10 @@ export default function Checkout() {
         items,
         payment_method: 'cod',
         payment_status: 'pending',
+        customer_name: form.fullName,
+        customer_email: form.email,
+        customer_phone: form.phone,
+        customer_address: `${form.address}, ${form.city}`,
       });
       setOrdered(true);
       clearCart();

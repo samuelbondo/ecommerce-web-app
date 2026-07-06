@@ -16,6 +16,7 @@
  * @param {number} order.total
  * @param {Array}  order.items           — [{ name, variant_name, quantity, price }]
  * @param {string} order.created_at
+ * @param {string} order.extraNote    — (optional) extra message shown at top of email
  * @returns {string} HTML string
  */
 function buildReceiptHTML(order) {
@@ -70,6 +71,16 @@ function buildReceiptHTML(order) {
             <p style="color:#a0aec0;margin:12px 0 0;font-size:0.85rem;letter-spacing:2px;text-transform:uppercase;">Order Confirmation</p>
           </td>
         </tr>
+
+        <!-- Extra Note (cancellation, etc.) -->
+        ${order.extraNote ? `
+        <tr>
+          <td style="padding:0 40px 0;">
+            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px 18px;margin-bottom:8px;">
+              <div style="font-size:0.85rem;color:#dc2626;font-weight:600;">${order.extraNote}</div>
+            </div>
+          </td>
+        </tr>` : ''}
 
         <!-- Success Banner -->
         <tr>
