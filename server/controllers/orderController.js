@@ -41,12 +41,21 @@ const placeOrder = asyncHandler(async (req, res) => {
   await Cart.clearByUser(user_id);
 
   // Send receipt email (non-blocking — don't fail the order if email fails)
-  const emailTo = customer_email || req.user?.email;
+  let emailTo = customer_email;
+  let emailName = customer_name;
+  if (!emailTo) {
+    // customer_email not sent from frontend — fetch from DB
+    try {
+      const [[u]] = await db.query('SELECT email, name FROM users WHERE id=?', [user_id]);
+      emailTo = u?.email;
+      emailName = emailName || u?.name;
+    } catch (_) {}
+  }
   if (emailTo) {
     const [itemRows] = await Order.findItemsByOrder(orderId);
     const html = buildReceiptHTML({
       id: orderId,
-      customer_name: customer_name || req.user?.name || 'Customer',
+      customer_name: emailName || 'Customer',
       customer_email: emailTo,
       customer_phone: customer_phone || '',
       customer_address: customer_address || '',
