@@ -60,8 +60,9 @@ export default function Dashboard() {
           transition: transform 0.25s ease;
         }
         .dash-main { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; height: 100vh; }
-        .dash-content { flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; }
-        .dash-content-fill { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+        .dash-content { flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; display: flex; flex-direction: column; }
+        .dash-content > * { flex-shrink: 0; }
+        .dash-content > .dm-fill { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
         .dash-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 98; }
         /* Overview table responsive */
         .dash-order-table { display: flex; flex-direction: column; }
@@ -183,9 +184,7 @@ export default function Dashboard() {
           <Routes>
             <Route index element={<Overview />} />
             <Route path="orders" element={<DashOrders />} />
-            <Route path="messages" element={
-              <div className="dash-content-fill"><DashMessages /></div>
-            } />
+            <Route path="messages" element={<div className="dm-fill"><DashMessages /></div>} />
             <Route path="profile" element={<DashProfile />} />
             <Route path="addresses" element={<DashAddresses />} />
             <Route path="reviews" element={<DashReviews />} />
