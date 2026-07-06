@@ -356,7 +356,7 @@ export default function DashMessages() {
 }
 
 const s = {
-  page: { display: 'flex', flexDirection: 'column', height: 'calc(100vh - 60px)', background: '#f8f9fb', overflow: 'hidden' },
+  page: { display: 'flex', flexDirection: 'column', flex: 1, background: '#f8f9fb', overflow: 'hidden', minHeight: 0 },
   header: { background: '#fff', padding: '16px 20px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 },
   headerLeft: { display: 'flex', alignItems: 'center', gap: 12 },
   avatar: { width: 42, height: 42, borderRadius: '50%', background: 'linear-gradient(135deg,#e94560,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 },
