@@ -172,13 +172,24 @@ router.get('/chat/poll', async (req, res) => {
   const { session_id, last_id = 0 } = req.query;
   if (!session_id) return res.status(400).json({ error: 'session_id required' });
   try {
-    const [[conv]] = await db.query('SELECT status FROM conversations WHERE id=?', [session_id]);
+    const [[conv]] = await db.query(
+      `SELECT c.status, u.name AS admin_name, u.avatar AS admin_avatar
+       FROM conversations c
+       LEFT JOIN users u ON c.admin_id = u.id
+       WHERE c.id=?`,
+      [session_id]
+    );
     if (!conv) return res.json({ messages: [], taken_over: false });
     const [msgs] = await db.query(
       "SELECT id, role, content, created_at FROM conversation_messages WHERE conversation_id=? AND role='admin' AND id>? ORDER BY created_at ASC",
       [session_id, last_id]
     );
-    res.json({ messages: msgs, taken_over: conv.status === 'taken_over' });
+    res.json({
+      messages: msgs,
+      taken_over: conv.status === 'taken_over',
+      admin_name: conv.admin_name || null,
+      admin_avatar: conv.admin_avatar || null,
+    });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

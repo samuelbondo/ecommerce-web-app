@@ -20,6 +20,7 @@ export default function DashMessages() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [takenOver, setTakenOver] = useState(false);
+  const [adminInfo, setAdminInfo] = useState({ name: null, avatar: null });
   const [initialized, setInitialized] = useState(false);
   const bottomRef = useRef(null);
   const pollRef = useRef(null);
@@ -75,6 +76,7 @@ export default function DashMessages() {
           });
         }
         if (res.data.taken_over !== undefined) setTakenOver(res.data.taken_over);
+        if (res.data.admin_name) setAdminInfo({ name: res.data.admin_name, avatar: res.data.admin_avatar });
       } catch {}
     }, 4000);
     return () => clearInterval(pollRef.current);
@@ -140,9 +142,14 @@ export default function DashMessages() {
       {/* Header */}
       <div style={s.header}>
         <div style={s.headerLeft}>
-          <div style={s.avatar}>🤖</div>
+          <div style={{ ...s.avatar, overflow: 'hidden', padding: 0 }}>
+            {takenOver && adminInfo.avatar
+              ? <img src={adminInfo.avatar} alt={adminInfo.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+              : <span style={{ fontSize: '1.2rem' }}>{takenOver ? '👤' : '🤖'}</span>
+            }
+          </div>
           <div>
-            <div style={s.headerTitle}>{takenOver ? 'Support Agent' : `${siteName} Assistant`}</div>
+            <div style={s.headerTitle}>{takenOver ? (adminInfo.name || 'Support Agent') : `${siteName} Assistant`}</div>
             <div style={s.headerSub}>
               <span style={s.onlineDot} />
               {takenOver ? 'Live agent connected' : 'Online · Always here to help'}

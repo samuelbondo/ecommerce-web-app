@@ -70,6 +70,7 @@ export default function AIChat() {
   const [showPreview, setShowPreview] = useState(false);
   const [entered, setEntered] = useState(false);
   const [takenOver, setTakenOver] = useState(false);
+  const [adminInfo, setAdminInfo] = useState({ name: null, avatar: null });
 
   const bottomRef = useRef(null);
   const proactiveTimer = useRef(null);
@@ -139,6 +140,7 @@ export default function AIChat() {
           });
         }
         if (res.data.taken_over !== undefined) setTakenOver(res.data.taken_over);
+        if (res.data.admin_name) setAdminInfo({ name: res.data.admin_name, avatar: res.data.admin_avatar });
       } catch {}
     }, 4000);
     return () => clearInterval(pollRef.current);
@@ -464,11 +466,16 @@ export default function AIChat() {
           <div className="aic-header">
             <div className="aic-header-left">
               <div style={{ position: 'relative' }}>
-                <div className="aic-avatar">🤖</div>
+                <div className="aic-avatar">
+                  {takenOver && adminInfo.avatar
+                    ? <img src={adminInfo.avatar} alt={adminInfo.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                    : takenOver ? '👤' : '🤖'
+                  }
+                </div>
                 <div className="aic-online" />
               </div>
               <div>
-                <div className="aic-title">{takenOver ? 'Support Agent' : `${siteName} Assistant`}</div>
+                <div className="aic-title">{takenOver ? (adminInfo.name || 'Support Agent') : `${siteName} Assistant`}</div>
                 <div className="aic-sub">{takenOver ? '🟢 Live agent connected' : '🟢 Online · Always here to help'}</div>
               </div>
             </div>
