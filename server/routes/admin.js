@@ -507,8 +507,11 @@ router.get('/conversations', async (req, res) => {
     const [rows] = await db.query(`
       SELECT c.*, u.name AS user_name, u.email AS user_email,
         (SELECT COUNT(*) FROM conversation_messages WHERE conversation_id=c.id) AS message_count,
-        (SELECT content FROM conversation_messages WHERE conversation_id=c.id ORDER BY created_at DESC LIMIT 1) AS last_message
-      FROM conversations c LEFT JOIN users u ON c.user_id=u.id
+        (SELECT content FROM conversation_messages WHERE conversation_id=c.id ORDER BY created_at DESC LIMIT 1) AS last_message,
+        cr.rating AS customer_rating
+      FROM conversations c
+      LEFT JOIN users u ON c.user_id=u.id
+      LEFT JOIN conversation_ratings cr ON cr.conversation_id=c.id
       ORDER BY c.updated_at DESC
     `);
     res.json(rows);
@@ -536,6 +539,33 @@ router.post('/conversations/:id/release', async (req, res) => {
   try {
     await db.query('UPDATE conversations SET status=?, admin_id=NULL WHERE id=?', ['open', req.params.id]);
     res.json({ message: 'Released back to AI' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Admin closes conversation and notifies customer to rate
+router.post('/conversations/:id/close', async (req, res) => {
+  try {
+    const [[conv]] = await db.query('SELECT * FROM conversations WHERE id=?', [req.params.id]);
+    if (!conv) return res.status(404).json({ error: 'Conversation not found' });
+    await db.query('UPDATE conversations SET status=? WHERE id=?', ['closed', req.params.id]);
+    // Notify logged-in customer to rate the conversation
+    if (conv.user_id) {
+      await db.query(
+        `INSERT INTO notifications (user_id, icon, message) VALUES (?,?,?)`,
+        [conv.user_id, '⭐', 'Your support conversation has been resolved. How did we do? Rate your experience in Messages.']
+      );
+    }
+    res.json({ message: 'Conversation closed' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Get all ratings (admin)
+router.get('/conversations/ratings', async (req, res) => {
+  try {
+    const [[stats]] = await db.query(
+      'SELECT ROUND(AVG(rating),1) AS avg_rating, COUNT(*) AS total FROM conversation_ratings'
+    );
+    res.json(stats);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

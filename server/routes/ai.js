@@ -187,6 +187,7 @@ router.get('/chat/poll', async (req, res) => {
     res.json({
       messages: msgs,
       taken_over: conv.status === 'taken_over',
+      status: conv.status,
       admin_name: conv.admin_name || null,
       admin_avatar: conv.admin_avatar || null,
     });
@@ -199,12 +200,12 @@ router.get('/chat/history', async (req, res) => {
   if (!session_id) return res.status(400).json({ error: 'session_id required' });
   try {
     const [[conv]] = await db.query('SELECT status FROM conversations WHERE id=?', [session_id]);
-    if (!conv) return res.json({ messages: [], taken_over: false });
+    if (!conv) return res.json({ messages: [], taken_over: false, status: null });
     const [msgs] = await db.query(
       'SELECT id, role, content, edited_at, deleted_at, created_at FROM conversation_messages WHERE conversation_id=? ORDER BY created_at ASC',
       [session_id]
     );
-    res.json({ messages: msgs, taken_over: conv.status === 'taken_over' });
+    res.json({ messages: msgs, taken_over: conv.status === 'taken_over', status: conv.status });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -259,6 +260,40 @@ router.delete('/chat/messages/:id', async (req, res) => {
     if (!isOwner) return res.status(403).json({ error: 'Forbidden' });
     await db.query('UPDATE conversation_messages SET deleted_at=NOW() WHERE id=?', [req.params.id]);
     res.json({ message: 'Message deleted' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── 10. Submit conversation rating (logged-in customer only) ─────────────────────
+router.post('/chat/rate', authenticate, async (req, res) => {
+  const { session_id, rating, comment } = req.body;
+  if (!session_id) return res.status(400).json({ error: 'session_id required' });
+  if (!rating || rating < 1 || rating > 5) return res.status(400).json({ error: 'rating must be 1-5' });
+  try {
+    const [[conv]] = await db.query('SELECT * FROM conversations WHERE id=?', [session_id]);
+    if (!conv) return res.status(404).json({ error: 'Conversation not found' });
+    if (conv.status !== 'closed') return res.status(400).json({ error: 'Can only rate a closed conversation' });
+    if (conv.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+    // one rating per conversation — upsert
+    await db.query(
+      `INSERT INTO conversation_ratings (conversation_id, user_id, rating, comment)
+       VALUES (?,?,?,?)
+       ON DUPLICATE KEY UPDATE rating=VALUES(rating), comment=VALUES(comment)`,
+      [session_id, req.user.id, rating, comment?.trim() || null]
+    );
+    res.json({ message: 'Rating submitted' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── 11. Get rating for a conversation (customer) ─────────────────────────────
+router.get('/chat/rate', authenticate, async (req, res) => {
+  const { session_id } = req.query;
+  if (!session_id) return res.status(400).json({ error: 'session_id required' });
+  try {
+    const [[row]] = await db.query(
+      'SELECT rating, comment FROM conversation_ratings WHERE conversation_id=? AND user_id=?',
+      [session_id, req.user.id]
+    );
+    res.json(row || null);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

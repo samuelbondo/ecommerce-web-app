@@ -453,6 +453,20 @@ async function migrate() {
       check: `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='conversation_messages' AND COLUMN_NAME='deleted_at'`,
       sql: `ALTER TABLE conversation_messages ADD COLUMN deleted_at TIMESTAMP NULL DEFAULT NULL`,
     },
+    {
+      desc: 'CREATE TABLE conversation_ratings',
+      check: `SELECT COUNT(*) AS c FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='conversation_ratings'`,
+      sql: `CREATE TABLE conversation_ratings (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        conversation_id VARCHAR(64) NOT NULL UNIQUE,
+        user_id INT NOT NULL,
+        rating TINYINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+        comment TEXT DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )`,
+    },
   ];
 
   let applied = 0;

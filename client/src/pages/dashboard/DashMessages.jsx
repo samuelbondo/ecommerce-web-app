@@ -24,6 +24,12 @@ export default function DashMessages() {
   const [initialized, setInitialized] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState('');
+  const [isClosed, setIsClosed] = useState(false);
+  const [existingRating, setExistingRating] = useState(null);
+  const [hoverStar, setHoverStar] = useState(0);
+  const [selectedStar, setSelectedStar] = useState(0);
+  const [ratingComment, setRatingComment] = useState('');
+  const [ratingSubmitted, setRatingSubmitted] = useState(false);
   const bottomRef = useRef(null);
   const pollRef = useRef(null);
   const lastMsgIdRef = useRef(0);
@@ -47,12 +53,17 @@ export default function DashMessages() {
           lastMsgIdRef.current = r.data.messages[r.data.messages.length - 1]?.id || 0;
           if (r.data.taken_over) setTakenOver(true);
         } else {
-          // First time — show welcome
           setMessages([{
             role: 'assistant',
             content: `👋 Hi ${user.name.split(' ')[0]}! I'm your ${siteName} assistant. I can help you track orders, find products, or answer any questions. What can I do for you?`,
             suggested: [],
           }]);
+        }
+        if (r.data.status === 'closed') {
+          setIsClosed(true);
+          API.get(`/ai/chat/rate?session_id=${sessionId.current}`)
+            .then(rr => { if (rr.data) { setExistingRating(rr.data); setRatingSubmitted(true); setSelectedStar(rr.data.rating); } })
+            .catch(() => {});
         }
         setInitialized(true);
       })
@@ -82,6 +93,7 @@ export default function DashMessages() {
         }
         if (res.data.taken_over !== undefined) setTakenOver(res.data.taken_over);
         if (res.data.admin_name) setAdminInfo({ name: res.data.admin_name, avatar: res.data.admin_avatar });
+        if (res.data.status === 'closed') setIsClosed(true);
       } catch {}
     }, 4000);
     return () => clearInterval(pollRef.current);
@@ -111,6 +123,24 @@ export default function DashMessages() {
   };
 
   const canEdit = (msg) => msg.role === 'user' && !msg.deleted_at && (Date.now() - new Date(msg.created_at).getTime() < 15 * 60 * 1000);
+
+  const submitRating = async () => {
+    if (!selectedStar) return;
+    try {
+      await API.post('/ai/chat/rate', { session_id: sessionId.current, rating: selectedStar, comment: ratingComment.trim() || undefined });
+      setRatingSubmitted(true);
+      setExistingRating({ rating: selectedStar, comment: ratingComment.trim() });
+    } catch (err) { alert(err.response?.data?.error || 'Failed to submit rating'); }
+  };
+
+  const stars = (n, hover, onClick, onEnter, onLeave) => [1,2,3,4,5].map(i => (
+    <span key={i}
+      onClick={() => onClick(i)}
+      onMouseEnter={() => onEnter(i)}
+      onMouseLeave={() => onLeave(0)}
+      style={{ fontSize: '1.6rem', cursor: 'pointer', color: i <= (hover || n) ? '#f59e0b' : '#d1d5db', transition: 'color 0.1s' }}
+    >★</span>
+  ));
 
   const send = useCallback(async (text) => {
     const msg = (text || input).trim();
@@ -191,6 +221,9 @@ export default function DashMessages() {
         {takenOver && (
           <div style={s.takeoverBanner}>👤 A support agent has joined the conversation</div>
         )}
+        {isClosed && (
+          <div style={{ ...s.takeoverBanner, background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534' }}>✓ This conversation has been resolved</div>
+        )}
         {messages.map((m, i) => (
           <div key={i} style={s.msgWrap}
             onMouseEnter={e => e.currentTarget.querySelector('.dm-actions')?.style && (e.currentTarget.querySelector('.dm-actions').style.opacity = '1')}
@@ -249,7 +282,7 @@ export default function DashMessages() {
       </div>
 
       {/* Quick replies — only at start */}
-      {messages.length <= 1 && initialized && (
+      {messages.length <= 1 && initialized && !isClosed && (
         <div style={s.chips}>
           {QUICK.map((q, i) => (
             <button key={i} className="dm-chip" style={s.chip} onClick={() => send(q)}>{q}</button>
@@ -257,29 +290,63 @@ export default function DashMessages() {
         </div>
       )}
 
-      {/* Input */}
-      <div style={s.inputRow}>
-        <textarea
-          className="dm-input"
-          style={s.input}
-          rows={1}
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={handleKey}
-          placeholder="Type a message..."
-          disabled={loading}
-        />
-        <button
-          className="dm-send"
-          style={{ ...s.send, background: accent }}
-          onClick={() => send()}
-          disabled={!input.trim() || loading}
-        >
-          <svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2.5" viewBox="0 0 24 24">
-            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-          </svg>
-        </button>
-      </div>
+      {/* Closed — rating prompt */}
+      {isClosed ? (
+        <div style={{ padding: '16px 20px', borderTop: '1px solid #e5e7eb', background: '#fff', flexShrink: 0 }}>
+          {ratingSubmitted ? (
+            <div style={{ textAlign: 'center', padding: '8px 0' }}>
+              <div style={{ fontSize: '1.4rem', marginBottom: 4 }}>🌟</div>
+              <div style={{ fontWeight: 700, color: '#1a1a2e', fontSize: '0.9rem' }}>Thanks for your feedback!</div>
+              <div style={{ color: '#f59e0b', fontSize: '1.2rem', letterSpacing: 3, marginTop: 4 }}>
+                {'★'.repeat(existingRating?.rating || selectedStar)}{'☆'.repeat(5 - (existingRating?.rating || selectedStar))}
+              </div>
+              {existingRating?.comment && <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: 4, fontStyle: 'italic' }}>"{existingRating.comment}"</div>}
+            </div>
+          ) : (
+            <div>
+              <div style={{ fontWeight: 700, color: '#1a1a2e', fontSize: '0.88rem', marginBottom: 8, textAlign: 'center' }}>⭐ How was your support experience?</div>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 4, marginBottom: 10 }}>
+                {stars(selectedStar, hoverStar, setSelectedStar, setHoverStar, setHoverStar)}
+              </div>
+              <textarea
+                value={ratingComment}
+                onChange={e => setRatingComment(e.target.value)}
+                placeholder="Leave a comment (optional)"
+                rows={2}
+                style={{ ...s.input, width: '100%', marginBottom: 8, boxSizing: 'border-box' }}
+              />
+              <button
+                onClick={submitRating}
+                disabled={!selectedStar}
+                style={{ width: '100%', padding: '10px', background: selectedStar ? accent : '#e5e7eb', color: selectedStar ? '#fff' : '#94a3b8', border: 'none', borderRadius: 10, fontWeight: 700, cursor: selectedStar ? 'pointer' : 'not-allowed', fontSize: '0.88rem' }}
+              >Submit Rating</button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div style={s.inputRow}>
+          <textarea
+            className="dm-input"
+            style={s.input}
+            rows={1}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={handleKey}
+            placeholder="Type a message..."
+            disabled={loading}
+          />
+          <button
+            className="dm-send"
+            style={{ ...s.send, background: accent }}
+            onClick={() => send()}
+            disabled={!input.trim() || loading}
+          >
+            <svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2.5" viewBox="0 0 24 24">
+              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+          </button>
+        </div>
+      )}
 
     </div>
   );

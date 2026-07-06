@@ -12,6 +12,8 @@ export default function AdminLiveChat() {
   const [loading, setLoading] = useState(true);
   const [editingMsgId, setEditingMsgId] = useState(null);
   const [editMsgText, setEditMsgText] = useState('');
+  const [ratingsStats, setRatingsStats] = useState({ avg_rating: null, total: 0 });
+  const [convRating, setConvRating] = useState(null);
   const bottomRef = useRef(null);
   const pollRef = useRef(null);
 
@@ -22,6 +24,7 @@ export default function AdminLiveChat() {
     API.get('/admin/settings').then(r => {
       setAiEnabled(r.data.ai_enabled !== '0');
     }).catch(() => {});
+    API.get('/admin/conversations/ratings').then(r => setRatingsStats(r.data)).catch(() => {});
   }, []);
 
   const loadConversations = () => {
@@ -39,6 +42,7 @@ export default function AdminLiveChat() {
 
   const openConversation = async (conv) => {
     setSelected(conv);
+    setConvRating(conv.customer_rating || null);
     const res = await API.get(`/admin/conversations/${conv.id}/messages`);
     setMessages(res.data);
   };
@@ -81,6 +85,15 @@ export default function AdminLiveChat() {
     notify('Conversation released back to AI');
   };
 
+  const closeConv = async () => {
+    if (!window.confirm('Close this conversation? The customer will be asked to rate their experience.')) return;
+    await API.post(`/admin/conversations/${selected.id}/close`);
+    setSelected(s => ({ ...s, status: 'closed' }));
+    setConversations(prev => prev.map(c => c.id === selected.id ? { ...c, status: 'closed' } : c));
+    notify('Conversation closed — customer notified to rate');
+    API.get('/admin/conversations/ratings').then(r => setRatingsStats(r.data)).catch(() => {});
+  };
+
   const deleteMsg = async (msgId) => {
     if (!window.confirm('Delete this message?')) return;
     await API.delete(`/admin/conversations/${selected.id}/messages/${msgId}`);
@@ -114,6 +127,7 @@ export default function AdminLiveChat() {
 
   const STATUS_COLOR = { open: '#10b981', taken_over: '#3b82f6', closed: '#94a3b8' };
   const STATUS_LABEL = { open: '🤖 AI', taken_over: '👤 Agent', closed: '✓ Closed' };
+  const stars = (n) => '★'.repeat(n) + '☆'.repeat(5 - n);
 
   return (
     <div style={s.wrap}>
@@ -122,16 +136,26 @@ export default function AdminLiveChat() {
       <div style={s.pageHeader}>
         <div>
           <h2 style={s.pageTitle}>Live Chat</h2>
-          <p style={s.pageSub}>{conversations.length} conversations · {conversations.filter(c => c.status === 'open').length} active</p>
+          <p style={s.pageSub}>{conversations.length} conversations · {conversations.filter(c => c.status === 'open').length} active · {conversations.filter(c => c.status === 'closed').length} closed</p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: '0.85rem', color: '#555', fontWeight: 600 }}>AI Assistant</span>
-          <button onClick={toggleAI} style={{ ...s.toggle, background: aiEnabled ? '#10b981' : '#e5e7eb' }}>
-            <div style={{ ...s.toggleKnob, transform: aiEnabled ? 'translateX(20px)' : 'translateX(2px)' }} />
-          </button>
-          <span style={{ fontSize: '0.82rem', color: aiEnabled ? '#10b981' : '#94a3b8', fontWeight: 700 }}>
-            {aiEnabled ? 'ON' : 'OFF'}
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          {/* Support rating KPI */}
+          {ratingsStats.total > 0 && (
+            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: '1rem' }}>⭐</span>
+              <span style={{ fontWeight: 800, fontSize: '1rem', color: '#92400e' }}>{ratingsStats.avg_rating}</span>
+              <span style={{ fontSize: '0.75rem', color: '#92400e' }}>/ 5 &nbsp;&middot;&nbsp; {ratingsStats.total} rating{ratingsStats.total !== 1 ? 's' : ''}</span>
+            </div>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: '0.85rem', color: '#555', fontWeight: 600 }}>AI Assistant</span>
+            <button onClick={toggleAI} style={{ ...s.toggle, background: aiEnabled ? '#10b981' : '#e5e7eb' }}>
+              <div style={{ ...s.toggleKnob, transform: aiEnabled ? 'translateX(20px)' : 'translateX(2px)' }} />
+            </button>
+            <span style={{ fontSize: '0.82rem', color: aiEnabled ? '#10b981' : '#94a3b8', fontWeight: 700 }}>
+              {aiEnabled ? 'ON' : 'OFF'}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -147,9 +171,12 @@ export default function AdminLiveChat() {
                 <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#1a1a2e' }}>
                   {c.user_name || c.guest_name || 'Guest'}
                 </span>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: STATUS_COLOR[c.status], background: STATUS_COLOR[c.status] + '18', padding: '2px 8px', borderRadius: 10 }}>
-                  {STATUS_LABEL[c.status]}
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  {c.customer_rating && <span style={{ fontSize: '0.7rem', color: '#f59e0b' }}>{'★'.repeat(c.customer_rating)}</span>}
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: STATUS_COLOR[c.status], background: STATUS_COLOR[c.status] + '18', padding: '2px 8px', borderRadius: 10 }}>
+                    {STATUS_LABEL[c.status]}
+                  </span>
+                </div>
               </div>
               <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: 4 }} className="truncate">
                 {c.last_message || 'No messages yet'}
@@ -179,10 +206,9 @@ export default function AdminLiveChat() {
                   <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{selected.user_email || 'Guest user'} · {selected.message_count} messages</div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  {selected.status !== 'taken_over'
-                    ? <button onClick={takeover} style={s.btnTakeover}>👤 Take Over</button>
-                    : <button onClick={release} style={s.btnRelease}>🤖 Release to AI</button>
-                  }
+                  {selected.status === 'open' && <button onClick={takeover} style={s.btnTakeover}>👤 Take Over</button>}
+                  {selected.status === 'taken_over' && <button onClick={release} style={s.btnRelease}>🤖 Release to AI</button>}
+                  {selected.status !== 'closed' && <button onClick={closeConv} style={s.btnClose}>✓ Close</button>}
                   <button onClick={() => deleteConv(selected.id)} style={s.btnDel}>🗑</button>
                 </div>
               </div>
@@ -243,6 +269,14 @@ export default function AdminLiveChat() {
                 <div ref={bottomRef} />
               </div>
 
+              {/* Customer rating display */}
+              {convRating && (
+                <div style={{ padding: '10px 16px', background: '#fffbeb', borderTop: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#92400e' }}>Customer rated:</span>
+                  <span style={{ color: '#f59e0b', fontSize: '1rem', letterSpacing: 2 }}>{stars(convRating)}</span>
+                </div>
+              )}
+
               {/* Reply box — only when taken over */}
               {selected.status === 'taken_over' ? (
                 <div style={s.replyBox}>
@@ -286,6 +320,7 @@ const s = {
   btnSend: { padding: '10px 20px', background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' },
   btnTakeover: { padding: '6px 14px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700 },
   btnRelease: { padding: '6px 14px', background: '#10b981', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700 },
+  btnClose: { padding: '6px 14px', background: '#6b7280', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700 },
   btnDel: { padding: '6px 10px', background: '#fff', color: '#ef4444', border: '1px solid #fecaca', borderRadius: 8, cursor: 'pointer', fontSize: '0.82rem' },
   msgActionBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', padding: '2px 4px', borderRadius: 4, lineHeight: 1 },
 };
