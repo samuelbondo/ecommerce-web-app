@@ -104,6 +104,13 @@ export default function AdminLiveChat() {
     API.get('/admin/conversations/ratings').then(r => setRatingsStats(r.data)).catch(() => {});
   };
 
+  const reopenConv = async () => {
+    await API.post(`/admin/conversations/${selected.id}/reopen`);
+    setSelected(s => ({ ...s, status: 'open' }));
+    setConversations(prev => prev.map(c => c.id === selected.id ? { ...c, status: 'open' } : c));
+    notify('Conversation reopened');
+  };
+
   const deleteMsg = async (msgId) => {
     if (!window.confirm('Delete this message?')) return;
     await API.delete(`/admin/conversations/${selected.id}/messages/${msgId}`);
@@ -231,6 +238,7 @@ export default function AdminLiveChat() {
                   {selected.status === 'open' && <button onClick={takeover} style={s.btnTakeover}>👤 Take Over</button>}
                   {selected.status === 'taken_over' && <button onClick={release} style={s.btnRelease}>🤖 Release to AI</button>}
                   {selected.status !== 'closed' && <button onClick={closeConv} style={s.btnClose}>✓ Close</button>}
+                  {selected.status === 'closed' && <button onClick={reopenConv} style={s.btnReopen}>↩ Reopen</button>}
                   <button onClick={() => deleteConv(selected.id)} style={s.btnDel}>🗑</button>
                 </div>
               </div>
@@ -274,7 +282,7 @@ export default function AdminLiveChat() {
                         }}>
                           {m.deleted_at ? '🚫 Deleted by admin' : m.content}
                         </div>
-                        {!m.deleted_at && (
+                        {!m.deleted_at && selected.status !== 'closed' && (
                           <div className="alc-actions" style={{ display: 'flex', flexDirection: 'column', gap: 3, opacity: 0, transition: 'opacity 0.15s' }}>
                             <button onClick={() => startEditMsg(m)} title="Edit" style={s.msgActionBtn}>✏️</button>
                             <button onClick={() => deleteMsg(m.id)} title="Delete" style={{ ...s.msgActionBtn, color: '#ef4444' }}>🗑</button>
@@ -304,7 +312,7 @@ export default function AdminLiveChat() {
                 </div>
               )}
 
-              {/* Reply box — only when taken over */}
+              {/* Reply box */}
               {selected.status === 'taken_over' ? (
                 <div style={s.replyBox}>
                   <textarea value={reply} onChange={e => setReply(e.target.value)}
@@ -312,6 +320,10 @@ export default function AdminLiveChat() {
                     placeholder="Type a reply... (Enter to send)"
                     style={s.replyInput} rows={2} />
                   <button onClick={sendReply} disabled={!reply.trim()} style={s.btnSend}>Send</button>
+                </div>
+              ) : selected.status === 'closed' ? (
+                <div style={{ padding: '12px 16px', background: '#f8f9fb', borderTop: '1px solid #f1f5f9', fontSize: '0.82rem', color: '#94a3b8', textAlign: 'center' }}>
+                  This conversation is <strong>closed</strong> — click <strong>↩ Reopen</strong> to continue
                 </div>
               ) : (
                 <div style={{ padding: '12px 16px', background: '#f8f9fb', borderTop: '1px solid #f1f5f9', fontSize: '0.82rem', color: '#94a3b8', textAlign: 'center' }}>
@@ -387,6 +399,7 @@ const s = {
   btnTakeover: { padding: '6px 14px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700 },
   btnRelease: { padding: '6px 14px', background: '#10b981', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700 },
   btnClose: { padding: '6px 14px', background: '#6b7280', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700 },
+  btnReopen: { padding: '6px 14px', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700 },
   btnDel: { padding: '6px 10px', background: '#fff', color: '#ef4444', border: '1px solid #fecaca', borderRadius: 8, cursor: 'pointer', fontSize: '0.82rem' },
   msgActionBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', padding: '2px 4px', borderRadius: 4, lineHeight: 1 },
 };

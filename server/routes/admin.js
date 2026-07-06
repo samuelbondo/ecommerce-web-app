@@ -595,6 +595,9 @@ router.post('/conversations/:id/reply', async (req, res) => {
   const { content } = req.body;
   if (!content?.trim()) return res.status(400).json({ error: 'content required' });
   try {
+    const [[conv]] = await db.query('SELECT status FROM conversations WHERE id=?', [req.params.id]);
+    if (!conv) return res.status(404).json({ error: 'Conversation not found' });
+    if (conv.status === 'closed') return res.status(403).json({ error: 'Conversation is closed' });
     await db.query('INSERT INTO conversation_messages (conversation_id, role, content) VALUES (?,?,?)', [req.params.id, 'admin', content.trim()]);
     await db.query('UPDATE conversations SET updated_at=NOW() WHERE id=?', [req.params.id]);
     res.json({ message: 'Reply sent' });
@@ -608,12 +611,22 @@ router.delete('/conversations/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Admin reopen conversation
+router.post('/conversations/:id/reopen', async (req, res) => {
+  try {
+    await db.query("UPDATE conversations SET status='open', admin_id=NULL, updated_at=NOW() WHERE id=?", [req.params.id]);
+    res.json({ message: 'Conversation reopened' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // Admin edits any message
 router.patch('/conversations/:convId/messages/:id', async (req, res) => {
   const { content } = req.body;
   if (!content?.trim()) return res.status(400).json({ error: 'content required' });
   if (content.trim().length > 2000) return res.status(400).json({ error: 'Message too long' });
   try {
+    const [[conv]] = await db.query('SELECT status FROM conversations WHERE id=?', [req.params.convId]);
+    if (conv?.status === 'closed') return res.status(403).json({ error: 'Conversation is closed' });
     const [[msg]] = await db.query(
       'SELECT id FROM conversation_messages WHERE id=? AND conversation_id=? AND deleted_at IS NULL',
       [req.params.id, req.params.convId]
@@ -627,6 +640,8 @@ router.patch('/conversations/:convId/messages/:id', async (req, res) => {
 // Admin hard-deletes any message (moderation)
 router.delete('/conversations/:convId/messages/:id', async (req, res) => {
   try {
+    const [[conv]] = await db.query('SELECT status FROM conversations WHERE id=?', [req.params.convId]);
+    if (conv?.status === 'closed') return res.status(403).json({ error: 'Conversation is closed' });
     await db.query(
       'DELETE FROM conversation_messages WHERE id=? AND conversation_id=?',
       [req.params.id, req.params.convId]

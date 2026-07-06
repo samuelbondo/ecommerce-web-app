@@ -145,10 +145,12 @@ export default function DashMessages() {
   const send = useCallback(async (text) => {
     const msg = (text || input).trim();
     if (!msg || loading) return;
+    const wasClosedBeforeSend = isClosed;
     const next = [...messages, { role: 'user', content: msg }];
     setMessages(next);
     setInput('');
     setLoading(true);
+    if (wasClosedBeforeSend) setIsClosed(false);
     try {
       const res = await API.post('/ai/chat', {
         messages: next,
@@ -163,7 +165,7 @@ export default function DashMessages() {
       setMessages(m => [...m, { role: 'assistant', content: "Sorry, I'm having a connection issue. Please try again.", suggested: [] }]);
     }
     setLoading(false);
-  }, [messages, input, loading, user]);
+  }, [messages, input, loading, user, isClosed]);
 
   const handleKey = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
@@ -257,7 +259,7 @@ export default function DashMessages() {
                 >
                   {m.role === 'user' ? m.content : undefined}
                 </div>
-                {m.role === 'user' && (
+                {m.role === 'user' && !isClosed && (
                   <div className="dm-actions" style={{ display: 'flex', flexDirection: 'column', gap: 3, opacity: 0, transition: 'opacity 0.15s' }}>
                     {canEdit(m) && (
                       <button onClick={() => startEdit(m)} title="Edit" style={s.actionBtn}>✏️</button>
@@ -291,7 +293,7 @@ export default function DashMessages() {
       )}
 
       {/* Closed — rating prompt */}
-      {isClosed ? (
+      {isClosed && (
         <div style={{ padding: '16px 20px', borderTop: '1px solid #e5e7eb', background: '#fff', flexShrink: 0 }}>
           {ratingSubmitted ? (
             <div style={{ textAlign: 'center', padding: '8px 0' }}>
@@ -323,30 +325,31 @@ export default function DashMessages() {
             </div>
           )}
         </div>
-      ) : (
-        <div style={s.inputRow}>
-          <textarea
-            className="dm-input"
-            style={s.input}
-            rows={1}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={handleKey}
-            placeholder="Type a message..."
-            disabled={loading}
-          />
-          <button
-            className="dm-send"
-            style={{ ...s.send, background: accent }}
-            onClick={() => send()}
-            disabled={!input.trim() || loading}
-          >
-            <svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2.5" viewBox="0 0 24 24">
-              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-            </svg>
-          </button>
-        </div>
       )}
+
+      {/* Input — always shown; sending on a closed conv auto-reopens it */}
+      <div style={s.inputRow}>
+        <textarea
+          className="dm-input"
+          style={s.input}
+          rows={1}
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={handleKey}
+          placeholder={isClosed ? 'Send a message to reopen this conversation...' : 'Type a message...'}
+          disabled={loading}
+        />
+        <button
+          className="dm-send"
+          style={{ ...s.send, background: accent }}
+          onClick={() => send()}
+          disabled={!input.trim() || loading}
+        >
+          <svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2.5" viewBox="0 0 24 24">
+            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </button>
+      </div>
 
     </div>
   );

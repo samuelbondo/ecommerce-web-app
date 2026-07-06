@@ -91,6 +91,22 @@ router.post('/chat', async (req, res) => {
          ON DUPLICATE KEY UPDATE updated_at=NOW()`,
         [session_id, userId, guest_name || 'Guest']
       );
+      // Check conversation status before saving message
+      const [[conv]] = await db.query('SELECT status FROM conversations WHERE id=?', [session_id]);
+      if (conv?.status === 'closed') {
+        // Auto-reopen on new customer message
+        await db.query("UPDATE conversations SET status='open', admin_id=NULL, updated_at=NOW() WHERE id=?", [session_id]);
+      } else if (conv?.status === 'taken_over') {
+        // Still save the message so admin can see it
+        const lastMsg = messages[messages.length - 1];
+        if (lastMsg.role === 'user') {
+          await db.query(
+            'INSERT INTO conversation_messages (conversation_id, role, content) VALUES (?,?,?)',
+            [session_id, 'user', lastMsg.content]
+          );
+        }
+        return res.json({ reply: null, suggested: [], taken_over: true });
+      }
       // Save user message
       const lastMsg = messages[messages.length - 1];
       if (lastMsg.role === 'user') {
@@ -98,11 +114,6 @@ router.post('/chat', async (req, res) => {
           'INSERT INTO conversation_messages (conversation_id, role, content) VALUES (?,?,?)',
           [session_id, 'user', lastMsg.content]
         );
-      }
-      // Check if admin has taken over
-      const [[conv]] = await db.query('SELECT status FROM conversations WHERE id=?', [session_id]);
-      if (conv?.status === 'taken_over') {
-        return res.json({ reply: null, suggested: [], taken_over: true });
       }
     }
 
@@ -232,8 +243,9 @@ router.patch('/chat/messages/:id', async (req, res) => {
     );
     if (!msg) return res.status(404).json({ error: 'Message not found' });
     if (msg.role !== 'user') return res.status(403).json({ error: 'Can only edit your own messages' });
-    const [[conv]] = await db.query('SELECT user_id FROM conversations WHERE id=?', [msg.conversation_id]);
+    const [[conv]] = await db.query('SELECT user_id, status FROM conversations WHERE id=?', [msg.conversation_id]);
     if (!conv) return res.status(404).json({ error: 'Conversation not found' });
+    if (conv.status === 'closed') return res.status(403).json({ error: 'Conversation is closed' });
     const isOwner = (userId && conv.user_id === userId) || (session_id && msg.conversation_id === session_id);
     if (!isOwner) return res.status(403).json({ error: 'Forbidden' });
     if (Date.now() - new Date(msg.created_at).getTime() > 15 * 60 * 1000)
@@ -254,8 +266,9 @@ router.delete('/chat/messages/:id', async (req, res) => {
     );
     if (!msg) return res.status(404).json({ error: 'Message not found' });
     if (msg.role !== 'user') return res.status(403).json({ error: 'Can only delete your own messages' });
-    const [[conv]] = await db.query('SELECT user_id FROM conversations WHERE id=?', [msg.conversation_id]);
+    const [[conv]] = await db.query('SELECT user_id, status FROM conversations WHERE id=?', [msg.conversation_id]);
     if (!conv) return res.status(404).json({ error: 'Conversation not found' });
+    if (conv.status === 'closed') return res.status(403).json({ error: 'Conversation is closed' });
     const isOwner = (userId && conv.user_id === userId) || (session_id && msg.conversation_id === session_id);
     if (!isOwner) return res.status(403).json({ error: 'Forbidden' });
     await db.query('UPDATE conversation_messages SET deleted_at=NOW() WHERE id=?', [req.params.id]);
