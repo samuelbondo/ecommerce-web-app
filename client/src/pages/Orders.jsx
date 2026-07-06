@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import API from '../api';
 import { useSettings } from '../context/SettingsContext';
+import { fmtOrderId } from '../utils/formatOrderId';
 
 const STATUS_COLORS = {
   pending: '#f59e0b',
@@ -44,7 +45,7 @@ export default function Orders() {
         <div key={order.id} style={styles.card}>
           <div style={styles.cardHeader}>
             <div>
-              <span style={styles.orderId}>Order #{order.id}</span>
+              <span style={styles.orderId}>{fmtOrderId(order.id, order.created_at)}</span>
               <span style={styles.date}>{new Date(order.created_at).toLocaleDateString('en-KE', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
             </div>
             <div style={styles.right}>
@@ -84,7 +85,7 @@ const styles = {
   sub: { color: '#888', marginBottom: '24px', fontSize: '0.9rem' },
   card: { background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', marginBottom: '20px', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' },
   cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', flexWrap: 'wrap', gap: '8px' },
-  orderId: { fontWeight: '700', fontSize: '0.95rem', marginRight: '10px' },
+  orderId: { fontWeight: '700', fontSize: '0.88rem', marginRight: '10px', fontFamily: 'monospace', letterSpacing: '0.5px' },
   date: { color: '#888', fontSize: '0.82rem' },
   right: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' },
   badge: { color: '#fff', padding: '3px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '600' },

@@ -78,8 +78,8 @@ export default function AdminOrders() {
   };
 
   const exportCSV = () => {
-    const rows = [['ID', 'Customer', 'Email', 'Total', 'Status', 'Date'],
-      ...orders.map(o => [o.id, o.customer_name, o.customer_email, o.total, o.status, new Date(o.created_at).toLocaleDateString()])];
+    const rows = [['Order ID', 'Customer', 'Email', 'Total', 'Status', 'Date'],
+      ...orders.map(o => [fmtOrderId(o.id, o.created_at), o.customer_name, o.customer_email, o.total, o.status, new Date(o.created_at).toLocaleDateString()])];
     const blob = new Blob([rows.map(r => r.join(',')).join('\n')], { type: 'text/csv' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'orders.csv'; a.click();
   };
