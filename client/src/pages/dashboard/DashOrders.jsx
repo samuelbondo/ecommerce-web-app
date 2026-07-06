@@ -15,12 +15,38 @@ export default function DashOrders() {
   const [expanded, setExpanded] = useState(null);
   const [filter, setFilter] = useState('all');
   const [page, setPage] = useState(1);
+  const [reviewedIds, setReviewedIds] = useState(new Set());
+  const [reviewModal, setReviewModal] = useState(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [toast, setToast] = useState(null);
   const PER_PAGE = 5;
 
   useEffect(() => {
     if (!user) return;
     API.get(`/orders/${user.id}`).then(r => setOrders(r.data)).finally(() => setLoading(false));
+    API.get('/reviews/my').then(r => setReviewedIds(new Set(r.data.map(rv => rv.product_id)))).catch(() => {});
   }, [user]);
+
+  const openReview = (item) => {
+    setReviewModal({ product_id: item.product_id || item.id, name: item.name, image_url: item.image_url });
+    setReviewRating(5);
+    setReviewComment('');
+  };
+
+  const submitReview = async () => {
+    setReviewLoading(true);
+    try {
+      await API.post('/reviews', { product_id: reviewModal.product_id, rating: reviewRating, comment: reviewComment.trim() });
+      setReviewedIds(prev => new Set([...prev, reviewModal.product_id]));
+      setReviewModal(null);
+      setToast({ message: 'Review submitted!', type: 'success' });
+    } catch (err) {
+      setToast({ message: err.response?.data?.error || 'Failed to submit', type: 'error' });
+    }
+    setReviewLoading(false);
+  };
 
   const filtered = filter === 'all' ? orders : orders.filter(o => o.status === filter);
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
@@ -91,6 +117,10 @@ export default function DashOrders() {
 
   return (
     <div style={s.container}>
+      {toast && (
+        <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, background: toast.type === 'error' ? '#ef4444' : '#10b981', color: '#fff', padding: '12px 20px', borderRadius: 10, fontWeight: 600, fontSize: '0.88rem', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', cursor: 'pointer' }}
+          onClick={() => setToast(null)}>{toast.message}</div>
+      )}
       <h2 style={s.title}>Order History</h2>
 
       <div style={s.filters}>
@@ -149,7 +179,14 @@ export default function DashOrders() {
                   {item.variant_name && <span style={s.itemVariant}>{item.variant_name}</span>}
                   <span style={s.itemQty}>Qty: {item.quantity}</span>
                 </div>
-                <span style={s.itemPrice}>{formatPrice(item.price * item.quantity)}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                  <span style={s.itemPrice}>{formatPrice(item.price * item.quantity)}</span>
+                  {order.status === 'delivered' && (
+                    reviewedIds.has(item.product_id || item.id)
+                      ? <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 700 }}>✓ Reviewed</span>
+                      : <button onClick={() => openReview(item)} style={s.reviewBtn}>⭐ Review</button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -203,6 +240,39 @@ export default function DashOrders() {
           <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} style={s.pageBtn}>Next →</button>
         </div>
       )}
+
+      {reviewModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 420, padding: 24, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <img src={reviewModal.image_url} alt={reviewModal.name} style={{ width: 52, height: 52, borderRadius: 10, objectFit: 'cover' }} onError={e => { e.target.src = 'https://placehold.co/52x52?text=?'; }} />
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#1a1a2e' }}>Write a Review</div>
+                <div style={{ fontSize: '0.85rem', color: '#555' }}>{reviewModal.name}</div>
+              </div>
+              <button onClick={() => setReviewModal(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#94a3b8', lineHeight: 1 }}>×</button>
+            </div>
+            <div style={{ display: 'flex', gap: 4, marginBottom: 14, justifyContent: 'center' }}>
+              {[1,2,3,4,5].map(i => (
+                <span key={i} onClick={() => setReviewRating(i)}
+                  style={{ fontSize: '2rem', cursor: 'pointer', color: i <= reviewRating ? '#f59e0b' : '#e5e7eb', transition: 'color 0.1s' }}>★</span>
+              ))}
+            </div>
+            <textarea
+              value={reviewComment}
+              onChange={e => setReviewComment(e.target.value)}
+              placeholder="Share your experience (optional)"
+              rows={3}
+              style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: 10, fontSize: '0.88rem', resize: 'none', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', marginBottom: 14 }}
+            />
+            <button
+              onClick={submitReview}
+              disabled={reviewLoading}
+              style={{ width: '100%', padding: '11px', background: '#e94560', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem' }}
+            >{reviewLoading ? 'Submitting...' : 'Submit Review'}</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -247,4 +317,5 @@ const s = {
   pagination: { display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '24px', flexWrap: 'wrap' },
   pageBtn: { padding: '7px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontSize: '0.85rem' },
   pageActive: { background: '#1a1a2e', color: '#fff', border: '1px solid #1a1a2e' },
+  reviewBtn: { padding: '4px 10px', background: '#fffbeb', color: '#92400e', border: '1px solid #fde68a', borderRadius: 6, cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap' },
 };
