@@ -59,6 +59,9 @@ Developed as a final project for **EWA408510 – E-Commerce and Web Application*
 - **Profile** — avatar upload (base64, max 1.5MB), personal info edit, password change, login activity, linked accounts (Google/Facebook)
 - **Addresses** — up to 5 saved addresses, set default address, used automatically at checkout
 - **Reviews** — view all submitted reviews, edit rating/comment, delete review
+  - Review button appears per item in Order History for any non-cancelled order
+  - One review per product per user — enforced server-side
+  - Once reviewed, button is replaced with ✓ Reviewed label
 - **Messages** — full chat with AI assistant or live support agent
   - Edit own messages within 15-minute window; soft-delete own messages
   - Closed conversation shows resolved banner + 1–5 star rating prompt with optional comment
@@ -83,8 +86,9 @@ Developed as a final project for **EWA408510 – E-Commerce and Web Application*
 - **Inventory** — view all products sorted by stock, update stock levels, low stock and out-of-stock indicators
 - **Reviews** — list all reviews, approve/reject, admin reply, delete
 - **Banners** — manage homepage hero banners (title, subtitle, image, link, active toggle, sort order)
-- **Live Chat** — view all customer conversations, take over from AI, reply as admin, release back to AI, close conversation (ticket closure), delete conversation
-  - Per-message edit and hard-delete (admin moderation)
+- **Live Chat** — view all customer conversations, take over from AI, reply as admin, release back to AI, close conversation (ticket closure), reopen closed conversation, delete conversation
+  - Closed conversations are locked — no replies, edits, or deletes until reopened
+  - Per-message edit and hard-delete (admin moderation, open conversations only)
   - Support rating KPI bar (average score + total count)
   - Ratings management modal — toggle each rating Public or Private
   - Public ratings feed the homepage testimonials section
@@ -107,13 +111,29 @@ Developed as a final project for **EWA408510 – E-Commerce and Web Application*
 ---
 
 ### 🤖 AI Live Chat
-- Customer-facing live chat widget powered by Google Gemini 2.5 Flash
+- Customer-facing live chat powered by Google Gemini AI
 - AI responds automatically to customer questions about products, orders, and the store
+- Logged-in customers get personalised responses based on their real order history
 - Admin can take over any conversation and reply manually
 - Admin can release conversation back to AI
 - Admin can close a resolved conversation (ticket closure)
-- Messages can be edited (15-min window) and soft-deleted by sender; admin can edit or hard-delete any message
+- Closed conversations are fully locked — no new messages, no edits, no deletes from either side
+- Customer sending a new message on a closed conversation auto-reopens it
+- Admin can manually reopen a closed conversation from the Live Chat panel
+- Messages can be edited (15-min window) and soft-deleted by sender; admin can edit or hard-delete any message (open conversations only)
 - All messages stored in DB (`conversations`, `conversation_messages` tables)
+
+#### AI Model Split
+| Feature | Model | Free Tier Limits |
+|---------|-------|------------------|
+| Live chat (customer messages) | `gemini-2.0-flash-lite` | 1500 RPD · 30 RPM · 1M TPM |
+| Admin features (product descriptions, semantic search, review summaries) | `gemini-2.5-flash-preview-05-20` | 20 RPD · 5 RPM · 250K TPM |
+
+> **RPD** = Requests Per Day · **RPM** = Requests Per Minute · **TPM** = Tokens Per Minute
+>
+> Chat and admin AI features use separate models so each has its own independent quota. Hitting the limit on one does not affect the other.
+>
+> To remove RPD limits entirely, add a billing account at https://aistudio.google.com — cost is fractions of a cent per message.
 
 ### ⭐ Support Ratings _(distinct from product reviews)_
 - After admin closes a conversation, the customer receives a notification to rate their support experience
@@ -153,7 +173,7 @@ Developed as a final project for **EWA408510 – E-Commerce and Web Application*
 | Auth | JWT (jsonwebtoken), bcryptjs, Passport.js, Google OAuth 2.0, Facebook OAuth 2.0 |
 | Payments | PayPal SDK (client-side), Cash on Delivery |
 | Email | Resend (order receipts, OTP, cancellations) |
-| AI | Google Gemini 2.5 Flash (live chat) |
+| AI | Google Gemini 2.0 Flash Lite (chat) + Gemini 2.5 Flash (admin features) |
 | File Upload | Cloudinary (product images, avatars) |
 | DevOps | Docker, Docker Compose, GitHub Actions |
 | Frontend Hosting | Vercel |
@@ -555,6 +575,7 @@ node migrate.js
 | POST | `/api/admin/conversations/:id/takeover` | Admin takes over from AI |
 | POST | `/api/admin/conversations/:id/release` | Release back to AI |
 | POST | `/api/admin/conversations/:id/close` | Close conversation + notify customer to rate |
+| POST | `/api/admin/conversations/:id/reopen` | Reopen a closed conversation |
 | POST | `/api/admin/conversations/:id/reply` | Admin sends a reply |
 | PATCH | `/api/admin/conversations/:convId/messages/:id` | Admin edits any message |
 | DELETE | `/api/admin/conversations/:convId/messages/:id` | Admin hard-deletes any message |
@@ -583,6 +604,26 @@ Samuel Store uses **Resend** for all transactional emails — works on Render fr
 2. Add and verify your sending domain
 3. Go to **API Keys** → Create API key
 4. Set in Render env vars: `RESEND_API_KEY` and `MAIL_FROM`
+
+---
+
+## Live Chat — Conversation States
+
+| Status | Who is handling | Customer can send? | Admin can reply? |
+|--------|----------------|-------------------|------------------|
+| `open` | AI | Yes | No — must take over first |
+| `taken_over` | Admin | Yes | Yes |
+| `closed` | Nobody — resolved | Sending auto-reopens | No — must reopen first |
+
+---
+
+## Reviews — Eligibility Rules
+
+- Customer must have at least one non-cancelled order containing the product
+- One review per product per user (enforced server-side — returns 409 on duplicate)
+- Review button appears per item in Order History for eligible orders
+- Once reviewed, button is replaced with ✓ Reviewed label
+- Admin can approve, reject, or reply to any review from the Admin Reviews panel
 
 ---
 
@@ -621,8 +662,9 @@ Step 3 — Set new password
 | SQL injection | Parameterized queries via mysql2 |
 | Input validation | `validate` middleware on all POST routes |
 | Secrets | Environment variables only — never committed |
-| Chat message edit | 15-minute window, sender only, enforced server-side |
-| Chat message delete | Soft-delete (audit trail preserved); admin hard-delete for moderation |
+| Chat message edit | 15-minute window, sender only, enforced server-side; blocked on closed conversations |
+| Chat message delete | Soft-delete (audit trail preserved); admin hard-delete for moderation; blocked on closed conversations |
+| Closed conversations | Fully locked — no new messages, edits, or deletes until reopened |
 | Support ratings | One per conversation, only on closed conversations, JWT required |
 | Rating privacy | `is_public` defaults to `0` — admin must explicitly publish; names masked server-side |
 | Data deletion | `DELETE /api/auth/delete-data` — full cascade wipe |
@@ -666,6 +708,18 @@ Step 3 — Set new password
 - Verify `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`, `FACEBOOK_CALLBACK_URL` in Render
 - App must be in Live mode for non-tester users
 - Privacy Policy URL must be set in Meta App Dashboard: `https://samuel-store.vercel.app/privacy`
+
+**AI chat returns an error message**
+- The free tier has daily request limits (RPD). `gemini-2.0-flash-lite` allows 1500 requests/day for chat; `gemini-2.5-flash-preview-05-20` allows 20/day for admin features
+- If the limit is hit, the actual error appears in the chat bubble (not a generic message)
+- Check Render logs for `Gemini chatAssistant error:` to see the exact cause
+- To remove all RPD limits: add billing at https://aistudio.google.com
+
+**Customer cannot submit a review**
+- Reviews require at least one non-cancelled order containing that product
+- Cancelled orders do not qualify
+- One review per product per user — if already reviewed, the button shows ✓ Reviewed
+- The Review button only appears in Order History, not on the product page directly
 
 **Backend returns `{"error":"Internal server error"}`**
 - Check Render logs for the actual error
