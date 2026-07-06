@@ -37,39 +37,28 @@ export default function Login() {
     if (user) navigate(fromCheckout ? '/cart' : (redirectTo || (user.role === 'admin' ? '/admin' : '/dashboard')), { replace: true });
   }, [user]);
 
-  // Listen for OAuth popup message
-  useEffect(() => {
-    const handler = (e) => {
-      if (e.origin !== window.location.origin) return;
-      if (e.data?.type === 'oauth_success') {
-        login(e.data.user, e.data.token);
-        navigate(fromCheckout ? '/cart' : (redirectTo || (e.data.user.role === 'admin' ? '/admin' : '/dashboard')), { replace: true });
-      }
-    };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, []);
-
   const handleFacebookLogin = async (e) => {
     e.preventDefault();
     try { await fetch(`${import.meta.env.VITE_API_URL}/settings`); } catch {}
     window.location.href = `${import.meta.env.VITE_API_URL}/auth/facebook`;
   };
 
+  // Single OAuth message handler
   useEffect(() => {
-    const handleMessage = (e) => {
+    const handler = (e) => {
       if (e.origin !== window.location.origin) return;
+      const isCheckout = new URLSearchParams(window.location.search).get('redirect') === '/checkout';
       if (e.data?.type === 'oauth_success' && e.data?.token) {
         const token = decodeURIComponent(e.data.token);
         try {
           const payload = JSON.parse(atob(token.split('.')[1]));
           login({ id: payload.id, role: payload.role }, token);
-          navigate(payload.role === 'admin' ? '/admin' : '/dashboard', { replace: true });
+          navigate(isCheckout ? '/cart' : (payload.role === 'admin' ? '/admin' : '/dashboard'), { replace: true });
         } catch {}
       }
     };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
   }, []);
 
   const handleSubmit = async (e) => {
