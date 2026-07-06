@@ -51,10 +51,11 @@ export default function DashOrders() {
     tfoot td{font-weight:700;font-size:0.95rem;border-top:2px solid #e94560;border-bottom:none}
     .grand{color:#e94560;font-size:1.05rem}
     .footer{margin-top:40px;text-align:center;font-size:0.75rem;color:#bbb;border-top:1px solid #f0f0f0;padding-top:16px}
-    @media print{body{padding:20px}}
+    @media print{body{padding:20px}button{display:none}}
   </style>
 </head>
 <body>
+  <div style="text-align:right;margin-bottom:16px"><button onclick="window.print()" style="padding:8px 20px;background:#e94560;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.9rem">🖨 Print / Save as PDF</button></div>
   <div class="header">
     <div><div class="brand">${storeName}</div><div class="brand-sub">Official Invoice</div></div>
     <div class="meta"><strong>${oid}</strong><br/>${new Date(order.created_at).toLocaleDateString('en-US',{day:'numeric',month:'long',year:'numeric'})}<br/><span class="badge">${order.status}</span></div>
@@ -64,7 +65,7 @@ export default function DashOrders() {
       <div class="info-box"><strong>${order.customer_name || user?.name || '—'}</strong><br/>${order.customer_email || user?.email || ''}<br/>${order.customer_phone ? order.customer_phone + '<br/>' : ''}${order.customer_address ? order.customer_address : ''}</div>
     </div>
     <div><div class="section-title">Payment</div>
-      <div class="info-box">Method: <strong>${order.payment_method === 'cod' ? 'Cash on Delivery' : 'PayPal'}</strong><br/>Status: <strong>${order.payment_status || 'pending'}</strong>${order.payment_id ? '<br/>Ref: ' + order.payment_id : ''}</div>
+      <div class="info-box">Method: <strong>${order.payment_method === 'cod' ? 'Cash on Delivery' : 'PayPal'}</strong><br/>Status: <strong style="color:${order.payment_status === 'paid' ? '#10b981' : '#f59e0b'}">${order.payment_status === 'paid' ? '✅ Paid' : '⏳ Pending'}</strong>${order.payment_id ? '<br/>Ref: ' + order.payment_id : ''}</div>
     </div>
   </div>
   <div class="section-title">Order Items</div>
@@ -82,11 +83,8 @@ export default function DashOrders() {
 
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `invoice_${oid}.html`;
-    a.click();
-    URL.revokeObjectURL(url);
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
   };
 
   if (loading) return <div style={s.loading}>Loading orders...</div>;
@@ -115,6 +113,9 @@ export default function DashOrders() {
             </div>
             <div style={s.headerRight}>
               <span style={{ ...s.badge, background: STATUS_COLOR[order.status] + '20', color: STATUS_COLOR[order.status] }}>{order.status}</span>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: order.payment_status === 'paid' ? '#d1fae5' : '#fef3c7', color: order.payment_status === 'paid' ? '#065f46' : '#92400e' }}>
+                {order.payment_status === 'paid' ? '✅ Paid' : '⏳ Unpaid'}
+              </span>
               <span style={s.total}>{formatPrice(order.total)}</span>
             </div>
           </div>
@@ -158,7 +159,7 @@ export default function DashOrders() {
             <button onClick={() => setExpanded(expanded === order.id ? null : order.id)} style={s.actionBtn}>
               {expanded === order.id ? '▲ Hide Details' : '▼ View Details'}
             </button>
-            <button onClick={() => handleDownload(order)} style={s.actionBtnPrimary}>📄 Download Invoice</button>
+            <button onClick={() => handleDownload(order)} style={s.actionBtnPrimary}>🖨 View Invoice</button>
           </div>
 
           {/* Expanded Details */}
