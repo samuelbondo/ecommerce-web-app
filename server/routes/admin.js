@@ -48,12 +48,12 @@ async function sendOrderEmail(orderId, subject, extraNote = '') {
 // ── Stats ──────────────────────────────────────────────
 router.get('/stats', async (req, res) => {
   try {
-    const [[{ revenue }]] = await db.query('SELECT COALESCE(SUM(total),0) AS revenue FROM orders');
+    const [[{ revenue }]] = await db.query("SELECT COALESCE(SUM(total),0) AS revenue FROM orders");
     const [[{ orders }]] = await db.query('SELECT COUNT(*) AS orders FROM orders');
-    const [[{ customers }]] = await db.query('SELECT COUNT(*) AS customers FROM users WHERE role="customer"');
+    const [[{ customers }]] = await db.query("SELECT COUNT(*) AS customers FROM users WHERE role='customer'");
     const [[{ products }]] = await db.query('SELECT COUNT(*) AS products FROM products');
     const [[{ categories }]] = await db.query('SELECT COUNT(*) AS categories FROM categories');
-    const [[{ pending }]] = await db.query('SELECT COUNT(*) AS pending FROM orders WHERE status="pending"');
+    const [[{ pending }]] = await db.query("SELECT COUNT(*) AS pending FROM orders WHERE status='pending'");
     const [[{ lowStock }]] = await db.query('SELECT COUNT(*) AS lowStock FROM products WHERE stock > 0 AND stock <= 5');
     const [[{ outOfStock }]] = await db.query('SELECT COUNT(*) AS outOfStock FROM products WHERE stock = 0');
     const [[{ todaySales }]] = await db.query('SELECT COALESCE(SUM(total),0) AS todaySales FROM orders WHERE DATE(created_at)=CURDATE()');

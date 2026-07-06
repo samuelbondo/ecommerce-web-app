@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSettings } from '../../context/SettingsContext';
+import { fmtOrderId } from '../../utils/formatOrderId';
 import API from '../../api';
 
 const STAT_CONFIG = [
@@ -135,7 +136,7 @@ export default function AdminOverview() {
             <tbody>
               {recentOrders.map(o => (
                 <tr key={o.id} style={s.tr}>
-                  <td style={s.td}><span style={s.orderId}>#{o.id}</span></td>
+                  <td style={s.td}><span style={s.orderId}>{fmtOrderId(o.id, o.created_at)}</span></td>
                   <td style={s.td}><div style={s.custName}>{o.customer_name}</div><div style={s.custEmail}>{o.customer_email}</div></td>
                   <td style={s.td}>{o.items?.length || 0} item(s)</td>
                   <td style={s.td}><b>{formatPrice(o.total)}</b></td>
