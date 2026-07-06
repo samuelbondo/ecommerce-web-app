@@ -469,7 +469,7 @@ export default function AIChat() {
               </div>
               <div>
                 <div className="aic-title">{takenOver ? 'Support Agent' : `${siteName} Assistant`}</div>
-                <div className="aic-sub">{takenOver ? '🟢 Live agent connected' : '🟢 Online · Powered by Gemini AI'}</div>
+                <div className="aic-sub">{takenOver ? '🟢 Live agent connected' : '🟢 Online · Always here to help'}</div>
               </div>
             </div>
             <button className="aic-close" onClick={handleClose}>
@@ -551,7 +551,7 @@ export default function AIChat() {
             </button>
           </div>
 
-          <div className="aic-powered">Powered by Google Gemini AI</div>
+
         </div>
       )}
     </>

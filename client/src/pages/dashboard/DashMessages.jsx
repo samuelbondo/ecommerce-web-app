@@ -145,7 +145,7 @@ export default function DashMessages() {
             <div style={s.headerTitle}>{takenOver ? 'Support Agent' : `${siteName} Assistant`}</div>
             <div style={s.headerSub}>
               <span style={s.onlineDot} />
-              {takenOver ? 'Live agent connected' : 'Online · Powered by Gemini AI'}
+              {takenOver ? 'Live agent connected' : 'Online · Always here to help'}
             </div>
           </div>
         </div>
@@ -213,7 +213,7 @@ export default function DashMessages() {
           </svg>
         </button>
       </div>
-      <div style={s.powered}>Powered by Google Gemini AI</div>
+
     </div>
   );
 }
