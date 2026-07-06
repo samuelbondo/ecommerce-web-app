@@ -15,10 +15,11 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import API from '../api';
 import { useSettings } from '../context/SettingsContext';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 
 // Generate or retrieve a persistent session ID
 const getSessionId = () => {
@@ -51,7 +52,9 @@ const QUICK_REPLIES = {
 export default function AIChat() {
   const { settings } = useSettings();
   const { cart, addToCart } = useCart();
+  const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const accent = settings.accent_color || '#e94560';
   const siteName = settings.site_name || 'Samuel Store';
 
@@ -151,7 +154,9 @@ export default function AIChat() {
     if (!hasGreeted.current) {
       hasGreeted.current = true;
       const path = location.pathname;
-      const welcome = PROACTIVE[path] || `👋 Hi! I'm your ${siteName} shopping assistant. How can I help you today?`;
+      const welcome = PROACTIVE[path] || (user
+        ? `👋 Hi ${user.name.split(' ')[0]}! I can see your order history. Ask me about your orders, track a delivery, or find new products!`
+        : `👋 Hi! I'm your ${siteName} shopping assistant. How can I help you today?`);
       setMessages([{ role: 'assistant', content: welcome }]);
     }
   }, [location.pathname, siteName]);
@@ -164,12 +169,25 @@ export default function AIChat() {
   const send = async (text) => {
     const msg = (text || input).trim();
     if (!msg || loading) return;
+
+    // If guest asks about their orders, nudge to login
+    const orderKeywords = /\b(my order|my orders|order status|order #|track|tracking|where is my|did i order|i ordered|payment status|invoice)\b/i;
+    if (!user && orderKeywords.test(msg)) {
+      setMessages(prev => [
+        ...prev,
+        { role: 'user', content: msg },
+        { role: 'assistant', content: '🔐 To view your order details and status, you need to be signed in. **[Sign in now](/login)** and then ask me again — I\'ll have all your order info ready!', suggested: [], isLoginNudge: true },
+      ]);
+      setInput('');
+      return;
+    }
+
     const next = [...messages, { role: 'user', content: msg }];
     setMessages(next);
     setInput('');
     setLoading(true);
     try {
-      const res = await API.post('/ai/chat', { messages: next, session_id: sessionId.current, guest_name: 'Guest' });
+      const res = await API.post('/ai/chat', { messages: next, session_id: sessionId.current, guest_name: user ? user.name : 'Guest' });
       if (res.data.taken_over) {
         setTakenOver(true);
         setLoading(false);
@@ -463,10 +481,11 @@ export default function AIChat() {
               <div key={i}>
                 <div
                   className={`aic-msg ${m.role === 'user' ? 'aic-msg-user' : m.role === 'admin' ? 'aic-msg-admin' : 'aic-msg-bot'}`}
-                  dangerouslySetInnerHTML={m.role === 'assistant' ? { __html: m.content
+                  dangerouslySetInnerHTML={m.role !== 'user' ? { __html: m.content
                     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
                     .replace(/\*(.+?)\*/g, '<em>$1</em>')
                     .replace(/^\* (.+)/gm, '\u2022 $1')
+                    .replace(/\[(.+?)\]\((\/[^)]+)\)/g, '<a href="$2" style="color:#e94560;font-weight:700;text-decoration:underline">$1</a>')
                     .replace(/\n/g, '<br/>') } : undefined}
                 >
                   {m.role === 'user' ? m.content : undefined}

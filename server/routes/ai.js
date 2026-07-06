@@ -113,7 +113,25 @@ router.post('/chat', async (req, res) => {
     const [products] = await db.query(
       'SELECT p.id, p.name, p.price, p.stock, p.description, p.image_url, c.name AS category FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.visible = 1'
     );
-    const result = await ai.chatAssistant(messages, products);
+
+    // Fetch order history for logged-in users
+    let orders = [];
+    if (userId) {
+      const [rows] = await db.query(
+        `SELECT o.id, o.status, o.payment_status, o.payment_method, o.total, o.created_at,
+          GROUP_CONCAT(CONCAT(oi.quantity,'x ',oi.name) SEPARATOR ', ') AS items
+         FROM orders o
+         LEFT JOIN order_items oi ON oi.order_id = o.id
+         WHERE o.user_id = ?
+         GROUP BY o.id
+         ORDER BY o.created_at DESC
+         LIMIT 10`,
+        [userId]
+      );
+      orders = rows;
+    }
+
+    const result = await ai.chatAssistant(messages, products, orders);
     if (!result.ok) return res.status(503).json({ error: result.error });
 
     const idMatch = result.text.match(/RECOMMENDED_IDS:\[([\d,\s]*)\]/);

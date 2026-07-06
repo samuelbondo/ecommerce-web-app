@@ -160,18 +160,25 @@ Return only the summary paragraph, nothing else.`;
  *    messages: array of { role: 'user'|'assistant', content: string }
  *    products: array of { id, name, price, category, stock, description }
  */
-async function chatAssistant(messages, products) {
+async function chatAssistant(messages, products, orders = []) {
   const catalog = products.slice(0, 60).map(p =>
     `ID:${p.id} | ${p.name} | ${p.category || 'General'} | Price: $${p.price} | Stock: ${p.stock > 0 ? 'In stock' : 'Out of stock'}`
   ).join('\n');
+
+  const orderContext = orders.length
+    ? `\n\nThis customer's order history:\n` + orders.map(o =>
+        `Order #${o.id} | Date: ${new Date(o.created_at).toLocaleDateString('en-US',{day:'numeric',month:'short',year:'numeric'})} | Status: ${o.status} | Payment: ${o.payment_status} | Method: ${o.payment_method === 'cod' ? 'Cash on Delivery' : 'PayPal'} | Total: $${o.total} | Items: ${o.items}`
+      ).join('\n')
+    : '';
 
   const history = messages.map(m => `${m.role === 'user' ? 'Customer' : 'Assistant'}: ${m.content}`).join('\n');
 
   const prompt = `You are a helpful, friendly shopping assistant for Samuel Store, an international e-commerce platform.
 You help customers find products, answer questions about the store, and guide them through their purchase.
+${orders.length ? 'You also have access to this customer\'s order history and can answer questions about their orders, status, dates, and payment.' : ''}
 
 Available products:
-${catalog}
+${catalog}${orderContext}
 
 Conversation so far:
 ${history}
@@ -181,14 +188,16 @@ Rules:
 - When recommending products, mention the product name and price.
 - If a product is out of stock, say so and suggest alternatives.
 - If asked about shipping, say "We offer free shipping on all orders".
+- If asked about an order, use the order history above to give accurate status, date, and payment info.
+- If the customer asks about "my order" or "my orders" and you have their history, answer from it directly.
 - If asked something you cannot answer, politely say so.
-- Never make up products that are not in the catalog.
+- Never make up products or orders not in the data above.
 - Respond in the same language the customer is using.
 - At the end of your reply, if you mentioned or recommended any products by name, you MUST add this line: RECOMMENDED_IDS:[id1,id2] using the exact product IDs from the catalog. This line is mandatory whenever a product name appears in your reply. If truly no products are mentioned, omit it.
 
 Reply now:`;
 
-  return callGemini(prompt, 300);
+  return callGemini(prompt, 400);
 }
 
 /**
