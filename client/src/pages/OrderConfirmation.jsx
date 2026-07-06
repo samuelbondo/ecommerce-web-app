@@ -59,8 +59,8 @@ const styles = {
 };
 
 const rowStyles = {
-  row: { display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #eee', gap: '10px' },
-  label: { color: '#888', fontSize: '0.82rem', flexShrink: 0 },
-  value: { fontWeight: '500', fontSize: '0.88rem', textAlign: 'right', wordBreak: 'break-all' },
+  row: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '8px 0', borderBottom: '1px solid #eee', gap: '12px' },
+  label: { color: '#888', fontSize: '0.82rem', flexShrink: 0, paddingTop: '1px' },
+  value: { fontWeight: '500', fontSize: '0.88rem', textAlign: 'right', wordBreak: 'break-word', overflowWrap: 'anywhere', minWidth: 0 },
   highlight: { color: '#e94560', fontWeight: '700', fontSize: '0.95rem' },
 };
