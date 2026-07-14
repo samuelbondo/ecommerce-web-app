@@ -250,7 +250,7 @@ function VariantsManager({ productId, basePrice, hideClose, onClose }) {
       </div>
 
       <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid #e5e7eb', marginBottom: 16 }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }} className="adm-variant-table">
           <thead>
             <tr>
               <th style={{ ...th, width: 52 }}>Image</th>
@@ -500,8 +500,8 @@ export default function AdminProducts() {
       )}
 
       {showModal && (
-        <div style={s.overlay}>
-          <div style={{ ...s.modal, width: 720 }}>
+        <div style={s.overlay} className="adm-overlay">
+          <div style={{ ...s.modal, width: 720 }} className="adm-modal">
             <div style={{ ...s.modalHeader, borderBottom: '1px solid #f1f5f9', paddingBottom: 16, marginBottom: 0 }}>
               <div>
                 <h3 style={s.modalTitle}>{editing ? 'Edit Product' : 'Add Product'}</h3>
@@ -524,11 +524,18 @@ export default function AdminProducts() {
               </div>
               <button onClick={() => setShowModal(false)} style={s.modalClose}>×</button>
             </div>
-            <div style={{ padding: '20px 24px 24px', display: 'flex', flexDirection: 'column', gap: 20, overflowY: 'auto', maxHeight: 'calc(90vh - 90px)' }}>
+            <div style={{ padding: '20px 24px 24px', display: 'flex', flexDirection: 'column', gap: 20, overflowY: 'auto', maxHeight: 'calc(90vh - 90px)' }} className="adm-prod-modal-body">
+              <style>{`
+                @media (max-width: 600px) {
+                  .adm-prod-grid2 { grid-template-columns: 1fr !important; }
+                  .adm-prod-modal-body { padding: 14px 14px 20px !important; max-height: calc(100dvh - 90px) !important; }
+                  .adm-variant-table { min-width: 480px; }
+                }
+              `}</style>
               {/* ── Basic Details ── */}
               <div style={s.section}>
                 <div style={s.sectionTitle}>📋 Basic Details</div>
-                <div style={s.grid2}>
+                <div style={s.grid2} className="adm-prod-grid2">
                   {[['name', 'Product Name', 'text'], ['price', 'Price', 'number'], ['stock', 'Stock', 'number']].map(([k, ph, t]) => (
                     <div key={k} style={s.field}>
                       <label style={s.label}>{ph}</label>
