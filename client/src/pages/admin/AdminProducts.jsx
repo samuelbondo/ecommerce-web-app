@@ -6,6 +6,31 @@ import API from '../../api';
 
 const EMPTY = { name: '', description: '', price: '', stock: '', image_url: '', category_id: '', featured: false, visible: true };
 
+function QuickCategoryModal({ onCreated, onClose }) {
+  const [name, setName] = useState('');
+  const [saving, setSaving] = useState(false);
+  const save = async () => {
+    if (!name.trim()) return;
+    setSaving(true);
+    try { const { data } = await API.post('/admin/categories', { name: name.trim() }); onCreated(data); }
+    catch { alert('Failed to create category'); }
+    setSaving(false);
+  };
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001 }}>
+      <div style={{ background: '#fff', borderRadius: 12, padding: 24, width: 320, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
+        <h4 style={{ margin: '0 0 14px', fontWeight: 700, color: '#1a1a2e' }}>New Category</h4>
+        <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === 'Enter' && save()} placeholder="Category name" autoFocus
+          style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #e5e7eb', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box', marginBottom: 14 }} />
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer' }}>Cancel</button>
+          <button onClick={save} disabled={saving} style={{ padding: '8px 16px', borderRadius: 8, background: '#e94560', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700 }}>{saving ? 'Creating...' : 'Create'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function GalleryManager({ productId, onClose, hideClose }) {
   const [images, setImages] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -197,7 +222,8 @@ export default function AdminProducts() {
   const [page, setPage] = useState(1);
   const [checked, setChecked] = useState([]);
   const [aiGenerating, setAiGenerating] = useState(false);
-  const [modalTab, setModalTab] = useState('details');
+  const [savedProductId, setSavedProductId] = useState(null);
+  const [showQuickCat, setShowQuickCat] = useState(false);
   const PER = 10;
 
   const notify = (msg, type = 'success') => setToast({ message: msg, type });
@@ -238,17 +264,17 @@ export default function AdminProducts() {
   const pages = Math.ceil(sorted.length / PER);
   const paginated = sorted.slice((page - 1) * PER, page * PER);
 
-  const openAdd = () => { setForm(EMPTY); setEditing(null); setModalTab('details'); setShowModal(true); };
-  const openEdit = (p) => { setForm({ name: p.name, description: p.description || '', price: p.price, stock: p.stock, image_url: p.image_url || '', category_id: p.category_id, featured: !!p.featured, visible: p.visible !== 0 }); setEditing(p.id); setModalTab('details'); setShowModal(true); };
+  const openAdd = () => { setForm(EMPTY); setEditing(null); setSavedProductId(null); setShowModal(true); };
+  const openEdit = (p) => { setForm({ name: p.name, description: p.description || '', price: p.price, stock: p.stock, image_url: p.image_url || '', category_id: p.category_id, featured: !!p.featured, visible: p.visible !== 0 }); setEditing(p.id); setSavedProductId(p.id); setShowModal(true); };
 
   const handleSave = async (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     if (!form.name || !form.price || !form.stock) return notify('Name, price and stock are required', 'error');
     setSaving(true);
     try {
-      if (editing) { await API.put(`/admin/products/${editing}`, form); notify('Product updated!'); }
-      else { await API.post('/admin/products', form); notify('Product created!'); }
-      setShowModal(false); load();
+      if (editing) { await API.put(`/admin/products/${editing}`, form); notify('Product updated!'); setSavedProductId(editing); }
+      else { const { data } = await API.post('/admin/products', form); notify('Product created! Now add images and variants below.'); setSavedProductId(data.id); setEditing(data.id); load(); }
+      load();
     } catch { notify('Failed to save', 'error'); }
     setSaving(false);
   };
@@ -313,66 +339,90 @@ export default function AdminProducts() {
         </div></div>
       )}
 
+      {showQuickCat && (
+        <QuickCategoryModal
+          onCreated={(cat) => { setCategories(prev => [...prev, cat]); setForm(f => ({ ...f, category_id: cat.id })); setShowQuickCat(false); }}
+          onClose={() => setShowQuickCat(false)}
+        />
+      )}
+
       {showModal && (
         <div style={s.overlay}>
-          <div style={s.modal}>
+          <div style={{ ...s.modal, width: 640 }}>
             <div style={s.modalHeader}>
               <h3 style={s.modalTitle}>{editing ? 'Edit Product' : 'Add Product'}</h3>
               <button onClick={() => setShowModal(false)} style={s.modalClose}>×</button>
             </div>
-            {editing && (
-              <div style={{ display: 'flex', gap: 0, borderBottom: '2px solid #f1f5f9', padding: '0 24px' }}>
-                {[['details', '📋 Details'], ['gallery', '🖼️ Gallery'], ['variants', '🎯 Variants']].map(([tab, label]) => (
-                  <button key={tab} onClick={() => setModalTab(tab)} style={{ padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700, color: modalTab === tab ? '#e94560' : '#888', borderBottom: modalTab === tab ? '2px solid #e94560' : '2px solid transparent', marginBottom: '-2px' }}>{label}</button>
-                ))}
-              </div>
-            )}
-            {modalTab === 'details' && (
-            <form onSubmit={handleSave} style={s.modalBody}>
-              <div style={s.grid2}>
-                {[['name', 'Product Name', 'text'], ['price', 'Price', 'number'], ['stock', 'Stock', 'number']].map(([k, ph, t]) => (
-                  <div key={k} style={s.field}>
-                    <label style={s.label}>{ph}</label>
-                    <input value={form[k]} onChange={e => setForm({ ...form, [k]: e.target.value })} style={s.input} type={t} placeholder={ph} required step={k === 'price' ? '0.01' : undefined} />
+            <div style={{ padding: '20px 24px 24px', display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto', maxHeight: 'calc(90vh - 70px)' }}>
+              {/* ── Basic Details ── */}
+              <div style={s.section}>
+                <div style={s.sectionTitle}>Basic Details</div>
+                <div style={s.grid2}>
+                  {[['name', 'Product Name', 'text'], ['price', 'Price', 'number'], ['stock', 'Stock', 'number']].map(([k, ph, t]) => (
+                    <div key={k} style={s.field}>
+                      <label style={s.label}>{ph}</label>
+                      <input value={form[k]} onChange={e => setForm({ ...form, [k]: e.target.value })} style={s.input} type={t} placeholder={ph} required step={k === 'price' ? '0.01' : undefined} />
+                    </div>
+                  ))}
+                  <div style={s.field}>
+                    <label style={s.label}>Category</label>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <select value={form.category_id} onChange={e => setForm({ ...form, category_id: e.target.value })} style={{ ...s.input, flex: 1 }}>
+                        <option value="">Select Category</option>
+                        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                      <button type="button" onClick={() => setShowQuickCat(true)} title="Create new category"
+                        style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#f8f9fb', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700, color: '#1a1a2e', whiteSpace: 'nowrap' }}>+ New</button>
+                    </div>
                   </div>
-                ))}
+                </div>
                 <div style={s.field}>
-                  <label style={s.label}>Category</label>
-                  <select value={form.category_id} onChange={e => setForm({ ...form, category_id: e.target.value })} style={s.input}>
-                    <option value="">Select Category</option>
-                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+                  <label style={s.label}>Main Image</label>
+                  <ImageUpload currentUrl={form.image_url} onUpload={url => setForm({ ...form, image_url: url })} size="md" />
+                  <input value={form.image_url} onChange={e => setForm({ ...form, image_url: e.target.value })} style={{ ...s.input, marginTop: 6 }} placeholder="Or paste image URL…" />
                 </div>
-              </div>
-              <div style={s.field}>
-                <label style={s.label}>Image</label>
-                <ImageUpload currentUrl={form.image_url} onUpload={url => setForm({ ...form, image_url: url })} size="md" />
-                <input value={form.image_url} onChange={e => setForm({ ...form, image_url: e.target.value })} style={{ ...s.input, marginTop: 6 }} placeholder="Or paste image URL…" />
-              </div>
-              <div style={s.field}>
-                <label style={s.label}>Description</label>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <label style={s.label}>Description</label>
-                  <button type="button" onClick={generateAiDescription} disabled={aiGenerating}
-                    style={{ fontSize: '0.75rem', padding: '3px 10px', borderRadius: 6, border: '1px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', cursor: 'pointer', fontWeight: 600 }}>
-                    {aiGenerating ? '⏳ Generating...' : '🤖 Generate with AI'}
-                  </button>
+                <div style={s.field}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <label style={s.label}>Description</label>
+                    <button type="button" onClick={generateAiDescription} disabled={aiGenerating}
+                      style={{ fontSize: '0.75rem', padding: '3px 10px', borderRadius: 6, border: '1px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', cursor: 'pointer', fontWeight: 600 }}>
+                      {aiGenerating ? '⏳ Generating...' : '🤖 Generate with AI'}
+                    </button>
+                  </div>
+                  <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} style={s.textarea} rows={3} placeholder="Product description..." />
                 </div>
-                <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} style={s.textarea} rows={3} placeholder="Product description..." />
+                <div style={{ display: 'flex', gap: 20 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.88rem', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={!!form.featured} onChange={e => setForm({ ...form, featured: e.target.checked })} />
+                    Mark as Featured
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.88rem', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={form.visible !== false} onChange={e => setForm({ ...form, visible: e.target.checked })} />
+                    Visible in store
+                  </label>
+                </div>
+                <button onClick={handleSave} disabled={saving} style={s.btnPrimary}>{saving ? 'Saving...' : editing ? '💾 Update Product' : '➕ Create Product'}</button>
               </div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.88rem', cursor: 'pointer' }}>
-                <input type="checkbox" checked={!!form.featured} onChange={e => setForm({ ...form, featured: e.target.checked })} />
-                Mark as Featured
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.88rem', cursor: 'pointer' }}>
-                <input type="checkbox" checked={form.visible !== false} onChange={e => setForm({ ...form, visible: e.target.checked })} />
-                Visible in store
-              </label>
-              <button type="submit" disabled={saving} style={s.btnPrimary}>{saving ? 'Saving...' : editing ? '💾 Update' : '➕ Create Product'}</button>
-            </form>
-            )}
-            {modalTab === 'gallery' && editing && <GalleryManager productId={editing} onClose={() => setShowModal(false)} hideClose />}
-            {modalTab === 'variants' && editing && <VariantsManager productId={editing} basePrice={form.price} onClose={() => setShowModal(false)} hideClose />}
+
+              {/* ── Gallery & Variants — shown after product exists ── */}
+              {savedProductId && (
+                <>
+                  <div style={{ borderTop: '2px dashed #e5e7eb', paddingTop: 20 }}>
+                    <div style={s.sectionTitle}>🖼️ Image Gallery</div>
+                    <GalleryManager productId={savedProductId} hideClose />
+                  </div>
+                  <div style={{ borderTop: '2px dashed #e5e7eb', paddingTop: 20 }}>
+                    <div style={s.sectionTitle}>🎯 Variants & Options</div>
+                    <VariantsManager productId={savedProductId} basePrice={form.price} hideClose />
+                  </div>
+                </>
+              )}
+              {!savedProductId && (
+                <div style={{ padding: '12px 16px', background: '#f8f9fb', borderRadius: 10, fontSize: '0.82rem', color: '#94a3b8', textAlign: 'center' }}>
+                  💡 Create the product first — then image gallery and variants will appear here.
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -464,6 +514,8 @@ export default function AdminProducts() {
 }
 
 const s = {
+  section: { display: 'flex', flexDirection: 'column', gap: 14 },
+  sectionTitle: { fontSize: '0.78rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 },
   wrap: { padding: '24px' },
   overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '16px' },
   modal: { background: '#fff', borderRadius: '16px', width: '560px', maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 8px 40px rgba(0,0,0,0.18)' },

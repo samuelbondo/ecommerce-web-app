@@ -254,7 +254,7 @@ router.post('/categories', async (req, res) => {
   const { name } = req.body;
   try {
     const [r] = await db.query('INSERT INTO categories (name) VALUES (?)', [name]);
-    res.status(201).json({ id: r.insertId, message: 'Category created' });
+    res.status(201).json({ id: r.insertId, name, message: 'Category created' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
