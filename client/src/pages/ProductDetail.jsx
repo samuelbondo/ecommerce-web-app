@@ -82,6 +82,20 @@ export default function ProductDetail() {
     const v = resolveVariant(newOpts, product?.variants);
     setActiveVariant(v);
     if (v?.image_url) setActiveImg(v.image_url);
+    else if (!v) setActiveImg(product?.image_url || null);
+  };
+
+  const handleThumbnailClick = (imgUrl) => {
+    setActiveImg(imgUrl);
+    // find a variant whose image matches and auto-select it
+    const matched = product?.variants?.find(v => v.image_url === imgUrl);
+    if (matched) {
+      const parts = matched.combination.split(' / ');
+      const newOpts = {};
+      product.options?.forEach((opt, i) => { if (parts[i]) newOpts[opt.name] = parts[i]; });
+      setSelectedOptions(newOpts);
+      setActiveVariant(matched);
+    }
   };
 
   const handleAddToCart = () => {
@@ -180,7 +194,7 @@ export default function ProductDetail() {
             {product.images?.length > 0 && (
               <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
                 {[{ url: product.image_url }, ...product.images].filter((img, i, arr) => arr.findIndex(x => x.url === img.url) === i).map((img, i) => (
-                  <div key={i} onClick={() => setActiveImg(img.url)}
+                  <div key={i} onClick={() => handleThumbnailClick(img.url)}
                     style={{ width: 64, height: 64, borderRadius: 8, overflow: 'hidden', cursor: 'pointer', border: `2px solid ${activeImg === img.url ? accent : '#e5e7eb'}`, flexShrink: 0 }}>
                     <img src={img.url} alt={`view ${i}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       onError={e => { e.target.src = 'https://placehold.co/64x64?text=?'; }} />
@@ -223,18 +237,33 @@ export default function ProductDetail() {
               <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {product.options.map(opt => {
                   const values = [...new Set(product.variants?.map(v => v.combination.split(' / ')[product.options.indexOf(opt)]).filter(Boolean))];
+                  const isColor = /color|colour/i.test(opt.name);
                   return (
                     <div key={opt.id}>
                       <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#374151', marginBottom: 8 }}>
                         {opt.name}: <span style={{ color: accent }}>{selectedOptions[opt.name] || 'Select'}</span>
                       </div>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        {values.map(val => (
-                          <button key={val} onClick={() => handleOptionSelect(opt.name, val)}
-                            style={{ padding: '6px 16px', borderRadius: 8, border: `2px solid ${selectedOptions[opt.name] === val ? accent : '#e5e7eb'}`, background: selectedOptions[opt.name] === val ? accent + '18' : '#fff', color: selectedOptions[opt.name] === val ? accent : '#374151', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.15s' }}>
-                            {val}
-                          </button>
-                        ))}
+                        {values.map(val => {
+                          const selected = selectedOptions[opt.name] === val;
+                          // find variant image for this color to show as swatch thumbnail
+                          const variantImg = isColor && product.variants?.find(v => v.combination.includes(val))?.image_url;
+                          if (isColor && variantImg) {
+                            return (
+                              <div key={val} onClick={() => handleOptionSelect(opt.name, val)} title={val}
+                                style={{ width: 52, height: 52, borderRadius: 10, overflow: 'hidden', cursor: 'pointer', border: `3px solid ${selected ? accent : '#e5e7eb'}`, flexShrink: 0, transition: 'border-color 0.15s', boxShadow: selected ? `0 0 0 2px ${accent}44` : 'none' }}>
+                                <img src={variantImg} alt={val} style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                  onError={e => { e.target.style.display='none'; }} />
+                              </div>
+                            );
+                          }
+                          return (
+                            <button key={val} onClick={() => handleOptionSelect(opt.name, val)}
+                              style={{ padding: '6px 16px', borderRadius: 8, border: `2px solid ${selected ? accent : '#e5e7eb'}`, background: selected ? accent + '18' : '#fff', color: selected ? accent : '#374151', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.15s' }}>
+                              {val}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   );
