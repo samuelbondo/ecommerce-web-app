@@ -501,15 +501,33 @@ export default function AdminProducts() {
 
       {showModal && (
         <div style={s.overlay}>
-          <div style={{ ...s.modal, width: 640 }}>
-            <div style={s.modalHeader}>
-              <h3 style={s.modalTitle}>{editing ? 'Edit Product' : 'Add Product'}</h3>
+          <div style={{ ...s.modal, width: 720 }}>
+            <div style={{ ...s.modalHeader, borderBottom: '1px solid #f1f5f9', paddingBottom: 16, marginBottom: 0 }}>
+              <div>
+                <h3 style={s.modalTitle}>{editing ? 'Edit Product' : 'Add Product'}</h3>
+                <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
+                  {[
+                    { label: '1. Details', done: true },
+                    { label: '2. Gallery', done: !!savedProductId },
+                    { label: '3. Variants', done: !!savedProductId },
+                  ].map((step, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', fontWeight: 600,
+                      color: step.done ? '#10b981' : '#94a3b8' }}>
+                      <div style={{ width: 18, height: 18, borderRadius: '50%', background: step.done ? '#10b981' : '#e5e7eb',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', color: '#fff', fontWeight: 800 }}>
+                        {step.done ? '✓' : i + 1}
+                      </div>
+                      {step.label}
+                    </div>
+                  ))}
+                </div>
+              </div>
               <button onClick={() => setShowModal(false)} style={s.modalClose}>×</button>
             </div>
-            <div style={{ padding: '20px 24px 24px', display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto', maxHeight: 'calc(90vh - 70px)' }}>
+            <div style={{ padding: '20px 24px 24px', display: 'flex', flexDirection: 'column', gap: 20, overflowY: 'auto', maxHeight: 'calc(90vh - 90px)' }}>
               {/* ── Basic Details ── */}
               <div style={s.section}>
-                <div style={s.sectionTitle}>Basic Details</div>
+                <div style={s.sectionTitle}>📋 Basic Details</div>
                 <div style={s.grid2}>
                   {[['name', 'Product Name', 'text'], ['price', 'Price', 'number'], ['stock', 'Stock', 'number']].map(([k, ph, t]) => (
                     <div key={k} style={s.field}>
@@ -524,7 +542,7 @@ export default function AdminProducts() {
                         <option value="">Select Category</option>
                         {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                       </select>
-                      <button type="button" onClick={() => setShowQuickCat(true)} title="Create new category"
+                      <button type="button" onClick={() => setShowQuickCat(true)}
                         style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#f8f9fb', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700, color: '#1a1a2e', whiteSpace: 'nowrap' }}>+ New</button>
                     </div>
                   </div>
@@ -554,27 +572,32 @@ export default function AdminProducts() {
                     Visible in store
                   </label>
                 </div>
-                <button onClick={handleSave} disabled={saving} style={s.btnPrimary}>{saving ? 'Saving...' : editing ? '💾 Update Product' : '➕ Create Product'}</button>
+                <button onClick={handleSave} disabled={saving} style={s.btnPrimary}>
+                  {saving ? 'Saving...' : editing ? '💾 Update Product' : '➕ Create Product & Continue'}
+                </button>
               </div>
 
-              {/* ── Gallery & Variants — shown after product exists ── */}
-              {savedProductId && (
-                <>
-                  <div style={{ borderTop: '2px dashed #e5e7eb', paddingTop: 20 }}>
-                    <div style={s.sectionTitle}>🖼️ Image Gallery</div>
-                    <GalleryManager productId={savedProductId} hideClose />
-                  </div>
-                  <div style={{ borderTop: '2px dashed #e5e7eb', paddingTop: 20 }}>
-                    <div style={s.sectionTitle}>🎯 Variants & Options</div>
-                    <VariantsManager productId={savedProductId} basePrice={form.price} hideClose />
-                  </div>
-                </>
-              )}
-              {!savedProductId && (
-                <div style={{ padding: '12px 16px', background: '#f8f9fb', borderRadius: 10, fontSize: '0.82rem', color: '#94a3b8', textAlign: 'center' }}>
-                  💡 Create the product first — then image gallery and variants will appear here.
-                </div>
-              )}
+              {/* ── Gallery ── */}
+              <div style={{ borderTop: '2px dashed #e5e7eb', paddingTop: 20 }}>
+                <div style={s.sectionTitle}>🖼️ Image Gallery</div>
+                {savedProductId
+                  ? <GalleryManager productId={savedProductId} hideClose />
+                  : <div style={{ padding: '16px', background: '#f8f9fb', borderRadius: 10, fontSize: '0.82rem', color: '#94a3b8', textAlign: 'center', border: '2px dashed #e5e7eb' }}>
+                      Save the product details above first to unlock the gallery.
+                    </div>
+                }
+              </div>
+
+              {/* ── Variants ── */}
+              <div style={{ borderTop: '2px dashed #e5e7eb', paddingTop: 20 }}>
+                <div style={s.sectionTitle}>🎯 Variants & Options</div>
+                {savedProductId
+                  ? <VariantsManager productId={savedProductId} basePrice={form.price} hideClose />
+                  : <div style={{ padding: '16px', background: '#f8f9fb', borderRadius: 10, fontSize: '0.82rem', color: '#94a3b8', textAlign: 'center', border: '2px dashed #e5e7eb' }}>
+                      Save the product details above first to unlock variants.
+                    </div>
+                }
+              </div>
             </div>
           </div>
         </div>
