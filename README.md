@@ -25,16 +25,23 @@ Developed as a final project for **EWA408510 – E-Commerce and Web Application*
 ## Features
 
 ### 🛍️ Shopping & Products
-- Responsive homepage with hero banner and featured products
-- Product listing page with search bar and category filter
-- Product detail page with image gallery, variants (size/color), and stock status
-- Product variants — each variant has its own price, stock, SKU, and image
-- Shopping cart with quantity controls (+/−), item removal, and live total
-- Checkout page — saved address picker + manual address entry fallback
+- Responsive homepage with hero banner, featured products, and customer testimonials
+- Product listing page with search bar, AI semantic search, category filter, price filter, and sort
+- Product detail page with unified image gallery (product images + variant images in one strip)
+- **Price range display** — shows "From $X — $Y" on listing cards and detail page when variants have different prices; updates to exact price on variant selection
+- Product variants — each variant has its own price, stock, SKU, and image; selecting a variant swaps the main image, price, and stock atomically
+- **Color swatches** — color option values render as image thumbnails; out-of-stock variants shown greyed with diagonal slash (not hidden)
+- **Thumbnail auto-select** — clicking a gallery thumbnail auto-selects the matching variant and updates price/stock
+- Shopping cart with quantity controls (+/−), item removal, variant name display, and live total
+- Checkout page — saved address picker + manual address entry fallback; variant name shown in order summary
 - PayPal / Debit & Credit Card payment — live PayPal SDK integration
 - Cash on Delivery (COD) payment option
-- Order confirmation page — shows order ID, items, address, payment method, total
-- Order history page — all past orders with status badge and item details
+- Order confirmation page — shows order ID, full itemized list with images and variant names, address, payment method, total
+- Order history page — all past orders with status badge, tracking steps, and item details
+
+- **Navbar** — avatar dropdown with My Dashboard, My Orders, Admin Panel, and Logout; logout clears all state and navigates with `replace: true`
+- Logout button is inside the avatar dropdown on desktop and clearly highlighted in red at the bottom of the mobile drawer
+- Mobile drawer shows user card (avatar + name + role) at the top for instant identity confirmation
 
 ---
 
@@ -80,7 +87,13 @@ Developed as a final project for **EWA408510 – E-Commerce and Web Application*
   - 🗑 Delete Order — with confirmation dialog
 - **Customers** — list all customers, search, view profile, edit info, change role, suspend/activate, reset password, send OTP reset link, admin notes, delete
 - **Products** — list all products, create, edit, delete, duplicate, toggle visibility, toggle featured
-  - Multi-image gallery per product (add, reorder, delete images)
+  - **Unified product modal** — all sections (details, gallery, variants) in one scrollable form; no tabs
+  - After creating a product, image gallery and variants sections appear inline immediately
+  - **Quick category create** — "+ New" button next to category dropdown creates a category without leaving the modal
+  - **Drag & drop gallery** — multi-file upload with drag & drop; hover to set main image or remove
+  - **Inline variant table** — Shopify-style table with inline row editing; click ✏️ to edit any variant directly in the table
+  - Variant image upload on the row — hover the image cell to upload; image previews in the table
+  - Stock color coding in variant table — red (out of stock), amber (≤5), green (healthy)
   - Product options (e.g. Size, Color) and variants (combination, price, stock, SKU, image)
 - **Categories** — create, edit, delete categories
 - **Inventory** — view all products sorted by stock, update stock levels, low stock and out-of-stock indicators

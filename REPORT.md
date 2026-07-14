@@ -46,30 +46,36 @@ The main objectives of this project are:
 ## 4. System Features
 
 ### Customer-Facing Features
-- Responsive homepage with hero carousel and featured products
-- Product listing page with search and category filtering
-- Product detail pages with images, descriptions, and pricing
-- Shopping cart with add, remove, and quantity update controls
-- Checkout with saved address picker and manual address entry
-- Order confirmation page with order summary
+- Responsive homepage with hero carousel, featured products, and customer testimonials
+- Product listing page with search, AI semantic search, category filtering, price filter, and sort
+- **Product detail page** with unified image gallery (product + variant images in one strip), color swatches, out-of-stock variant indicators, and atomic price/stock/image swap on variant selection
+- **Price range display** — "From $X — $Y" shown on listing cards and detail page when variants differ; resolves to exact price on selection
+- Shopping cart with add, remove, quantity controls, variant name display, and live total
+- Checkout with saved address picker, variant name in order summary, and manual address fallback
+- **Order confirmation page** with full itemized list including product images and variant names
 - Order history with tracking steps and HTML invoice download
 - User registration and login with JWT authentication
 - Google OAuth 2.0 and Facebook OAuth 2.0 sign-in
 - OTP-based forgot password (6-digit code via email, 10-minute expiry)
-- Customer dashboard with overview, orders, profile, addresses, reviews, notifications, and settings
+- Customer dashboard with overview, orders, profile, addresses, reviews, messages, and settings
 - AI-powered chat assistant (Google Gemini) for product help
+- **Navbar avatar dropdown** — logout, dashboard, orders, admin panel all accessible from one click
 - Privacy Policy page (GDPR and Meta App Review compliant)
 - Account data deletion endpoint
 
 ### Admin Features
 - Admin dashboard with real-time statistics
-- Product management (create, update, delete, toggle visibility)
+- **Unified product modal** — details, gallery, and variants all in one scrollable form (no tabs)
+- **Quick category create** — create a new category inline without leaving the product modal
+- **Drag & drop image gallery** — multi-file upload, hover to set main or remove
+- **Shopify-style variant table** — inline row editing, image upload per variant, stock color coding
 - Category management
-- Order management with status updates
+- Order management with status updates, bulk actions, and email notifications
 - Customer management with account controls
 - Inventory management with stock updates
 - Review moderation with admin replies
 - Banner management for homepage carousel
+- Live chat management with AI takeover, close/reopen, ratings
 - Reports and analytics
 - Store settings management
 
@@ -87,8 +93,8 @@ The main objectives of this project are:
 | ORM/Driver | mysql2 | Parameterized database queries |
 | Authentication | jsonwebtoken, bcryptjs | JWT tokens and password hashing |
 | OAuth | Passport.js, passport-google-oauth20, passport-facebook | Social login |
-| Email | Nodemailer + Brevo SMTP | OTP password reset emails |
-| File Upload | Multer + Cloudinary | Product image uploads |
+| Email | Resend (HTTP API) | Transactional emails — order receipts, OTP, cancellations |
+| File Upload | Cloudinary | Product images, variant images, avatars |
 | AI | Google Gemini API | AI chat assistant |
 | DevOps | Docker, Docker Compose | Containerization |
 | CI/CD | GitHub Actions | Automated build and test pipeline |
@@ -163,13 +169,18 @@ The database is named `samuel_store` and contains 13 tables.
 
 | Table | Description |
 |---|---|
+| `product_images` | Multiple gallery images per product with sort order and primary flag |
+| `product_options` | Product option types (e.g. Size, Color) |
+| `product_variants` | Variant combinations with individual price, stock, SKU, and image |
 | `addresses` | Up to 5 saved addresses per user |
 | `reviews` | Product reviews with rating, comment, admin reply |
 | `notifications` | Per-user notifications with read status |
 | `otp_codes` | 6-digit OTP codes for password reset (10-min expiry) |
 | `settings` | Store configuration key-value pairs |
 | `banners` | Homepage carousel banners |
-| `product_variants` | Product size/colour variants with individual pricing |
+| `conversations` | Live chat conversations (AI + admin takeover + close) |
+| `conversation_messages` | Individual messages with edit and soft-delete support |
+| `conversation_ratings` | Post-resolution support ratings with public/private flag |
 
 ### Entity Relationships
 
@@ -191,17 +202,18 @@ All foreign keys use `ON DELETE CASCADE` or `ON DELETE SET NULL` to maintain ref
 > Add screenshots here in your final Word/PDF document.
 > Recommended screenshots to include:
 
-1. **Homepage** — hero carousel, featured products, navigation
-2. **Products Page** — product grid with search bar and category filter
-3. **Product Detail Page** — product image, description, add to cart button
-4. **Shopping Cart** — items, quantities, total calculation
-5. **Checkout Page** — saved address picker, order summary
-6. **Order Confirmation** — success message, order details
+1. **Homepage** — hero carousel, featured products, testimonials, trust bar
+2. **Products Page** — product grid with price range badges, search, category filter
+3. **Product Detail Page** — unified image strip, color swatches, OOS indicators, price range
+4. **Shopping Cart** — items with variant names, quantities, total
+5. **Checkout Page** — saved address picker, variant names in order summary
+6. **Order Confirmation** — itemized list with images and variant names
 7. **Customer Dashboard** — overview with stats and recent orders
 8. **Admin Dashboard** — overview with sales statistics
-9. **Admin Products** — product management table
-10. **GitHub Actions** — CI/CD pipeline showing all 4 jobs passing ✅
-11. **Docker** — terminal showing `docker-compose up --build` running successfully
+9. **Admin Products Modal** — unified scrollable form with gallery and variant table
+10. **Admin Variant Table** — Shopify-style inline editing with image swatches
+11. **GitHub Actions** — CI/CD pipeline showing all 4 jobs passing ✅
+12. **Docker** — terminal showing `docker-compose up --build` running successfully
 
 ---
 
@@ -394,15 +406,17 @@ The Aiven MySQL instance requires SSL connections in production. The local XAMPP
 
 ## 15. Conclusion
 
-Samuel Store is a complete, production-grade e-commerce web application that successfully addresses all requirements of the EWA408510 final project. The platform provides a smooth shopping experience for customers and a powerful management interface for administrators.
+Samuel Store is a complete, production-grade e-commerce web application that successfully addresses all requirements of the EWA408510 final project and goes significantly beyond them.
 
-The project demonstrates practical application of full-stack web development skills — from designing a normalized relational database and building a secure REST API, to developing a responsive React frontend and deploying the entire system to cloud infrastructure.
+The platform delivers a world-class shopping experience: unified product image galleries with variant swatches, atomic price and stock updates on variant selection, price range display across listing cards and detail pages, out-of-stock variant indicators, and a fully itemized order confirmation with product images and variant names — consistent across cart, checkout, confirmation, order history, invoices, and email receipts.
 
-Beyond the core requirements, the project implements several advanced features including Google and Facebook OAuth, OTP-based password reset, an AI chat assistant powered by Google Gemini, real-time notifications, and a comprehensive admin analytics dashboard. These additions reflect a commitment to building software that is not only functional but also modern, secure, and user-focused.
+The admin panel matches industry standards: a unified product modal where details, gallery, and variants are managed in one scrollable form, a Shopify-style inline variant table with per-row image upload and stock color coding, drag-and-drop multi-file gallery upload, and quick category creation without leaving the modal.
 
-The DevOps implementation — with a 4-stage GitHub Actions CI/CD pipeline and a 3-container Docker Compose setup — demonstrates an understanding of professional software delivery practices. Every push to the main branch automatically validates the server, builds the React application, constructs Docker images, and confirms deployment readiness.
+The project demonstrates practical mastery of full-stack web development — from designing a normalized relational database and building a secure REST API, to developing a responsive React frontend and deploying the entire system to cloud infrastructure with CI/CD automation and Docker containerization.
 
-This project has been a valuable learning experience in building, deploying, and maintaining a real-world web application from concept to production.
+Advanced features including Google and Facebook OAuth, OTP-based password reset, AI chat powered by Google Gemini, real-time notifications, live support chat with admin takeover, support ratings feeding public testimonials, and a comprehensive analytics dashboard reflect a commitment to building software that is not only functional but modern, secure, and user-focused.
+
+This project has been a valuable learning experience in building, deploying, and iterating on a real-world web application from concept to production.
 
 ---
 
