@@ -160,6 +160,21 @@ export default function AdminLiveChat() {
   return (
     <div style={s.wrap}>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      <style>{`
+        .alc-layout { display: flex; gap: 16px; height: calc(100vh - 180px); min-height: 500px; }
+        .alc-sidebar { width: 300px; flex-shrink: 0; background: #fff; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow-y: auto; display: flex; flex-direction: column; }
+        .alc-chat { flex: 1; background: #fff; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; flex-direction: column; overflow: hidden; }
+        .alc-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+        .alc-chat-header { padding: 14px 18px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; flex-wrap: wrap; gap: 8px; }
+        .alc-header-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+        .alc-back-btn { display: none; }
+        @media (max-width: 768px) {
+          .alc-layout { height: calc(100vh - 140px); }
+          .alc-sidebar { width: 100%; border-radius: 10px; }
+          .alc-chat { border-radius: 10px; }
+          .alc-back-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #f1f5f9; border: none; border-radius: 8px; cursor: pointer; font-size: 0.82rem; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
+        }
+      `}</style>
 
       <div style={s.pageHeader}>
         <div>
@@ -188,9 +203,9 @@ export default function AdminLiveChat() {
         </div>
       </div>
 
-      <div style={s.layout}>
+      <div className="alc-layout" style={{ display: 'flex', gap: 16 }}>
         {/* Conversation list */}
-        <div style={s.sidebar}>
+        <div className="alc-sidebar" style={selected ? { display: window.innerWidth <= 768 ? 'none' : 'flex', flexDirection: 'column' } : {}}>
           {loading && <div style={s.empty}>Loading...</div>}
           {!loading && conversations.length === 0 && <div style={s.empty}>No conversations yet</div>}
           {conversations.map(c => (
@@ -219,7 +234,7 @@ export default function AdminLiveChat() {
         </div>
 
         {/* Chat panel */}
-        <div style={s.chatPanel}>
+        <div className="alc-chat" style={!selected && window.innerWidth <= 768 ? { display: 'none' } : {}}>
           {!selected ? (
             <div style={s.noChat}>
               <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>💬</div>
@@ -229,14 +244,17 @@ export default function AdminLiveChat() {
           ) : (
             <>
               {/* Chat header */}
-              <div style={s.chatHeader}>
-                <div>
-                  <div style={{ fontWeight: 700, color: '#1a1a2e' }}>{selected.user_name || selected.guest_name || 'Guest'}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{selected.user_email || 'Guest user'} · {selected.message_count} messages</div>
+              <div className="alc-chat-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <button className="alc-back-btn" onClick={() => setSelected(null)}>← Back</button>
+                  <div>
+                    <div style={{ fontWeight: 700, color: '#1a1a2e' }}>{selected.user_name || selected.guest_name || 'Guest'}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{selected.user_email || 'Guest user'} · {selected.message_count} messages</div>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div className="alc-header-btns">
                   {selected.status === 'open' && <button onClick={takeover} style={s.btnTakeover}>👤 Take Over</button>}
-                  {selected.status === 'taken_over' && <button onClick={release} style={s.btnRelease}>🤖 Release to AI</button>}
+                  {selected.status === 'taken_over' && <button onClick={release} style={s.btnRelease}>🤖 Release</button>}
                   {selected.status !== 'closed' && <button onClick={closeConv} style={s.btnClose}>✓ Close</button>}
                   {selected.status === 'closed' && <button onClick={reopenConv} style={s.btnReopen}>↩ Reopen</button>}
                   <button onClick={() => deleteConv(selected.id)} style={s.btnDel}>🗑</button>
@@ -244,7 +262,7 @@ export default function AdminLiveChat() {
               </div>
 
               {/* Messages */}
-              <div style={s.messages}>
+              <div className="alc-messages">
                 {messages.map((m, i) => (
                   <div key={i}
                     style={{ display: 'flex', flexDirection: 'column', alignItems: m.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: 10 }}

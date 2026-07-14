@@ -317,6 +317,8 @@ export default function AIChat() {
           flex: 1; overflow-y: auto; padding: 16px 14px 8px;
           display: flex; flex-direction: column; gap: 10px;
           scroll-behavior: smooth;
+          overscroll-behavior: contain;
+          -webkit-overflow-scrolling: touch;
         }
         .aic-messages::-webkit-scrollbar { width: 4px; }
         .aic-messages::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 4px; }
