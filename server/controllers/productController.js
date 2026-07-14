@@ -4,12 +4,15 @@ const Product = require('../models/productModel');
 
 const getProducts = asyncHandler(async (req, res) => {
   const [rows] = await Product.findAll();
-  // Attach primary image and variants count for listing (lightweight)
   for (const p of rows) {
     const [imgs] = await Product.findImages(p.id);
     p.images = imgs;
     const [variants] = await Product.findVariants(p.id);
     p.variants = variants;
+    // price range for listing cards
+    const prices = variants.map(v => Number(v.price)).filter(v => v > 0);
+    p.min_variant_price = prices.length ? Math.min(...prices) : Number(p.price);
+    p.max_variant_price = prices.length ? Math.max(...prices) : Number(p.price);
   }
   res.json(rows);
 });

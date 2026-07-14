@@ -12,7 +12,7 @@ export default function OrderConfirmation() {
     return null;
   }
 
-  const { orderId, form, total, paymentMethod, paymentId } = state;
+  const { orderId, form, total, paymentMethod, paymentId, items } = state;
 
   return (
     <div style={styles.page}>
@@ -29,6 +29,25 @@ export default function OrderConfirmation() {
           {paymentId && <Row label="Payment ID" value={paymentId} />}
           <Row label="Total" value={formatPrice(total)} highlight />
         </div>
+        {items?.length > 0 && (
+          <div style={{ marginBottom: 20, textAlign: 'left' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>Items Ordered</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {items.map((item, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: '#f8f9fb', borderRadius: 10 }}>
+                  <img src={item.image_url} alt={item.name} style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 7, flexShrink: 0, border: '1px solid #e5e7eb' }}
+                    onError={e => { e.target.src = 'https://placehold.co/40x40?text=?'; }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1a1a2e' }}>{item.name}</div>
+                    {item.variant_name && <div style={{ fontSize: '0.72rem', color: '#e94560', fontWeight: 600 }}>{item.variant_name}</div>}
+                    <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Qty: {item.quantity}</div>
+                  </div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1a1a2e', whiteSpace: 'nowrap' }}>{formatPrice(item.price * item.quantity)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div style={styles.actions}>
           <button onClick={() => navigate('/orders')} style={styles.btnPrimary}>View My Orders</button>
           <button onClick={() => navigate('/products')} style={styles.btnSecondary}>Continue Shopping</button>

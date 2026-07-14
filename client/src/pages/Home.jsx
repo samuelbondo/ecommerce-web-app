@@ -181,7 +181,11 @@ export default function Home() {
                   {p.stock > 0 && p.stock <= 5 && <span className="ss-stock-low">Only {p.stock} left</span>}
                   {p.stock === 0 && <span className="ss-stock-out">Out of stock</span>}
                   <div className="ss-prod-footer">
-                    <span className="ss-prod-price">{formatPrice(p.price)}</span>
+                    <span className="ss-prod-price">
+                      {p.min_variant_price && p.max_variant_price && p.min_variant_price !== p.max_variant_price
+                        ? `From ${formatPrice(p.min_variant_price)}`
+                        : formatPrice(p.min_variant_price || p.price)}
+                    </span>
                     <button
                       className="ss-add-btn"
                       onClick={() => addToCart(p)}

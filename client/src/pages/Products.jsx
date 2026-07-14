@@ -215,7 +215,11 @@ export default function Products() {
                 <div className="pd-body">
                   {p.category && <span className="pd-cat">{p.category}</span>}
                   <div className="pd-name">{p.name}</div>
-                  <div className="pd-price">{formatPrice(p.price)}</div>
+                  <div className="pd-price">
+                    {p.min_variant_price && p.max_variant_price && p.min_variant_price !== p.max_variant_price
+                      ? `From ${formatPrice(p.min_variant_price)}`
+                      : formatPrice(p.min_variant_price || p.price)}
+                  </div>
                 </div>
               </Link>
             ))}

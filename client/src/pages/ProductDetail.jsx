@@ -153,6 +153,37 @@ export default function ProductDetail() {
   const activeStock = activeVariant?.stock ?? product.stock;
   const inStock = activeStock > 0;
 
+  // Price range across all variants (shown before selection)
+  const variantPrices = product.variants?.map(v => Number(v.price)).filter(p => p > 0) || [];
+  const minPrice = variantPrices.length ? Math.min(...variantPrices) : Number(product.price);
+  const maxPrice = variantPrices.length ? Math.max(...variantPrices) : Number(product.price);
+  const showRange = !activeVariant && variantPrices.length > 0 && minPrice !== maxPrice;
+  const displayPrice = activeVariant?.price ? Number(activeVariant.price) : Number(product.price);
+
+  // All gallery thumbnails: product images + variant images (deduped)
+  const variantImages = product.variants?.filter(v => v.image_url).map(v => ({ url: v.image_url, variantId: v.id, combination: v.combination })) || [];
+  const galleryImages = [
+    { url: product.image_url, isPrimary: true },
+    ...(product.images || []).map(i => ({ url: i.url })),
+    ...variantImages,
+  ].filter((img, i, arr) => img.url && arr.findIndex(x => x.url === img.url) === i);
+
+  // Check if a specific option value is available (has stock)
+  const isValueAvailable = (optName, val) => {
+    if (!product.variants?.length) return true;
+    return product.variants.some(v => {
+      const parts = v.combination.split(' / ');
+      const optIdx = product.options?.findIndex(o => o.name === optName) ?? -1;
+      if (parts[optIdx] !== val) return false;
+      // check other already-selected options match
+      const otherMatch = product.options?.every((o, i) => {
+        if (o.name === optName) return true;
+        return !selectedOptions[o.name] || parts[i] === selectedOptions[o.name];
+      });
+      return otherMatch && (v.stock === null || v.stock === undefined || v.stock > 0);
+    });
+  };
+
   return (
     <div style={{ background: '#f8f9fb', minHeight: '100vh' }}>
       <style>{`
@@ -186,20 +217,37 @@ export default function ProductDetail() {
 
           {/* Image Gallery */}
           <div className="pd-img-main" style={{ width: 440, flexShrink: 0 }}>
-            <div style={{ background: '#fff', borderRadius: 16, overflow: 'hidden', border: '1px solid #f1f5f9', aspectRatio: '1/1' }}>
+            <div style={{ background: '#fff', borderRadius: 16, overflow: 'hidden', border: '1px solid #f1f5f9', aspectRatio: '1/1', position: 'relative' }}>
               <img src={activeImg || product.image_url} alt={product.name}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'opacity 0.2s' }}
                 onError={e => { e.target.src = 'https://placehold.co/440x440?text=No+Image'; }} />
+              {activeVariant && (
+                <div style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(26,26,46,0.82)', color: '#fff', fontSize: '0.72rem', fontWeight: 700, padding: '4px 10px', borderRadius: 20, backdropFilter: 'blur(4px)' }}>
+                  {activeVariant.combination}
+                </div>
+              )}
             </div>
-            {product.images?.length > 0 && (
+            {galleryImages.length > 1 && (
               <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-                {[{ url: product.image_url }, ...product.images].filter((img, i, arr) => arr.findIndex(x => x.url === img.url) === i).map((img, i) => (
-                  <div key={i} onClick={() => handleThumbnailClick(img.url)}
-                    style={{ width: 64, height: 64, borderRadius: 8, overflow: 'hidden', cursor: 'pointer', border: `2px solid ${activeImg === img.url ? accent : '#e5e7eb'}`, flexShrink: 0 }}>
-                    <img src={img.url} alt={`view ${i}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      onError={e => { e.target.src = 'https://placehold.co/64x64?text=?'; }} />
-                  </div>
-                ))}
+                {galleryImages.map((img, i) => {
+                  const isActive = (activeImg || product.image_url) === img.url;
+                  const matchedVariant = product.variants?.find(v => v.image_url === img.url);
+                  return (
+                    <div key={i} onClick={() => handleThumbnailClick(img.url)} title={matchedVariant?.combination || ''}
+                      style={{ width: 64, height: 64, borderRadius: 8, overflow: 'hidden', cursor: 'pointer', flexShrink: 0,
+                        border: `2px solid ${isActive ? accent : '#e5e7eb'}`,
+                        boxShadow: isActive ? `0 0 0 2px ${accent}33` : 'none',
+                        transition: 'border-color 0.15s, box-shadow 0.15s', position: 'relative' }}>
+                      <img src={img.url} alt={`view ${i}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={e => { e.target.src = 'https://placehold.co/64x64?text=?'; }} />
+                      {matchedVariant && (
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.5)', color: '#fff', fontSize: '0.5rem', fontWeight: 700, textAlign: 'center', padding: '2px 0', lineHeight: 1.4 }}>
+                          {matchedVariant.combination.split(' / ')[0]}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -223,43 +271,75 @@ export default function ProductDetail() {
               </span>
             </div>
 
-            {/* Price — updates per variant */}
-            <div style={{ fontSize: '2rem', fontWeight: 900, color: accent, marginBottom: 4 }}>
-              {formatPrice(activeVariant?.price ?? product.price)}
+            {/* Price */}
+            <div style={{ marginBottom: 4 }}>
+              {showRange ? (
+                <div style={{ fontSize: '1.8rem', fontWeight: 900, color: accent }}>
+                  {formatPrice(minPrice)} <span style={{ fontSize: '1.2rem', color: '#94a3b8' }}>— {formatPrice(maxPrice)}</span>
+                </div>
+              ) : (
+                <div style={{ fontSize: '2rem', fontWeight: 900, color: accent }}>
+                  {formatPrice(displayPrice)}
+                </div>
+              )}
+              {activeVariant?.price && Number(activeVariant.price) !== Number(product.price) && (
+                <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: 2 }}>Base: {formatPrice(product.price)}</div>
+              )}
+              {showRange && (
+                <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: 2 }}>Select a variant to see exact price</div>
+              )}
             </div>
-            {activeVariant?.price && activeVariant.price !== product.price && (
-              <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginBottom: 16 }}>Base price: {formatPrice(product.price)}</div>
-            )}
-            {!activeVariant?.price && <div style={{ marginBottom: 16 }} />}
 
             {/* Variant selectors */}
             {product.options?.length > 0 && (
-              <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ margin: '16px 0 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {product.options.map(opt => {
                   const values = [...new Set(product.variants?.map(v => v.combination.split(' / ')[product.options.indexOf(opt)]).filter(Boolean))];
                   const isColor = /color|colour/i.test(opt.name);
                   return (
                     <div key={opt.id}>
-                      <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#374151', marginBottom: 8 }}>
-                        {opt.name}: <span style={{ color: accent }}>{selectedOptions[opt.name] || 'Select'}</span>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#374151', marginBottom: 10 }}>
+                        {opt.name}:
+                        {selectedOptions[opt.name]
+                          ? <span style={{ color: accent, marginLeft: 6 }}>{selectedOptions[opt.name]}</span>
+                          : <span style={{ color: '#94a3b8', fontWeight: 400, marginLeft: 6 }}>Select {opt.name}</span>}
                       </div>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         {values.map(val => {
                           const selected = selectedOptions[opt.name] === val;
-                          // find variant image for this color to show as swatch thumbnail
+                          const available = isValueAvailable(opt.name, val);
                           const variantImg = isColor && product.variants?.find(v => v.combination.includes(val))?.image_url;
+
                           if (isColor && variantImg) {
                             return (
-                              <div key={val} onClick={() => handleOptionSelect(opt.name, val)} title={val}
-                                style={{ width: 52, height: 52, borderRadius: 10, overflow: 'hidden', cursor: 'pointer', border: `3px solid ${selected ? accent : '#e5e7eb'}`, flexShrink: 0, transition: 'border-color 0.15s', boxShadow: selected ? `0 0 0 2px ${accent}44` : 'none' }}>
-                                <img src={variantImg} alt={val} style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                  onError={e => { e.target.style.display='none'; }} />
+                              <div key={val} onClick={() => available && handleOptionSelect(opt.name, val)} title={available ? val : `${val} — Out of stock`}
+                                style={{ position: 'relative', width: 56, height: 56, borderRadius: 10, overflow: 'hidden', flexShrink: 0,
+                                  cursor: available ? 'pointer' : 'not-allowed',
+                                  border: `3px solid ${selected ? accent : available ? '#e5e7eb' : '#f1f5f9'}`,
+                                  boxShadow: selected ? `0 0 0 2px ${accent}44` : 'none',
+                                  opacity: available ? 1 : 0.4,
+                                  transition: 'all 0.15s' }}>
+                                <img src={variantImg} alt={val} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                {!available && (
+                                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.6)' }}>
+                                    <div style={{ width: '70%', height: 2, background: '#ef4444', transform: 'rotate(-45deg)', borderRadius: 2 }} />
+                                  </div>
+                                )}
                               </div>
                             );
                           }
+
                           return (
-                            <button key={val} onClick={() => handleOptionSelect(opt.name, val)}
-                              style={{ padding: '6px 16px', borderRadius: 8, border: `2px solid ${selected ? accent : '#e5e7eb'}`, background: selected ? accent + '18' : '#fff', color: selected ? accent : '#374151', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.15s' }}>
+                            <button key={val} onClick={() => available && handleOptionSelect(opt.name, val)}
+                              disabled={!available}
+                              style={{ padding: '7px 18px', borderRadius: 8,
+                                border: `2px solid ${selected ? accent : available ? '#e5e7eb' : '#f1f5f9'}`,
+                                background: selected ? accent + '15' : available ? '#fff' : '#fafafa',
+                                color: selected ? accent : available ? '#374151' : '#cbd5e1',
+                                fontWeight: selected ? 700 : 500, fontSize: '0.85rem',
+                                cursor: available ? 'pointer' : 'not-allowed',
+                                textDecoration: available ? 'none' : 'line-through',
+                                transition: 'all 0.15s' }}>
                               {val}
                             </button>
                           );
@@ -268,7 +348,9 @@ export default function ProductDetail() {
                     </div>
                   );
                 })}
-                {activeVariant?.sku && <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>SKU: {activeVariant.sku}</div>}
+                {activeVariant?.sku && (
+                  <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontFamily: 'monospace' }}>SKU: {activeVariant.sku}</div>
+                )}
               </div>
             )}
 

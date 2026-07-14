@@ -143,7 +143,7 @@ export default function Checkout() {
           setOrdered(true);
           clearCart();
           navigate('/order-confirmation', {
-            state: { orderId: res.data.orderId, form, total, paymentMethod: 'paypal', paymentId: details.id },
+            state: { orderId: res.data.orderId, form, total, paymentMethod: 'paypal', paymentId: details.id, items: cart },
           });
         } catch {
           setPaypalError('Payment captured but order failed. Contact support.');
@@ -172,7 +172,7 @@ export default function Checkout() {
       });
       setOrdered(true);
       clearCart();
-      navigate('/order-confirmation', { state: { orderId: res.data.orderId, form, total, paymentMethod: 'cod' } });
+      navigate('/order-confirmation', { state: { orderId: res.data.orderId, form, total, paymentMethod: 'cod', items: cart } });
     } catch (err) {
       const msg = err?.response?.data?.error || err?.message || '';
       if (!err?.response || err?.code === 'ECONNABORTED' || msg.includes('timeout') || msg.includes('network')) {
@@ -332,6 +332,7 @@ export default function Checkout() {
                   />
                   <div>
                     <div style={s.summaryName}>{item.name}</div>
+                    {item.variant_name && <div style={{ fontSize: '0.72rem', color: '#e94560', fontWeight: 600 }}>{item.variant_name}</div>}
                     <div style={s.summaryQty}>Qty: {item.quantity}</div>
                   </div>
                 </div>
