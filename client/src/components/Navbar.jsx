@@ -66,17 +66,24 @@ export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState(null);
   const [showDrop, setShowDrop] = useState(false);
   const [allProducts, setAllProducts] = useState([]);
   const searchRef = useRef(null);
   const mobileSearchRef = useRef(null);
+  const userMenuRef = useRef(null);
 
   const accent = settings.accent_color || '#e94560';
   const isActive = (path) => location.pathname === path;
   const close = () => setMenuOpen(false);
-  const handleLogout = () => { logout(); navigate('/'); setMenuOpen(false); };
+  const handleLogout = () => {
+    logout();
+    setMenuOpen(false);
+    setUserMenuOpen(false);
+    navigate('/', { replace: true });
+  };
 
   useEffect(() => {
     API.get('/products').then(r => setAllProducts(r.data)).catch(() => {});
@@ -96,7 +103,18 @@ export default function Navbar() {
     setShowDrop(false);
     setQuery('');
     setMenuOpen(false);
+    setUserMenuOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const handleChange = (e) => {
     const val = e.target.value;
@@ -168,6 +186,15 @@ export default function Navbar() {
         .ss-btn-reg:hover { opacity: 0.88; }
         .ss-btn-out { background: transparent; color: #cbd5e1; border: 1px solid rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; white-space: nowrap; }
         .ss-btn-out:hover { background: rgba(255,255,255,0.08); color: #fff; }
+        .ss-user-menu { position: relative; }
+        .ss-user-dropdown { position: absolute; top: calc(100% + 8px); right: 0; background: #1e2a3a; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); min-width: 180px; overflow: hidden; z-index: 9999; }
+        .ss-user-dropdown-header { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .ss-user-dropdown-name { color: #fff; font-weight: 700; font-size: 0.88rem; }
+        .ss-user-dropdown-role { color: #94a3b8; font-size: 0.72rem; margin-top: 2px; text-transform: capitalize; }
+        .ss-user-dropdown a, .ss-user-dropdown button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 14px; color: #cbd5e1; text-decoration: none; font-size: 0.85rem; border: none; background: none; cursor: pointer; text-align: left; transition: background 0.12s; }
+        .ss-user-dropdown a:hover, .ss-user-dropdown button:hover { background: rgba(255,255,255,0.06); color: #fff; }
+        .ss-user-dropdown .ss-logout-btn { color: #f87171; border-top: 1px solid rgba(255,255,255,0.08); }
+        .ss-user-dropdown .ss-logout-btn:hover { background: rgba(248,113,113,0.1); color: #f87171; }
         .ss-admin-btn { background: ${accent}; color: #fff; text-decoration: none; font-size: 0.78rem; font-weight: 700; padding: 5px 11px; border-radius: 6px; white-space: nowrap; }
         .ss-user-chip { color: #94a3b8; font-size: 0.8rem; padding: 0 2px; white-space: nowrap; }
         .ss-avatar { width: 32px; height: 32px; border-radius: 50%; background: ${accent}; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.78rem; flex-shrink: 0; border: 2px solid rgba(255,255,255,0.2); cursor: pointer; text-decoration: none; transition: border-color 0.15s; overflow: hidden; }
@@ -190,6 +217,8 @@ export default function Navbar() {
           .ss-drawer a:last-child, .ss-drawer button:last-child { border-bottom: none; }
           .ss-drawer a:hover, .ss-drawer button:hover { background: rgba(255,255,255,0.04); color: #fff; }
           .ss-drawer .cart-count { background: ${accent}; color: #fff; border-radius: 10px; padding: 1px 8px; font-size: 0.7rem; font-weight: 700; margin-left: 4px; }
+          .ss-drawer .ss-drawer-logout { color: #f87171; border-top: 2px solid rgba(248,113,113,0.2); margin-top: 4px; }
+          .ss-drawer .ss-drawer-logout:hover { background: rgba(248,113,113,0.08); color: #f87171; }
           .ss-top { padding: 0 14px; gap: 10px; }
         }
       `}</style>
@@ -214,13 +243,25 @@ export default function Navbar() {
             </Link>
             {user ? (
               <>
-                <Link to="/dashboard" className="ss-avatar" title={user.name}>
-                  {user.avatar
-                    ? <img src={user.avatar} alt={user.name} />
-                    : user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
-                </Link>
-                {user.role === 'admin' && <Link to="/admin" className="ss-admin-btn">⚡ Admin</Link>}
-                <button onClick={handleLogout} className="ss-btn-out">Logout</button>
+                <div className="ss-user-menu" ref={userMenuRef}>
+                  <div className="ss-avatar" title={user.name} onClick={() => setUserMenuOpen(o => !o)} style={{ cursor: 'pointer' }}>
+                    {user.avatar
+                      ? <img src={user.avatar} alt={user.name} />
+                      : user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
+                  </div>
+                  {userMenuOpen && (
+                    <div className="ss-user-dropdown">
+                      <div className="ss-user-dropdown-header">
+                        <div className="ss-user-dropdown-name">{user.name}</div>
+                        <div className="ss-user-dropdown-role">{user.role}</div>
+                      </div>
+                      <Link to="/dashboard" onClick={() => setUserMenuOpen(false)}>👤 My Dashboard</Link>
+                      <Link to="/orders" onClick={() => setUserMenuOpen(false)}>📦 My Orders</Link>
+                      {user.role === 'admin' && <Link to="/admin" onClick={() => setUserMenuOpen(false)}>⚡ Admin Panel</Link>}
+                      <button className="ss-logout-btn" onClick={handleLogout}>↩ Logout</button>
+                    </div>
+                  )}
+                </div>
               </>
             ) : (
               <>
@@ -254,17 +295,21 @@ export default function Navbar() {
             </Link>
             {user ? (
               <>
-                <Link to="/orders" onClick={close}>📦 <span>My Orders</span></Link>
-                <Link to="/dashboard" onClick={close} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ width: '28px', height: '28px', borderRadius: '50%', background: accent, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.72rem', flexShrink: 0, overflow: 'hidden', border: '2px solid rgba(255,255,255,0.2)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  <span style={{ width: '36px', height: '36px', borderRadius: '50%', background: accent, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.78rem', flexShrink: 0, overflow: 'hidden', border: '2px solid rgba(255,255,255,0.2)' }}>
                     {user.avatar
                       ? <img src={user.avatar} alt={user.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       : user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
                   </span>
-                  <span>{user.name.split(' ')[0]} — Dashboard</span>
-                </Link>
+                  <div>
+                    <div style={{ color: '#fff', fontWeight: 700, fontSize: '0.9rem' }}>{user.name}</div>
+                    <div style={{ color: '#94a3b8', fontSize: '0.72rem', textTransform: 'capitalize' }}>{user.role}</div>
+                  </div>
+                </div>
+                <Link to="/dashboard" onClick={close}>👤 <span>My Dashboard</span></Link>
+                <Link to="/orders" onClick={close}>📦 <span>My Orders</span></Link>
                 {user.role === 'admin' && <Link to="/admin" onClick={close}>⚡ <span>Admin Panel</span></Link>}
-                <button onClick={handleLogout}>↩ <span>Logout</span></button>
+                <button className="ss-drawer-logout" onClick={handleLogout}>↩ <span>Logout</span></button>
               </>
             ) : (
               <>
